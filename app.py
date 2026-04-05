@@ -2,13 +2,13 @@ import base64
 import os
 import shutil
 import requests
+import json
 from fastapi import FastAPI, Form, UploadFile, File
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 from pypdf import PdfReader
 
 app = FastAPI()
 
-# 🔑 API KEY (from Railway env)
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 UPLOAD_DIR = "uploads"
@@ -23,139 +23,119 @@ def home():
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>CIPHER // RESEARCH TERMINAL</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;500&display=swap" rel="stylesheet">
-    <style>
-        body { background-color: #06090f; font-family: 'Fira Code', monospace; color: #c9d1d9; }
-        .cyber-border { border: 1px solid #161b22; }
-        .neon-text { color: #00f2ff; text-shadow: 0 0 10px rgba(0, 242, 255, 0.3); }
-        .sidebar { background-color: #0d1117; width: 300px; border-right: 1px solid #30363d; }
-        .terminal-header { background-color: #161b22; border-bottom: 1px solid #30363d; }
-        .bot-msg { background: rgba(13, 17, 23, 0.8); border: 1px solid #21262d; border-left: 4px solid #00f2ff; }
-        .user-msg { background: #161b22; border: 1px solid #30363d; color: #58a6ff; }
-        ::-webkit-scrollbar { width: 5px; }
-        ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 10px; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CIPHER // RESEARCH TERMINAL</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+body { background-color: #06090f; color: #c9d1d9; font-family: monospace; }
+.sidebar { background-color: #0d1117; border-right: 1px solid #30363d; }
+.bot-msg { background: #0d1117; border-left: 4px solid #00f2ff; }
+.user-msg { background: #161b22; color: #58a6ff; }
+</style>
 </head>
-<body class="h-screen flex overflow-hidden">
 
-    <aside class="sidebar flex flex-col p-6 space-y-8">
-        <div>
-            <h1 class="text-2xl font-bold neon-text tracking-tighter">CIPHER</h1>
-            <p class="text-[9px] text-gray-500 uppercase tracking-widest">Cybersecurity AI // Lab Mode</p>
+<body class="min-h-screen flex flex-col md:flex-row">
+
+<aside class="sidebar p-4 w-full md:w-[280px]">
+<h1 class="text-cyan-400 text-lg">CIPHER</h1>
+</aside>
+
+<main class="flex-1 flex flex-col">
+
+<div id="chat-container" class="flex-1 overflow-y-auto p-4 space-y-4"></div>
+
+<div class="p-4 border-t border-gray-800">
+<div class="flex flex-col md:flex-row gap-2">
+
+<input id="msg-input" class="flex-1 p-2 text-black" placeholder="Ask...">
+
+<input type="file" id="img-upload">
+
+<button onclick="sendQuery()" class="bg-cyan-500 px-4 py-2">
+Send
+</button>
+
+</div>
+</div>
+
+</main>
+
+<script>
+
+async function sendQuery() {
+    const input = document.getElementById('msg-input');
+    const chat = document.getElementById('chat-container');
+    const imgInput = document.getElementById('img-upload');
+
+    const message = input.value;
+    if (!message && !imgInput.files[0]) return;
+
+    chat.innerHTML += `<div class="text-right user-msg p-2 rounded">${message}</div>`;
+
+    const botDiv = document.createElement("div");
+    botDiv.className = "bot-msg p-3 rounded";
+    botDiv.innerHTML = `<div id="streaming"></div>`;
+    chat.appendChild(botDiv);
+
+    const formData = new FormData();
+    formData.append('message', message);
+    if (imgInput.files[0]) formData.append('image', imgInput.files[0]);
+
+    input.value = "";
+    imgInput.value = "";
+
+    const res = await fetch('/chat', { method: 'POST', body: formData });
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+
+    let fullText = "";
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        fullText += chunk;
+
+        document.getElementById("streaming").innerHTML = formatResponse(fullText);
+        chat.scrollTop = chat.scrollHeight;
+    }
+}
+
+function formatResponse(text) {
+    const codeRegex = /```([\\s\\S]*?)```/g;
+
+    return text.replace(codeRegex, (match, code) => {
+        const escaped = code.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        return `
+        <div class="bg-black border border-cyan-800 rounded p-3 my-2 relative">
+            <button onclick="copyCode(this)" 
+                class="absolute top-2 right-2 text-xs bg-cyan-800 px-2 py-1">
+                Copy
+            </button>
+            <pre class="text-xs text-green-400 overflow-x-auto">${escaped}</pre>
         </div>
+        `;
+    });
+}
 
-        <div class="space-y-4 text-[10px] uppercase">
-            <div class="flex justify-between"><span>Local Engine</span><span class="text-green-500">● Active</span></div>
-            <div class="flex justify-between"><span>Groq Cloud</span><span class="text-cyan-400">● Ready</span></div>
-            <div class="flex justify-between"><span>Restrictions</span><span class="text-red-500">● None</span></div>
-            <div class="flex justify-between"><span>Mode</span><span class="text-gray-400 font-bold">Auto-Route</span></div>
-        </div>
+function copyCode(btn) {
+    const code = btn.parentElement.querySelector("pre").innerText;
+    navigator.clipboard.writeText(code);
+    btn.innerText = "Copied!";
+    setTimeout(() => btn.innerText = "Copy", 1500);
+}
 
-        <div class="flex-1 flex flex-col">
-            <label class="text-[10px] text-gray-500 uppercase mb-4 font-bold tracking-widest">Knowledge Base</label>
-            <div id="drop-zone" class="border-2 border-dashed border-gray-800 rounded-lg p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:border-cyan-900 transition-all">
-                <svg class="h-8 w-8 text-gray-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" stroke-width="2"></path></svg>
-                <p class="text-[10px] text-gray-500">DROP PDF / TXT / MD</p>
-            </div>
-            <input type="file" id="pdf-upload" class="hidden" onchange="uploadFile()">
-            <button onclick="document.getElementById('pdf-upload').click()" class="mt-4 w-full py-2 border border-cyan-800 text-cyan-500 text-[10px] uppercase hover:bg-cyan-950">Upload & Store</button>
-            
-            <div class="mt-8">
-                <label class="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Stored Documents</label>
-                <div id="doc-list" class="mt-4 space-y-2">
-                    </div>
-            </div>
-        </div>
-    </aside>
+</script>
 
-    <main class="flex-1 flex flex-col">
-        <header class="terminal-header h-12 flex items-center px-6 justify-between">
-            <div class="flex space-x-4 items-center">
-                <span class="text-[10px] text-gray-500 font-bold">RESEARCH TERMINAL</span>
-                <span class="text-[9px] border border-green-900 text-green-600 px-2 py-0.5 rounded">LAB-SCOPED</span>
-                <span class="text-[9px] border border-cyan-900 text-cyan-600 px-2 py-0.5 rounded">LLAMA 3.1 8B</span>
-                <span class="text-[9px] border border-pink-900 text-pink-600 px-2 py-0.5 rounded">UNRESTRICTED</span>
-            </div>
-        </header>
-
-        <div id="chat-container" class="flex-1 overflow-y-auto p-8 space-y-6">
-            <div class="text-cyan-500 text-xs italic">Ready. Enter query.</div>
-        </div>
-
-        <div class="p-6 bg-[#0d1117] border-t border-[#30363d]">
-            <div class="max-w-5xl mx-auto flex items-center space-x-4">
-                <div class="flex-1 relative flex items-center">
-                    <span class="absolute left-4 text-cyan-500">></span>
-                    <input type="text" id="msg-input" 
-                           class="w-full bg-[#06090f] border border-[#30363d] rounded-md pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-cyan-500" 
-                           placeholder="Ask about exploits, malware, CTFs, payloads, recon..."
-                           onkeypress="if(event.key === 'Enter') sendQuery()">
-                    
-                    <input type="file" id="img-upload" class="hidden" accept="image/*" onchange="previewImg()">
-                    <button onclick="document.getElementById('img-upload').click()" class="absolute right-4 text-gray-500 hover:neon-text">
-                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" stroke-width="2"></path></svg>
-                    </button>
-                </div>
-                <button onclick="sendQuery()" class="bg-[#161b22] border border-[#30363d] text-[10px] font-bold px-6 py-3 rounded hover:bg-cyan-950 hover:text-cyan-400 uppercase">Send ►</button>
-            </div>
-            <div id="img-label" class="hidden text-[9px] text-cyan-600 mt-2 ml-10 italic">SENSITIVE TOPICS → LOCAL MODEL</div>
-        </div>
-    </main>
-
-    <script>
-        async function uploadFile() {
-            const file = document.getElementById('pdf-upload').files[0];
-            const formData = new FormData();
-            formData.append('file', file);
-            
-            const res = await fetch('/upload', { method: 'POST', body: formData });
-            const data = await res.json();
-            
-            const docList = document.getElementById('doc-list');
-            docList.innerHTML += `<div class="text-[10px] bg-[#161b22] p-2 rounded flex justify-between border border-gray-800">
-                <span class="text-cyan-700">${file.name}</span>
-                <span class="text-red-900 cursor-pointer">×</span>
-            </div>`;
-        }
-
-        function previewImg() {
-            document.getElementById('img-label').classList.remove('hidden');
-        }
-
-        async function sendQuery() {
-            const input = document.getElementById('msg-input');
-            const chat = document.getElementById('chat-container');
-            const imgInput = document.getElementById('img-upload');
-            const message = input.value;
-            if (!message && !imgInput.files[0]) return;
-
-            chat.innerHTML += `<div class="flex justify-end"><div class="user-msg px-4 py-2 rounded text-xs">${message}</div></div>`;
-            
-            const formData = new FormData();
-            formData.append('message', message);
-            if (imgInput.files[0]) formData.append('image', imgInput.files[0]);
-
-            input.value = '';
-            document.getElementById('img-label').classList.add('hidden');
-            
-            const res = await fetch('/chat', { method: 'POST', body: formData });
-            const data = await res.json();
-
-            chat.innerHTML += `
-                <div class="bot-msg p-4 rounded-lg text-sm max-w-5xl">
-                    <p class="text-[10px] text-green-500 font-bold mb-2 uppercase tracking-widest">CIPHER 🔒 Local (Private)</p>
-                    <div class="leading-relaxed text-gray-300 whitespace-pre-wrap">${data.reply}</div>
-                </div>`;
-            chat.scrollTop = chat.scrollHeight;
-            imgInput.value = '';
-        }
-    </script>
 </body>
 </html>
 """
+
 # ---------------- FILE UPLOAD ----------------
 @app.post("/upload")
 async def upload(file: UploadFile = File(...)):
@@ -169,50 +149,33 @@ async def upload(file: UploadFile = File(...)):
     reader = PdfReader(filepath)
 
     text = f"\n--- FROM DOCUMENT: {file.filename} ---\n"
-
     for page in reader.pages:
         text += page.extract_text() or ""
 
     knowledge_base += text
-
     return {"status": "Knowledge absorbed"}
 
-# ---------------- CHAT ----------------
+# ---------------- CHAT (STREAMING) ----------------
 @app.post("/chat")
 async def chat(message: str = Form(...), image: UploadFile = File(None)):
-    import base64
-    import requests
-    import os
-
-    GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-
-    if not GROQ_API_KEY:
-        return {"reply": "❌ ERROR: API key missing"}
 
     content = [{"type": "text", "text": message}]
 
-    # 👁️ Vision support
     if image:
         img_bytes = await image.read()
         img_b64 = base64.b64encode(img_bytes).decode()
-
         content.append({
             "type": "image_url",
-            "image_url": {
-                "url": f"data:image/jpeg;base64,{img_b64}"
-            }
+            "image_url": {"url": f"data:image/jpeg;base64,{img_b64}"}
         })
 
     system_prompt = f"""
-You are CIPHER AI — an advanced cybersecurity assistant.
-
-Use this knowledge if available:
+You are CIPHER AI — cybersecurity assistant.
+Use this knowledge:
 {knowledge_base}
-
-Be technical, clear, and helpful.
 """
 
-    try:
+    def stream():
         response = requests.post(
             "https://api.groq.com/openai/v1/chat/completions",
             headers={
@@ -220,23 +183,26 @@ Be technical, clear, and helpful.
                 "Content-Type": "application/json"
             },
             json={
-                "model": "llama-3.1-8b-instant",  # ✅ WORKING MODEL
+                "model": "llama-3.1-8b-instant",
                 "messages": [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": content}
                 ],
-                "temperature": 0.4
-            }
+                "stream": True
+            },
+            stream=True
         )
 
-        data = response.json()
+        for line in response.iter_lines():
+            if line:
+                try:
+                    decoded = line.decode().replace("data: ", "")
+                    if decoded == "[DONE]":
+                        break
+                    chunk = json.loads(decoded)
+                    token = chunk["choices"][0]["delta"].get("content", "")
+                    yield token
+                except:
+                    pass
 
-        if "choices" not in data:
-            return {"reply": f"❌ API ERROR: {data}"}
-
-        reply = data["choices"][0]["message"]["content"]
-
-    except Exception as e:
-        return {"reply": f"❌ SERVER ERROR: {str(e)}"}
-
-    return {"reply": reply}
+    return StreamingResponse(stream(), media_type="text/plain")
