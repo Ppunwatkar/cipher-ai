@@ -177,18 +177,67 @@ async def upload(file: UploadFile = File(...)):
 # ---------------- CHAT ----------------
 @app.post("/chat")
 async def chat(message: str = Form(...), image: UploadFile = File(None)):
+    import os
+    import base64
+    import requests
 
-    img_content = None
+    GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
+    if not GROQ_API_KEY:
+        return {"reply": "ERROR: API key missing"}
+
+    content = [{"type": "text", "text": message}]
+
+    # 🔥 Handle image (vision)
     if image:
-        content = await image.read()
-        img_content = {
+        img_bytes = await image.read()
+        img_b64 = base64.b64encode(img_bytes).decode()
+
+        content.append({
             "type": "image_url",
             "image_url": {
-                "url": f"data:image/jpeg;base64,{base64.b64encode(content).decode()}"
+                "url": f"data:image/jpeg;base64,{img_b64}"
             }
-        }
+        })
 
+    # 🧠 System prompt (your intelligence layer)
+    system_prompt = f"""
+You are CIPHER AI — an advanced cybersecurity assistant.
+
+Use this knowledge if available:
+{knowledge_base}
+
+Be technical, clear, and helpful.
+"""
+
+    try:
+        response = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {GROQ_API_KEY}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": "llama3-8b-8192",
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": content}
+                ],
+                "temperature": 0.4
+            }
+        )
+
+        data = response.json()
+
+        if "choices" not in data:
+            return {"reply": f"ERROR: {data}"}
+
+        reply = data["choices"][0]["message"]["content"]
+
+    except Exception as e:
+        return {"reply": f"ERROR: {str(e)}"}
+
+    return {"reply": reply}
     # SYSTEM PROMPT
     system_prompt = f"""
 You are CIPHER AI — a cybersecurity research assistant.
