@@ -45,11 +45,12 @@ async def chat(message: str = Form(...)):
     }
 
     payload = {
-        "model": "llama3-70b-8192",
-        "messages": [
-            {"role": "user", "content": message}
-        ]
-    }
+    "model": "llama-3.3-70b-versatile",
+    "messages": [
+        {"role": "user", "content": message}
+    ],
+    "temperature": 0.7
+}
 
     try:
         response = requests.post(
