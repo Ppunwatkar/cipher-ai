@@ -51,6 +51,54 @@ body::before {
 }
 
 .btn { border:1px solid #00f2ff; padding:10px; }
+
+/* CHAT LIST */
+.chat-item {
+    display:flex;
+    justify-content:space-between;
+    padding:4px;
+    cursor:pointer;
+}
+
+.chat-actions {
+    display:none;
+    gap:5px;
+}
+
+.chat-item:hover .chat-actions {
+    display:flex;
+}
+
+.chat-actions span {
+    font-size:10px;
+    cursor:pointer;
+}
+
+/* CODE BLOCK */
+.code-block {
+    background:#020617;
+    border:1px solid #1f2937;
+    border-radius:8px;
+    padding:12px;
+    margin-top:10px;
+    position:relative;
+}
+
+.copy-btn {
+    position:absolute;
+    top:6px;
+    right:6px;
+    background:#0b0f17;
+    border:1px solid #374151;
+    border-radius:6px;
+    padding:4px;
+    cursor:pointer;
+    opacity:0;
+}
+
+.code-block:hover .copy-btn {
+    opacity:1;
+}
 </style>
 </head>
 
@@ -59,14 +107,6 @@ body::before {
 <div class="sidebar p-5 flex flex-col">
 <h1 class="text-cyan-400 text-xl font-bold">CIPHER</h1>
 <p class="text-xs text-gray-500 mb-6">CYBERSECURITY AI</p>
-
-<div class="text-xs space-y-2">
-<p>🟢 LOCAL ENGINE: ACTIVE</p>
-<p>🔵 CLOUD: READY</p>
-<p>🔴 RESTRICTIONS: NONE</p>
-</div>
-
-<hr class="my-4 border-gray-700">
 
 <button onclick="createNewChat()" class="btn text-xs">+ NEW CHAT</button>
 <div id="chatList" class="mt-4 text-xs overflow-y-auto"></div>
@@ -78,9 +118,9 @@ body::before {
 <span class="text-cyan-400">RESEARCH TERMINAL</span>
 
 <div class="flex gap-2">
-<span class="badge border-green-400 text-green-400" data-mode="live">LIVE</span>
-<span class="badge border-blue-400 text-blue-400" data-mode="llama">LLAMA</span>
-<span class="badge border-red-400 text-red-400" data-mode="unrestricted">UNRESTRICTED</span>
+<span class="badge" data-mode="live">LIVE</span>
+<span class="badge" data-mode="llama">LLAMA</span>
+<span class="badge" data-mode="unrestricted">UNRESTRICTED</span>
 </div>
 </div>
 
@@ -88,7 +128,7 @@ body::before {
 
 <div class="p-4 flex gap-2">
 <input id="msg" class="flex-1 input-box px-3 py-2 text-sm"
-placeholder="Ask about exploits, CTFs, recon..."
+placeholder="Ask something..."
 onkeypress="if(event.key==='Enter') send()">
 
 <button onclick="send()" class="btn">SEND ▶</button>
@@ -102,65 +142,109 @@ let chats = {};
 let currentChat = null;
 let currentMode = "live";
 
-// 🔥 WAIT FOR DOM
 document.addEventListener("DOMContentLoaded", () => {
 
-    // MODE SWITCH FIX
     document.querySelectorAll(".badge").forEach(el=>{
         el.onclick = () => {
             currentMode = el.dataset.mode;
-
-            document.querySelectorAll(".badge").forEach(b=>{
-                b.classList.remove("bg-cyan-400");
-            });
-
-            el.classList.add("bg-cyan-400");
         }
     });
 
-    init();
-});
-
-// INIT
-function init(){
     createNewChat();
-}
+});
 
 // NEW CHAT
 function createNewChat(){
     currentChat = "chat_" + Date.now();
-    chats[currentChat] = [];
+
+    chats[currentChat] = {
+        title: "New Chat",
+        messages: []
+    };
+
     renderList();
     render();
 }
 
-// LIST
+// CHAT LIST
 function renderList(){
     const list = document.getElementById("chatList");
     list.innerHTML = "";
 
     Object.keys(chats).forEach(id=>{
-        const d = document.createElement("div");
-        d.className="cursor-pointer hover:text-cyan-400";
-        d.innerText=id;
-        d.onclick=()=>{currentChat=id; render();}
-        list.appendChild(d);
+        const wrapper = document.createElement("div");
+        wrapper.className = "chat-item";
+
+        const name = document.createElement("span");
+        name.innerText = chats[id].title;
+
+        name.onclick = ()=>{
+            currentChat = id;
+            render();
+        };
+
+        const actions = document.createElement("div");
+        actions.className = "chat-actions";
+
+        // rename
+        const r = document.createElement("span");
+        r.innerText = "✏️";
+        r.onclick = (e)=>{
+            e.stopPropagation();
+            const n = prompt("Rename chat", chats[id].title);
+            if(n){
+                chats[id].title = n;
+                renderList();
+            }
+        };
+
+        // delete
+        const d = document.createElement("span");
+        d.innerText = "🗑";
+        d.onclick = (e)=>{
+            e.stopPropagation();
+            delete chats[id];
+            currentChat = Object.keys(chats)[0];
+            renderList();
+            render();
+        };
+
+        // share
+        const s = document.createElement("span");
+        s.innerText = "🔗";
+        s.onclick = (e)=>{
+            e.stopPropagation();
+
+            const text = chats[id].messages
+                .map(m=>`${m.role}: ${m.content}`)
+                .join("\n\n");
+
+            navigator.clipboard.writeText(text);
+            alert("Copied!");
+        };
+
+        actions.appendChild(r);
+        actions.appendChild(d);
+        actions.appendChild(s);
+
+        wrapper.appendChild(name);
+        wrapper.appendChild(actions);
+
+        list.appendChild(wrapper);
     });
 }
 
-// RENDER
+// RENDER CHAT
 function render(){
     const chat = document.getElementById("chat");
     chat.innerHTML="";
 
-    (chats[currentChat]||[]).forEach(m=>{
-        const d=document.createElement("div");
-        d.className = m.role==="user"?"user":"bot";
-        d.innerText = m.content;
-        chat.appendChild(d);
+    (chats[currentChat]?.messages || []).forEach(m=>{
+        const div = document.createElement("div");
+        div.className = m.role==="user"?"user":"bot";
+        div.innerText = m.content;
+        chat.appendChild(div);
     });
-
-    chat.scrollTop = chat.scrollHeight;
 }
 
 // SEND
@@ -168,43 +252,39 @@ async function send(){
     const input = document.getElementById("msg");
     if(!input.value.trim()) return;
 
-    const text = input.value.trim();
+    const text = input.value;
 
-    chats[currentChat].push({role:"user",content:text});
+    chats[currentChat].messages.push({role:"user",content:text});
+
+    // auto title
+    if(chats[currentChat].messages.length === 1){
+        chats[currentChat].title = text.slice(0,20);
+        renderList();
+    }
+
     render();
-
     input.value="";
 
-    const botDiv = document.createElement("div");
-    botDiv.className="bot";
-    botDiv.innerText=">> Processing...";
-    document.getElementById("chat").appendChild(botDiv);
+    const res = await fetch("/chat",{
+        method:"POST",
+        headers:{
+            "Content-Type":"application/x-www-form-urlencoded"
+        },
+        body:new URLSearchParams({
+            message:text,
+            chat_id:currentChat,
+            mode:currentMode
+        })
+    });
 
-    try {
-        const res = await fetch("/chat", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded"
-            },
-            body: new URLSearchParams({
-                message: text,
-                chat_id: currentChat,
-                mode: currentMode
-            })
-        });
+    const data = await res.json();
 
-        const data = await res.json();
+    chats[currentChat].messages.push({
+        role:"bot",
+        content:data.response
+    });
 
-        botDiv.innerText = data.response || "⚠️ No response";
-
-        chats[currentChat].push({
-            role:"bot",
-            content:data.response
-        });
-
-    } catch(e){
-        botDiv.innerText = "❌ Backend error";
-    }
+    render();
 }
 
 </script>
