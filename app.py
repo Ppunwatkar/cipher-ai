@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
-# =========================
+# ========================
 # CORS
 # =========================
 app.add_middleware(
