@@ -1,29 +1,46 @@
 import requests
-import json
 import os
-from fastapi import FastAPI, Form, UploadFile, File
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi import FastAPI, Form
+from fastapi.responses import HTMLResponse
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
+# ✅ CORS (important)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 LLAMA_API = "https://api.groq.com/openai/v1/chat/completions"
+
 
 # =========================
 # 🌐 UI
 # =========================
 @app.get("/", response_class=HTMLResponse)
 def home():
-    return open("index.html").read()
+    with open("index.html", "r", encoding="utf-8") as f:
+        return f.read()
 
 
 # =========================
-# 🤖 CHAT (FIXED)
-# ========================
+# 🤖 CHAT (CLEAN + SAFE)
+# =========================
 @app.post("/chat")
 async def chat(message: str = Form(...)):
 
+    api_key = os.environ.get("GROQ_API_KEY")
+
+    # 🔴 If API key missing
+    if not api_key:
+        return {"response": "❌ GROQ_API_KEY not set"}
+
     headers = {
-        "Authorization": f"Bearer {os.environ.get('GROQ_API_KEY')}",
+        "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"
     }
 
@@ -34,73 +51,34 @@ async def chat(message: str = Form(...)):
         ]
     }
 
-    response = requests.post(
-        "https://api.groq.com/openai/v1/chat/completions",
-        headers=headers,
-        json=payload
-    )
+    try:
+        response = requests.post(
+            LLAMA_API,
+            headers=headers,
+            json=payload,
+            timeout=30
+        )
 
-    data = response.json()
+        # 🔴 Handle API error
+        if response.status_code != 200:
+            return {
+                "response": f"❌ API Error {response.status_code}: {response.text}"
+            }
 
-    return {
-        "response": data["choices"][0]["message"]["content"]
-    }
+        data = response.json()
 
-    def stream():
-        try:
-            response = requests.post(
-                LLAMA_API,
-                headers=headers,
-                json=payload,
-                stream=True,
-                timeout=60
-            )
+        return {
+            "response": data["choices"][0]["message"]["content"]
+        }
 
-            # 🔥 SHOW ERROR IF API FAILS
-            if response.status_code != 200:
-                yield f"❌ API Error {response.status_code}: {response.text}"
-                return
-
-            full_text = ""
-
-            for line in response.iter_lines():
-                if not line:
-                    continue
-
-                decoded = line.decode("utf-8")
-
-                # remove "data: "
-                if decoded.startswith("data: "):
-                    decoded = decoded[6:]
-
-                if decoded.strip() == "[DONE]":
-                    break
-
-                try:
-                    data = json.loads(decoded)
-
-                    delta = data.get("choices", [{}])[0].get("delta", {})
-                    content = delta.get("content")
-
-                    if content:
-                        full_text += content
-                        yield content
-
-                except Exception:
-                    yield f"\n⚠️ Parse Error: {decoded}\n"
-
-            # 🔥 FALLBACK (IMPORTANT)
-            if not full_text:
-                yield "⚠️ No response from model. Check API key / model."
-
-        except Exception as e:
-            yield f"❌ Backend Error: {str(e)}"
-
-    return StreamingResponse(stream(), media_type="text/plain")
+    except Exception as e:
+        return {
+            "response": f"❌ Backend Error: {str(e)}"
+        }
 
 
 # =========================
-# 🚀 RUN (RAILWAY SAFE)
+# 🚀 RUN
 # =========================
 if __name__ == "__main__":
     import uvicorn

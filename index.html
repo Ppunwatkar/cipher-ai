@@ -52,11 +52,13 @@ body::before {
     background:#0d1117;
     padding:12px;
     margin-top:10px;
+    white-space: pre-wrap;
 }
 
 .user {
     text-align:right;
     margin-top:10px;
+    white-space: pre-wrap;
 }
 
 /* INPUT */
@@ -153,7 +155,7 @@ function renderList(){
 
     Object.keys(chats).forEach(id=>{
         const d = document.createElement("div");
-        d.className="chat-item";
+        d.className="chat-item cursor-pointer hover:text-cyan-400";
         d.innerText=id;
         d.onclick=()=>{currentChat=id; render();}
         list.appendChild(d);
@@ -175,12 +177,12 @@ function render(){
     chat.scrollTop = chat.scrollHeight;
 }
 
-// SEND (JSON BASED)
+// SEND (FIXED)
 async function send(){
     const input = document.getElementById("msg");
-    if(!input.value) return;
+    if(!input.value.trim()) return;
 
-    const text = input.value;
+    const text = input.value.trim();
 
     chats[currentChat].push({role:"user",content:text});
     render();
@@ -193,14 +195,17 @@ async function send(){
     document.getElementById("chat").appendChild(botDiv);
 
     try {
-        const res = await fetch("/chat",{
-            method:"POST",
-            body:new URLSearchParams({message:text})
+        const res = await fetch("/chat", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded"
+            },
+            body: new URLSearchParams({ message: text })
         });
 
         const data = await res.json();
 
-        botDiv.innerText = data.response || "No response";
+        botDiv.innerText = data.response || "⚠️ No response";
 
         chats[currentChat].push({
             role:"bot",
@@ -208,7 +213,7 @@ async function send(){
         });
 
     } catch(e){
-        botDiv.innerText="Error connecting to backend";
+        botDiv.innerText = "❌ Error connecting to backend";
     }
 }
 
