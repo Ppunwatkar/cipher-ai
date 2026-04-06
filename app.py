@@ -8,7 +8,7 @@ from pathlib import Path
 app = FastAPI()
 
 # =========================
-# CORS
+ CORS
 # =========================
 app.add_middleware(
     CORSMiddleware,
