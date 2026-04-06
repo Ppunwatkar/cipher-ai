@@ -18,11 +18,10 @@ def home():
 
 # =========================
 # 🤖 CHAT (FIXED)
-# =========================
+# ========================
 @app.post("/chat")
-async def chat(message: str = Form(...), image: UploadFile = File(None)):
+async def chat(message: str = Form(...)):
 
-    # ❌ Groq does NOT support images → ignore
     headers = {
         "Authorization": f"Bearer {os.environ.get('GROQ_API_KEY')}",
         "Content-Type": "application/json"
@@ -32,8 +31,19 @@ async def chat(message: str = Form(...), image: UploadFile = File(None)):
         "model": "llama3-8b-8192",
         "messages": [
             {"role": "user", "content": message}
-        ],
-        "stream": True
+        ]
+    }
+
+    response = requests.post(
+        "https://api.groq.com/openai/v1/chat/completions",
+        headers=headers,
+        json=payload
+    )
+
+    data = response.json()
+
+    return {
+        "response": data["choices"][0]["message"]["content"]
     }
 
     def stream():
