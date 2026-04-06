@@ -1,5 +1,4 @@
 import base64
-import os
 import requests
 import json
 from fastapi import FastAPI, Form, UploadFile, File
@@ -28,7 +27,7 @@ body {
     color:#c9d1d9;
 }
 
-/* GRID */
+/* GRID BACKGROUND */
 body::before {
     content:"";
     position:fixed;
@@ -40,14 +39,14 @@ body::before {
     z-index:-1;
 }
 
-/* PANELS */
+/* SIDEBARS */
 .sidebar { width:240px; background:#0d1117; border-right:1px solid #30363d; }
 .tools { width:220px; background:#0d1117; border-left:1px solid #30363d; }
 
 /* TEXT */
 .neon { color:#00f2ff; text-shadow:0 0 10px rgba(0,242,255,0.6); }
 
-/* MSG */
+/* MESSAGES */
 .bot-msg { background:#0d1117; border-left:3px solid #00f2ff; padding:10px; }
 .user-msg { background:#161b22; color:#58a6ff; padding:8px; }
 
@@ -55,11 +54,11 @@ body::before {
 .code { background:black; border:1px solid cyan; padding:10px; margin-top:10px; position:relative; }
 .copy { position:absolute; right:10px; top:5px; font-size:10px; }
 
-/* LIST */
+/* CHAT LIST */
 .chat-item { cursor:pointer; padding:6px; border-radius:4px; }
 .chat-item:hover { background:#161b22; }
 
-/* TOOL */
+/* TOOL BUTTON */
 .tool-btn { background:#161b22; border:1px solid #30363d; padding:5px; font-size:11px; width:100%; margin-top:5px; }
 .tool-btn:hover { background:#1f2937; }
 
@@ -70,10 +69,10 @@ body::before {
 
 <body class="flex h-screen overflow-hidden">
 
-<!-- SIDEBAR -->
+<!-- LEFT SIDEBAR -->
 <div class="sidebar p-4 flex flex-col">
 <h2 class="neon text-sm mb-4">CHATS</h2>
-<button onclick="newChat()" class="tool-btn">+ New Chat</button>
+<button onclick="createNewChat()" class="tool-btn">+ New Chat</button>
 <div id="chatList" class="mt-3 text-xs overflow-y-auto"></div>
 </div>
 
@@ -100,7 +99,7 @@ onkeypress="if(event.key==='Enter') send()">
 
 </div>
 
-<!-- TOOLS -->
+<!-- RIGHT PANEL -->
 <div class="tools p-4 text-xs">
 <h2 class="neon mb-3">TOOLS</h2>
 
@@ -112,21 +111,25 @@ onkeypress="if(event.key==='Enter') send()">
 
 <script>
 
-// CHAT MEMORY
+// 🧠 STATE
 let chats = {};
-let currentChat = "";
+let currentChat = null;
 
-// INIT
-function newChat() {
+// 🚀 INIT
+function init() {
+    createNewChat();
+}
+
+// 🆕 NEW CHAT
+function createNewChat() {
     currentChat = "chat_" + Date.now();
     chats[currentChat] = [];
-    renderChats();
+    renderChatList();
     renderMessages();
 }
-newChat();
 
-// RENDER CHAT LIST
-function renderChats() {
+// 📜 CHAT LIST
+function renderChatList() {
     const list = document.getElementById("chatList");
     list.innerHTML = "";
 
@@ -134,39 +137,54 @@ function renderChats() {
         const el = document.createElement("div");
         el.className = "chat-item";
         el.innerText = id;
+
         el.onclick = () => {
             currentChat = id;
             renderMessages();
         };
+
         list.appendChild(el);
     });
 }
 
-// RENDER MESSAGES
+// 💬 RENDER
 function renderMessages() {
     const chat = document.getElementById("chat");
     chat.innerHTML = "";
 
-    (chats[currentChat] || []).forEach(m => {
-        const div = document.createElement("div");
-        div.className = m.role === "user" ? "text-right" : "";
-        div.innerHTML = `<div class="${m.role === 'user' ? 'user-msg' : 'bot-msg'}">${m.content}</div>`;
-        chat.appendChild(div);
+    if (!chats[currentChat]) return;
+
+    chats[currentChat].forEach(msg => {
+        const wrap = document.createElement("div");
+        wrap.className = msg.role === "user" ? "text-right" : "";
+
+        const bubble = document.createElement("div");
+        bubble.className = msg.role === "user"
+            ? "user-msg inline-block px-3 py-2"
+            : "bot-msg";
+
+        bubble.innerHTML = msg.content;
+        wrap.appendChild(bubble);
+        chat.appendChild(wrap);
     });
+
+    scrollBottom();
 }
 
-// QUICK TOOL
+// ⚡ TOOL
 function quick(text) {
     document.getElementById("msg").value = text;
 }
 
-// SEND
+// 🚀 SEND
 async function send() {
     const input = document.getElementById("msg");
     const img = document.getElementById("img");
-    const chat = document.getElementById("chat");
+    const chatBox = document.getElementById("chat");
 
     if (!input.value && !img.files[0]) return;
+
+    if (!currentChat) createNewChat();
 
     let userHTML = input.value;
 
@@ -175,13 +193,19 @@ async function send() {
         userHTML += `<br><img src="${preview}" class="preview">`;
     }
 
-    chats[currentChat].push({ role:"user", content:userHTML });
+    chats[currentChat].push({ role: "user", content: userHTML });
     renderMessages();
 
-    const botDiv = document.createElement("div");
+    const wrap = document.createElement("div");
+    const bubble = document.createElement("div");
+    bubble.className = "bot-msg";
+
     const stream = document.createElement("div");
-    botDiv.appendChild(stream);
-    chat.appendChild(botDiv);
+    bubble.appendChild(stream);
+    wrap.appendChild(bubble);
+    chatBox.appendChild(wrap);
+
+    scrollBottom();
 
     const form = new FormData();
     form.append("message", input.value);
@@ -190,7 +214,7 @@ async function send() {
     input.value = "";
     img.value = "";
 
-    const res = await fetch("/chat", { method:"POST", body:form });
+    const res = await fetch("/chat", { method: "POST", body: form });
 
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
@@ -203,30 +227,45 @@ async function send() {
 
         text += decoder.decode(value);
         stream.innerHTML = format(text);
-        chat.scrollTop = chat.scrollHeight;
+        scrollBottom();
     }
 
-    chats[currentChat].push({ role:"bot", content:text });
+    chats[currentChat].push({ role: "bot", content: text });
 }
 
-// FORMAT
-function format(t) {
-    return t.replace(/```([\\s\\S]*?)```/g, (_, code) => `
+// 📜 FORMAT
+function format(text) {
+    return text.replace(/```([\\s\\S]*?)```/g, (_, code) => `
         <div class="code">
             <button class="copy" onclick="copy(this)">Copy</button>
-            <pre>${escape(code)}</pre>
+            <pre>${escapeHTML(code)}</pre>
         </div>
     `);
 }
 
+// 📋 COPY
 function copy(btn) {
-    navigator.clipboard.writeText(btn.parentElement.innerText);
-    btn.innerText="Copied";
+    const code = btn.parentElement.querySelector("pre").innerText;
+    navigator.clipboard.writeText(code);
+    btn.innerText = "Copied";
 }
 
-function escape(t) {
-    return t.replace(/</g,"&lt;").replace(/>/g,"&gt;");
+// 🔐 ESCAPE
+function escapeHTML(text) {
+    return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
 }
+
+// ⬇️ SCROLL
+function scrollBottom() {
+    const chat = document.getElementById("chat");
+    chat.scrollTop = chat.scrollHeight;
+}
+
+// START
+init();
 
 </script>
 
