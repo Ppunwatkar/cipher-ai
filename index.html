@@ -1,144 +1,22 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>CIPHER AI</title>
-
-<script src="https://cdn.tailwindcss.com"></script>
-
-<style>
-body {
-    background:#04070d;
-    color:#c9d1d9;
-    font-family: 'Courier New', monospace;
-}
-
-/* GRID BACKGROUND */
-body::before {
-    content:"";
-    position:fixed;
-    width:100%;
-    height:100%;
-    background-image:
-        linear-gradient(rgba(0,255,255,0.05) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0,255,255,0.05) 1px, transparent 1px);
-    background-size: 40px 40px;
-    z-index:-1;
-}
-
-/* SIDEBAR */
-.sidebar {
-    width:260px;
-    background:#0b0f17;
-    border-right:1px solid #1f2937;
-}
-
-/* HEADER */
-.header {
-    background:#0b0f17;
-    border-bottom:1px solid #1f2937;
-}
-
-/* BADGES */
-.badge {
-    padding:2px 8px;
-    font-size:10px;
-    border:1px solid;
-}
-
-/* CHAT */
-.bot {
-    border-left:3px solid #00f2ff;
-    background:#0d1117;
-    padding:12px;
-    margin-top:10px;
-    white-space: pre-wrap;
-}
-
-.user {
-    text-align:right;
-    margin-top:10px;
-    white-space: pre-wrap;
-}
-
-/* INPUT */
-.input-box {
-    background:#04070d;
-    border:1px solid #00f2ff;
-    box-shadow:0 0 10px rgba(0,255,255,0.2);
-}
-
-/* BUTTON */
-.btn {
-    border:1px solid #00f2ff;
-    padding:10px;
-}
-</style>
-</head>
-
-<body class="flex h-screen overflow-hidden">
-
-<!-- SIDEBAR -->
-<div class="sidebar p-5 flex flex-col">
-
-<h1 class="text-cyan-400 text-xl font-bold">CIPHER</h1>
-<p class="text-xs text-gray-500 mb-6">CYBERSECURITY AI</p>
-
-<div class="text-xs space-y-2">
-<p>🟢 LOCAL ENGINE: ACTIVE</p>
-<p>🔵 CLOUD: READY</p>
-<p>🔴 RESTRICTIONS: NONE</p>
-</div>
-
-<hr class="my-4 border-gray-700">
-
-<button onclick="createNewChat()" class="btn text-xs">+ NEW CHAT</button>
-
-<div id="chatList" class="mt-4 text-xs overflow-y-auto"></div>
-
-</div>
-
-<!-- MAIN -->
-<div class="flex-1 flex flex-col">
-
-<!-- HEADER -->
-<div class="header p-3 flex justify-between text-xs">
-<span class="text-cyan-400">RESEARCH TERMINAL</span>
-
-<div class="flex gap-2">
-<span class="badge border-green-400 text-green-400">LIVE</span>
-<span class="badge border-blue-400 text-blue-400">LLAMA</span>
-<span class="badge border-red-400 text-red-400">UNRESTRICTED</span>
-</div>
-</div>
-
-<!-- CHAT -->
-<div id="chat" class="flex-1 p-6 overflow-y-auto"></div>
-
-<!-- INPUT -->
-<div class="p-4 flex gap-2">
-
-<input id="msg"
-class="flex-1 input-box px-3 py-2 text-sm"
-placeholder="Ask about exploits, CTFs, recon..."
-onkeypress="if(event.key==='Enter') send()">
-
-<button onclick="send()" class="btn">SEND ▶</button>
-
-</div>
-
-</div>
-
 <script>
 
-// STATE
 let chats = {};
 let currentChat = null;
+let currentMode = "live";
 
 // INIT
 function init(){
     createNewChat();
 }
+
+// MODE SWITCH
+document.querySelectorAll(".badge").forEach(el=>{
+    el.onclick = () => {
+        currentMode = el.innerText.toLowerCase();
+        document.querySelectorAll(".badge").forEach(b=>b.classList.remove("bg-cyan-400"));
+        el.classList.add("bg-cyan-400");
+    }
+});
 
 // NEW CHAT
 function createNewChat(){
@@ -177,7 +55,7 @@ function render(){
     chat.scrollTop = chat.scrollHeight;
 }
 
-// SEND (FIXED)
+// SEND
 async function send(){
     const input = document.getElementById("msg");
     if(!input.value.trim()) return;
@@ -191,7 +69,7 @@ async function send(){
 
     const botDiv = document.createElement("div");
     botDiv.className="bot";
-    botDiv.innerText="Thinking...";
+    botDiv.innerText=">> Processing...";
     document.getElementById("chat").appendChild(botDiv);
 
     try {
@@ -200,27 +78,27 @@ async function send(){
             headers: {
                 "Content-Type": "application/x-www-form-urlencoded"
             },
-            body: new URLSearchParams({ message: text })
+            body: new URLSearchParams({
+                message: text,
+                chat_id: currentChat,
+                mode: currentMode
+            })
         });
 
         const data = await res.json();
 
-        botDiv.innerText = data.response || "⚠️ No response";
+        botDiv.innerText = data.response;
 
         chats[currentChat].push({
             role:"bot",
-            content:botDiv.innerText
+            content:data.response
         });
 
     } catch(e){
-        botDiv.innerText = "❌ Error connecting to backend";
+        botDiv.innerText = "❌ Backend error";
     }
 }
 
-// START
 init();
 
 </script>
-
-</body>
-</html>
