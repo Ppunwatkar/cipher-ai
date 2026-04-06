@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CIPHER AI v2</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;500&display=swap" rel="stylesheet">
+
+<style>
+body {
+    background:#05080e;
+    font-family:'Fira Code', monospace;
+    color:#c9d1d9;
+}
+
+/* GRID */
+body::before {
+    content:"";
+    position:fixed;
+    width:100%;
+    height:100%;
+    background-image: linear-gradient(rgba(0,255,255,0.03) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(0,255,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    z-index:-1;
+}
+
+.sidebar { width:240px; background:#0d1117; }
+.tools { width:220px; background:#0d1117; }
+
+.neon { color:#00f2ff; text-shadow:0 0 10px rgba(0,242,255,0.6); }
+
+.bot-msg { background:#0d1117; border-left:3px solid #00f2ff; padding:10px; }
+.user-msg { background:#161b22; color:#58a6ff; padding:8px; }
+
+.chat-item { cursor:pointer; padding:6px; }
+.chat-item:hover { background:#161b22; }
+
+.tool-btn { background:#161b22; border:1px solid #30363d; padding:5px; width:100%; margin-top:5px; }
+</style>
+</head>
+
+<body class="flex h-screen">
+
+<!-- SIDEBAR -->
+<div class="sidebar p-4 flex flex-col">
+<h2 class="neon text-sm mb-4">CHATS</h2>
+<button onclick="createNewChat()" class="tool-btn">+ New Chat</button>
+<div id="chatList" class="mt-3 text-xs overflow-y-auto"></div>
+</div>
+
+<!-- MAIN -->
+<div class="flex-1 flex flex-col">
+
+<div class="p-3 border-b border-gray-700 text-xs flex justify-between">
+<span class="neon">CIPHER TERMINAL</span>
+<span class="text-green-400">LIVE</span>
+</div>
+
+<div id="chat" class="flex-1 overflow-y-auto p-6 space-y-4"></div>
+
+<div class="p-4 border-t border-gray-700 flex gap-2">
+<input id="msg" class="flex-1 bg-black border px-3 py-2 text-sm"
+placeholder="Type command..."
+onkeypress="if(event.key==='Enter') send()">
+
+<button onclick="send()" class="border px-4">Send</button>
+</div>
+
+</div>
+
+<!-- TOOLS -->
+<div class="tools p-4 text-xs">
+<h2 class="neon mb-3">TOOLS</h2>
+<button class="tool-btn" onclick="quick('Run nmap scan')">NMAP</button>
+<button class="tool-btn" onclick="quick('SQL injection test')">SQLMAP</button>
+<button class="tool-btn" onclick="quick('Recon on domain')">RECON</button>
+</div>
+
+<script>
+
+// 🧠 STATE
+let chats = {};
+let currentChat = null;
+
+// 🚀 LOAD FROM BACKEND
+async function loadChats() {
+    const res = await fetch("/chats");
+    chats = await res.json();
+
+    if (Object.keys(chats).length === 0) {
+        createNewChat();
+    } else {
+        currentChat = Object.keys(chats)[0];
+    }
+
+    renderChatList();
+    renderMessages();
+}
+
+// 🆕 NEW CHAT
+function createNewChat() {
+    currentChat = "chat_" + Date.now();
+    chats[currentChat] = [];
+    renderChatList();
+    renderMessages();
+}
+
+// 📜 CHAT LIST
+function renderChatList() {
+    const list = document.getElementById("chatList");
+    list.innerHTML = "";
+
+    Object.keys(chats).forEach(id => {
+        const el = document.createElement("div");
+        el.className = "chat-item";
+        el.innerText = id;
+
+        el.onclick = () => {
+            currentChat = id;
+            renderMessages();
+        };
+
+        list.appendChild(el);
+    });
+}
+
+// 💬 RENDER
+function renderMessages() {
+    const chat = document.getElementById("chat");
+    chat.innerHTML = "";
+
+    (chats[currentChat] || []).forEach(msg => {
+        const wrap = document.createElement("div");
+        wrap.className = msg.role === "user" ? "text-right" : "";
+
+        const bubble = document.createElement("div");
+        bubble.className = msg.role === "user" ? "user-msg" : "bot-msg";
+
+        bubble.innerHTML = msg.content;
+        wrap.appendChild(bubble);
+        chat.appendChild(wrap);
+    });
+
+    scrollBottom();
+}
+
+// ⚡ TOOL
+function quick(text) {
+    document.getElementById("msg").value = text;
+}
+
+// 🚀 SEND
+async function send() {
+    const input = document.getElementById("msg");
+    if (!input.value) return;
+
+    const userText = input.value;
+
+    // SAVE USER (LOCAL)
+    chats[currentChat].push({ role: "user", content: userText });
+
+    // SAVE USER (BACKEND)
+    await fetch("/save", {
+        method: "POST",
+        body: new URLSearchParams({
+            chat_id: currentChat,
+            role: "user",
+            content: userText
+        })
+    });
+
+    renderMessages();
+
+    const chatBox = document.getElementById("chat");
+
+    const wrap = document.createElement("div");
+    const bubble = document.createElement("div");
+    bubble.className = "bot-msg";
+
+    const stream = document.createElement("div");
+    bubble.appendChild(stream);
+    wrap.appendChild(bubble);
+    chatBox.appendChild(wrap);
+
+    const res = await fetch("/chat", {
+        method: "POST",
+        body: new URLSearchParams({ message: userText })
+    });
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+
+    let text = "";
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        text += decoder.decode(value);
+        stream.innerHTML = text;
+        scrollBottom();
+    }
+
+    // SAVE BOT (LOCAL)
+    chats[currentChat].push({ role: "bot", content: text });
+
+    // SAVE BOT (BACKEND)
+    await fetch("/save", {
+        method: "POST",
+        body: new URLSearchParams({
+            chat_id: currentChat,
+            role: "bot",
+            content: text
+        })
+    });
+
+    renderMessages();
+    input.value = "";
+}
+
+// ⬇️ SCROLL
+function scrollBottom() {
+    const chat = document.getElementById("chat");
+    chat.scrollTop = chat.scrollHeight;
+}
+
+// INIT
+loadChats();
+
+</script>
+
+</body>
+</html>
