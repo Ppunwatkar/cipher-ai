@@ -6,7 +6,7 @@ from fastapi.responses import HTMLResponse, StreamingResponse
 
 app = FastAPI()
 
-LLAMA_API = "http://localhost:8080/v1/chat/completions"
+LLAMA_API = "https://api.groq.com/openai/v1/chat/completions"
 
 @app.get("/", response_class=HTMLResponse)
 def home():
@@ -276,47 +276,73 @@ init();
 @app.post("/chat")
 async def chat(message: str = Form(...), image: UploadFile = File(None)):
 
-    img_b64 = ""
+    import os
+
+    img_b64 = None
     if image:
         content = await image.read()
         img_b64 = base64.b64encode(content).decode("utf-8")
 
+    headers = {
+        "Authorization": f"Bearer {os.environ.get('GROQ_API_KEY')}",
+        "Content-Type": "application/json"
+    }
+
+    # ✅ FIXED CONTENT STRUCTURE
+    content_list = [
+        {"type": "text", "text": message}
+    ]
+
+    if img_b64:
+        content_list.append({
+            "type": "image_url",
+            "image_url": {
+                "url": f"data:image/jpeg;base64,{img_b64}"
+            }
+        })
+
     payload = {
-        "messages": [{
-            "role": "user",
-            "content": [{"type": "text", "text": message}]
-        }],
-        "temperature": 0.3,
+        "model": "llama3-8b-8192",
+        "messages": [
+            {
+                "role": "user",
+                "content": content_list
+            }
+        ],
         "stream": True
     }
 
-    if img_b64:
-        payload["messages"][0]["content"].append({
-            "type": "image_url",
-            "image_url": {"url": f"data:image/jpeg;base64,{img_b64}"}
-        })
-
     def stream():
         try:
-            response = requests.post(LLAMA_API, json=payload, stream=True)
+            response = requests.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers=headers,
+                json=payload,
+                stream=True,
+                timeout=60
+            )
+
             for line in response.iter_lines():
                 if line:
+                    decoded = line.decode()
+
+                    if decoded.startswith("data: "):
+                        decoded = decoded.replace("data: ", "")
+
+                    if decoded == "[DONE]":
+                        break
+
                     try:
-                        decoded = line.decode()
-                        if decoded.startswith("data: "):
-                            decoded = decoded.replace("data: ", "")
-                        if decoded == "[DONE]":
-                            break
                         chunk = json.loads(decoded)
                         yield chunk["choices"][0]["delta"].get("content", "")
                     except:
-                        pass
-        except:
-            yield "❌ Model not responding"
+                        yield ""
+
+        except Exception as e:
+            yield f"❌ Error: {str(e)}"
 
     return StreamingResponse(stream(), media_type="text/plain")
 
-
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8080)
