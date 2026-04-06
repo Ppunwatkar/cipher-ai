@@ -3,6 +3,7 @@ import os
 from fastapi import FastAPI, Form
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
+from pathlib import Path
 
 app = FastAPI()
 
@@ -63,10 +64,11 @@ def run_tool(message):
 # =========================
 # UI
 # =========================
+
 @app.get("/", response_class=HTMLResponse)
 def home():
-    return open("index.html").read()
-
+    path = Path(__file__).parent / "index.html"
+    return HTMLResponse(path.read_text(encoding="utf-8"))
 # =========================
 # CHAT
 # =========================

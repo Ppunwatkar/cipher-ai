@@ -1,22 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CIPHER AI</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+body {
+    background:#04070d;
+    color:#c9d1d9;
+    font-family: 'Courier New', monospace;
+}
+
+body::before {
+    content:"";
+    position:fixed;
+    width:100%;
+    height:100%;
+    background-image:
+        linear-gradient(rgba(0,255,255,0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,255,255,0.05) 1px, transparent 1px);
+    background-size: 40px 40px;
+    z-index:-1;
+}
+
+.sidebar { width:260px; background:#0b0f17; border-right:1px solid #1f2937; }
+.header { background:#0b0f17; border-bottom:1px solid #1f2937; }
+
+.badge { padding:2px 8px; font-size:10px; border:1px solid; cursor:pointer; }
+
+.bot {
+    border-left:3px solid #00f2ff;
+    background:#0d1117;
+    padding:12px;
+    margin-top:10px;
+    white-space: pre-wrap;
+}
+
+.user {
+    text-align:right;
+    margin-top:10px;
+    white-space: pre-wrap;
+}
+
+.input-box {
+    background:#04070d;
+    border:1px solid #00f2ff;
+    box-shadow:0 0 10px rgba(0,255,255,0.2);
+}
+
+.btn { border:1px solid #00f2ff; padding:10px; }
+</style>
+</head>
+
+<body class="flex h-screen overflow-hidden">
+
+<div class="sidebar p-5 flex flex-col">
+<h1 class="text-cyan-400 text-xl font-bold">CIPHER</h1>
+<p class="text-xs text-gray-500 mb-6">CYBERSECURITY AI</p>
+
+<div class="text-xs space-y-2">
+<p>🟢 LOCAL ENGINE: ACTIVE</p>
+<p>🔵 CLOUD: READY</p>
+<p>🔴 RESTRICTIONS: NONE</p>
+</div>
+
+<hr class="my-4 border-gray-700">
+
+<button onclick="createNewChat()" class="btn text-xs">+ NEW CHAT</button>
+<div id="chatList" class="mt-4 text-xs overflow-y-auto"></div>
+</div>
+
+<div class="flex-1 flex flex-col">
+
+<div class="header p-3 flex justify-between text-xs">
+<span class="text-cyan-400">RESEARCH TERMINAL</span>
+
+<div class="flex gap-2">
+<span class="badge border-green-400 text-green-400" data-mode="live">LIVE</span>
+<span class="badge border-blue-400 text-blue-400" data-mode="llama">LLAMA</span>
+<span class="badge border-red-400 text-red-400" data-mode="unrestricted">UNRESTRICTED</span>
+</div>
+</div>
+
+<div id="chat" class="flex-1 p-6 overflow-y-auto"></div>
+
+<div class="p-4 flex gap-2">
+<input id="msg" class="flex-1 input-box px-3 py-2 text-sm"
+placeholder="Ask about exploits, CTFs, recon..."
+onkeypress="if(event.key==='Enter') send()">
+
+<button onclick="send()" class="btn">SEND ▶</button>
+</div>
+
+</div>
+
 <script>
 
 let chats = {};
 let currentChat = null;
 let currentMode = "live";
 
+// 🔥 WAIT FOR DOM
+document.addEventListener("DOMContentLoaded", () => {
+
+    // MODE SWITCH FIX
+    document.querySelectorAll(".badge").forEach(el=>{
+        el.onclick = () => {
+            currentMode = el.dataset.mode;
+
+            document.querySelectorAll(".badge").forEach(b=>{
+                b.classList.remove("bg-cyan-400");
+            });
+
+            el.classList.add("bg-cyan-400");
+        }
+    });
+
+    init();
+});
+
 // INIT
 function init(){
     createNewChat();
 }
-
-// MODE SWITCH
-document.querySelectorAll(".badge").forEach(el=>{
-    el.onclick = () => {
-        currentMode = el.innerText.toLowerCase();
-        document.querySelectorAll(".badge").forEach(b=>b.classList.remove("bg-cyan-400"));
-        el.classList.add("bg-cyan-400");
-    }
-});
 
 // NEW CHAT
 function createNewChat(){
@@ -33,7 +141,7 @@ function renderList(){
 
     Object.keys(chats).forEach(id=>{
         const d = document.createElement("div");
-        d.className="chat-item cursor-pointer hover:text-cyan-400";
+        d.className="cursor-pointer hover:text-cyan-400";
         d.innerText=id;
         d.onclick=()=>{currentChat=id; render();}
         list.appendChild(d);
@@ -87,7 +195,7 @@ async function send(){
 
         const data = await res.json();
 
-        botDiv.innerText = data.response;
+        botDiv.innerText = data.response || "⚠️ No response";
 
         chats[currentChat].push({
             role:"bot",
@@ -99,6 +207,7 @@ async function send(){
     }
 }
 
-init();
-
 </script>
+
+</body>
+</html>
