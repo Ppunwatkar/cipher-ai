@@ -1,20 +1,13 @@
 import base64
 import os
-import shutil
 import requests
 import json
 from fastapi import FastAPI, Form, UploadFile, File
 from fastapi.responses import HTMLResponse, StreamingResponse
-from pypdf import PdfReader
 
 app = FastAPI()
 
 LLAMA_API = "http://localhost:8080/v1/chat/completions"
-UPLOAD_DIR = "uploads"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-
-knowledge_base = ""
-stored_docs = []
 
 @app.get("/", response_class=HTMLResponse)
 def home():
@@ -22,132 +15,217 @@ def home():
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>CIPHER // RESEARCH TERMINAL</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;500&display=swap" rel="stylesheet">
-    <style>
-        body { background-color: #06090f; font-family: 'Fira Code', monospace; color: #c9d1d9; }
-        .cyber-border { border: 1px solid #161b22; }
-        .neon-text { color: #00f2ff; text-shadow: 0 0 10px rgba(0, 242, 255, 0.3); }
-        .sidebar { background-color: #0d1117; width: 300px; border-right: 1px solid #30363d; }
-        .terminal-header { background-color: #161b22; border-bottom: 1px solid #30363d; }
-        .bot-msg { background: rgba(13, 17, 23, 0.8); border: 1px solid #21262d; border-left: 4px solid #00f2ff; }
-        .user-msg { background: #161b22; border: 1px solid #30363d; color: #58a6ff; }
-        ::-webkit-scrollbar { width: 5px; }
-        ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 10px; }
-    </style>
+<meta charset="UTF-8">
+<title>CIPHER AI v2</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;500&display=swap" rel="stylesheet">
+
+<style>
+body {
+    background:#05080e;
+    font-family:'Fira Code', monospace;
+    color:#c9d1d9;
+}
+
+/* GRID */
+body::before {
+    content:"";
+    position:fixed;
+    width:100%;
+    height:100%;
+    background-image: linear-gradient(rgba(0,255,255,0.03) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(0,255,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    z-index:-1;
+}
+
+/* PANELS */
+.sidebar { width:240px; background:#0d1117; border-right:1px solid #30363d; }
+.tools { width:220px; background:#0d1117; border-left:1px solid #30363d; }
+
+/* TEXT */
+.neon { color:#00f2ff; text-shadow:0 0 10px rgba(0,242,255,0.6); }
+
+/* MSG */
+.bot-msg { background:#0d1117; border-left:3px solid #00f2ff; padding:10px; }
+.user-msg { background:#161b22; color:#58a6ff; padding:8px; }
+
+/* CODE */
+.code { background:black; border:1px solid cyan; padding:10px; margin-top:10px; position:relative; }
+.copy { position:absolute; right:10px; top:5px; font-size:10px; }
+
+/* LIST */
+.chat-item { cursor:pointer; padding:6px; border-radius:4px; }
+.chat-item:hover { background:#161b22; }
+
+/* TOOL */
+.tool-btn { background:#161b22; border:1px solid #30363d; padding:5px; font-size:11px; width:100%; margin-top:5px; }
+.tool-btn:hover { background:#1f2937; }
+
+/* IMAGE */
+.preview { max-height:120px; margin-top:5px; border:1px solid #30363d; }
+</style>
 </head>
-<body class="h-screen flex overflow-hidden">
 
-<aside class="sidebar flex flex-col p-6 space-y-8">
-    <div>
-        <h1 class="text-2xl font-bold neon-text tracking-tighter">CIPHER</h1>
-        <p class="text-[9px] text-gray-500 uppercase tracking-widest">Cybersecurity AI // Lab Mode</p>
-    </div>
-</aside>
+<body class="flex h-screen overflow-hidden">
 
-<main class="flex-1 flex flex-col">
-
-<header class="terminal-header h-12 flex items-center px-6 justify-between">
-    <span class="text-[10px] text-gray-500 font-bold">RESEARCH TERMINAL</span>
-</header>
-
-<div id="chat-container" class="flex-1 overflow-y-auto p-8 space-y-6">
-    <div class="text-cyan-500 text-xs italic">Ready. Enter query.</div>
+<!-- SIDEBAR -->
+<div class="sidebar p-4 flex flex-col">
+<h2 class="neon text-sm mb-4">CHATS</h2>
+<button onclick="newChat()" class="tool-btn">+ New Chat</button>
+<div id="chatList" class="mt-3 text-xs overflow-y-auto"></div>
 </div>
 
-<div class="p-6 bg-[#0d1117] border-t border-[#30363d]">
-    <div class="max-w-5xl mx-auto flex items-center space-x-4">
-        <div class="flex-1 relative flex items-center">
-            <span class="absolute left-4 text-cyan-500">></span>
-            <input type="text" id="msg-input" 
-                class="w-full bg-[#06090f] border border-[#30363d] rounded-md pl-10 pr-4 py-3 text-sm"
-                placeholder="Ask..."
-                onkeypress="if(event.key === 'Enter') sendQuery()">
-            <input type="file" id="img-upload" class="hidden" accept="image/*">
-            <button onclick="document.getElementById('img-upload').click()" class="absolute right-4 text-gray-500">+</button>
-        </div>
-        <button onclick="sendQuery()" class="bg-[#161b22] border border-[#30363d] px-6 py-3 text-sm">
-            Send ►
-        </button>
-    </div>
+<!-- MAIN -->
+<div class="flex-1 flex flex-col">
+
+<div class="p-3 border-b border-gray-700 text-xs flex justify-between">
+<span class="neon">CIPHER TERMINAL</span>
+<span class="text-green-400">LIVE</span>
 </div>
 
-</main>
+<div id="chat" class="flex-1 overflow-y-auto p-6 space-y-4"></div>
+
+<div class="p-4 border-t border-gray-700 flex gap-2">
+<input id="msg" class="flex-1 bg-black border px-3 py-2 text-sm"
+placeholder="Type command..."
+onkeypress="if(event.key==='Enter') send()">
+
+<input type="file" id="img" class="hidden" accept="image/*">
+
+<button onclick="document.getElementById('img').click()" class="border px-3">+</button>
+<button onclick="send()" class="border px-4">Send</button>
+</div>
+
+</div>
+
+<!-- TOOLS -->
+<div class="tools p-4 text-xs">
+<h2 class="neon mb-3">TOOLS</h2>
+
+<button class="tool-btn" onclick="quick('Run nmap scan on target')">NMAP</button>
+<button class="tool-btn" onclick="quick('Perform SQL injection test')">SQLMAP</button>
+<button class="tool-btn" onclick="quick('Do reconnaissance on domain')">RECON</button>
+<button class="tool-btn" onclick="quick('Find vulnerabilities in system')">SCAN</button>
+</div>
 
 <script>
 
-async function sendQuery() {
-    const input = document.getElementById('msg-input');
-    const chat = document.getElementById('chat-container');
-    const imgInput = document.getElementById('img-upload');
-    const message = input.value;
+// CHAT MEMORY
+let chats = {};
+let currentChat = "";
 
-    if (!message && !imgInput.files[0]) return;
+// INIT
+function newChat() {
+    currentChat = "chat_" + Date.now();
+    chats[currentChat] = [];
+    renderChats();
+    renderMessages();
+}
+newChat();
 
-    chat.innerHTML += `<div class="flex justify-end">
-        <div class="user-msg px-4 py-2 rounded text-xs">${message}</div>
-    </div>`;
+// RENDER CHAT LIST
+function renderChats() {
+    const list = document.getElementById("chatList");
+    list.innerHTML = "";
+
+    Object.keys(chats).forEach(id => {
+        const el = document.createElement("div");
+        el.className = "chat-item";
+        el.innerText = id;
+        el.onclick = () => {
+            currentChat = id;
+            renderMessages();
+        };
+        list.appendChild(el);
+    });
+}
+
+// RENDER MESSAGES
+function renderMessages() {
+    const chat = document.getElementById("chat");
+    chat.innerHTML = "";
+
+    (chats[currentChat] || []).forEach(m => {
+        const div = document.createElement("div");
+        div.className = m.role === "user" ? "text-right" : "";
+        div.innerHTML = `<div class="${m.role === 'user' ? 'user-msg' : 'bot-msg'}">${m.content}</div>`;
+        chat.appendChild(div);
+    });
+}
+
+// QUICK TOOL
+function quick(text) {
+    document.getElementById("msg").value = text;
+}
+
+// SEND
+async function send() {
+    const input = document.getElementById("msg");
+    const img = document.getElementById("img");
+    const chat = document.getElementById("chat");
+
+    if (!input.value && !img.files[0]) return;
+
+    let userHTML = input.value;
+
+    if (img.files[0]) {
+        const preview = URL.createObjectURL(img.files[0]);
+        userHTML += `<br><img src="${preview}" class="preview">`;
+    }
+
+    chats[currentChat].push({ role:"user", content:userHTML });
+    renderMessages();
 
     const botDiv = document.createElement("div");
-    botDiv.className = "bot-msg p-4 rounded-lg text-sm max-w-5xl";
-    botDiv.innerHTML = `
-        <p class="text-[10px] text-green-500 font-bold mb-2 uppercase tracking-widest">
-        CIPHER 🔒 Local (Private)
-        </p>
-        <div id="streaming"></div>
-    `;
+    const stream = document.createElement("div");
+    botDiv.appendChild(stream);
     chat.appendChild(botDiv);
 
-    const formData = new FormData();
-    formData.append('message', message);
-    if (imgInput.files[0]) formData.append('image', imgInput.files[0]);
+    const form = new FormData();
+    form.append("message", input.value);
+    if (img.files[0]) form.append("image", img.files[0]);
 
     input.value = "";
-    imgInput.value = "";
+    img.value = "";
 
-    const res = await fetch('/chat', { method: 'POST', body: formData });
+    const res = await fetch("/chat", { method:"POST", body:form });
 
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
 
-    let fullText = "";
+    let text = "";
 
     while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        const chunk = decoder.decode(value);
-        fullText += chunk;
-
-        document.getElementById("streaming").innerHTML = formatResponse(fullText);
+        text += decoder.decode(value);
+        stream.innerHTML = format(text);
         chat.scrollTop = chat.scrollHeight;
     }
+
+    chats[currentChat].push({ role:"bot", content:text });
 }
 
-function formatResponse(text) {
-    const codeRegex = /```([\\s\\S]*?)```/g;
-
-    return text.replace(codeRegex, (match, code) => {
-        const escaped = code.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-        return `
-        <div class="bg-black border border-cyan-800 rounded p-3 my-2 relative">
-            <button onclick="copyCode(this)" 
-                class="absolute top-2 right-2 text-xs bg-cyan-800 px-2 py-1">
-                Copy
-            </button>
-            <pre class="text-xs text-green-400 overflow-x-auto">${escaped}</pre>
+// FORMAT
+function format(t) {
+    return t.replace(/```([\\s\\S]*?)```/g, (_, code) => `
+        <div class="code">
+            <button class="copy" onclick="copy(this)">Copy</button>
+            <pre>${escape(code)}</pre>
         </div>
-        `;
-    });
+    `);
 }
 
-function copyCode(btn) {
-    const code = btn.parentElement.querySelector("pre").innerText;
-    navigator.clipboard.writeText(code);
-    btn.innerText = "Copied!";
-    setTimeout(() => btn.innerText = "Copy", 1500);
+function copy(btn) {
+    navigator.clipboard.writeText(btn.parentElement.innerText);
+    btn.innerText="Copied";
+}
+
+function escape(t) {
+    return t.replace(/</g,"&lt;").replace(/>/g,"&gt;");
 }
 
 </script>
@@ -164,12 +242,10 @@ async def chat(message: str = Form(...), image: UploadFile = File(None)):
         content = await image.read()
         img_b64 = base64.b64encode(content).decode("utf-8")
 
-    prompt = f"<|im_start|>system\nYou are CIPHER AI. Context: {knowledge_base}<|im_end|>\n<|im_start|>user\n{message}<|im_end|>\n<|im_start|>assistant"
-
     payload = {
         "messages": [{
             "role": "user",
-            "content": [{"type": "text", "text": prompt}]
+            "content": [{"type": "text", "text": message}]
         }],
         "temperature": 0.3,
         "stream": True
@@ -197,7 +273,7 @@ async def chat(message: str = Form(...), image: UploadFile = File(None)):
                     except:
                         pass
         except:
-            yield "❌ Local model not responding"
+            yield "❌ Model not responding"
 
     return StreamingResponse(stream(), media_type="text/plain")
 
