@@ -98,29 +98,39 @@ async def chat(
             return {"response": "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"}
 
         try:
-            res = requests.post(
-                OPENROUTER_API,
-                headers={
-                    "Authorization": f"Bearer {api_key}",
-                    "Content-Type": "application/json"
-                },
-                json={
-                    "model": "dolphin-2.9-llama3",
-                    "messages": [
-                        {"role": "user", "content": message}
-                    ]
-                },
-                timeout=30
-            )
+    res = requests.post(
+        OPENROUTER_API,
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        },
+        json={
+            "model": "dolphin-2.9-llama3",
+            "messages": [
+                {"role": "user", "content": message}
+            ]
+        },
+        timeout=30
+    )
 
-            if res.status_code != 200:
-                return {"response": f"❌ Dolphin Error: {res.text}"}
+    # 🔥 HANDLE HTTP ERROR
+    if res.status_code != 200:
+        return {"response": f"❌ Dolphin HTTP Error: {res.text}"}
 
-            data = res.json()
-            reply = data["choices"][0]["message"]["content"]
+    data = res.json()
 
-        except Exception as e:
-            reply = f"❌ Dolphin backend error: {str(e)}"
+    # 🔥 HANDLE API ERROR (VERY IMPORTANT)
+    if "error" in data:
+        return {"response": f"❌ Dolphin API Error: {data['error']['message']}"}
+
+    # ✅ SAFE EXTRACTION
+    reply = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+
+    if not reply:
+        reply = "⚠️ Empty response from Dolphin"
+
+except Exception as e:
+    reply = f"❌ Dolphin backend error: {str(e)}"
 
         memory.append({"role": "user", "content": message})
         memory.append({"role": "assistant", "content": reply})
