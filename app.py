@@ -89,7 +89,7 @@ async def chat(
     # =====================
     if mode == "unrestricted":
 
-        api_key = os.environ.get("OPENROUTER_API_KEY")
+        api_key = os.environ.get("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")
 
         if not api_key:
             return {"response": "❌ Missing OpenRouter API key"}
