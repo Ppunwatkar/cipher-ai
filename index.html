@@ -11,6 +11,7 @@ body {
     background:#04070d;
     color:#c9d1d9;
     font-family: 'Courier New', monospace;
+    font-size:14px; /* slightly bigger */
 }
 
 body::before {
@@ -36,20 +37,40 @@ body::before {
     padding:12px;
     margin-top:10px;
     white-space: pre-wrap;
+    position:relative;
+    line-height:1.5;
 }
 
 .user {
     text-align:right;
     margin-top:10px;
     white-space: pre-wrap;
+    line-height:1.5;
 }
 
+/* MESSAGE COPY */
+.msg-copy {
+    position:absolute;
+    top:5px;
+    right:5px;
+    font-size:10px;
+    opacity:0;
+    cursor:pointer;
+}
+
+.bot:hover .msg-copy {
+    opacity:1;
+}
+
+/* INPUT */
 .input-box {
     background:#04070d;
     border:1px solid #00f2ff;
     box-shadow:0 0 10px rgba(0,255,255,0.2);
+    font-size:14px;
 }
 
+/* BUTTON */
 .btn { border:1px solid #00f2ff; padding:10px; }
 
 /* CHAT LIST */
@@ -118,9 +139,9 @@ body::before {
 <span class="text-cyan-400">RESEARCH TERMINAL</span>
 
 <div class="flex gap-2">
-<span class="badge" data-mode="live">LIVE</span>
-<span class="badge" data-mode="llama">LLAMA</span>
-<span class="badge" data-mode="unrestricted">UNRESTRICTED</span>
+<span class="badge" data-mode="live">THINKING</span>
+<span class="badge" data-mode="llama">FAST</span>
+<span class="badge" data-mode="unrestricted">BRAINSTORM</span>
 </div>
 </div>
 
@@ -129,7 +150,7 @@ body::before {
 <div class="p-4 flex gap-2">
 <input id="msg" class="flex-1 input-box px-3 py-2 text-sm"
 placeholder="Ask something..."
-onkeypress="if(event.key==='Enter') send()">
+onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();send();}">
 
 <button onclick="send()" class="btn">SEND ▶</button>
 </div>
@@ -186,7 +207,6 @@ function renderList(){
         const actions = document.createElement("div");
         actions.className = "chat-actions";
 
-        // rename
         const r = document.createElement("span");
         r.innerText = "✏️";
         r.onclick = (e)=>{
@@ -198,7 +218,6 @@ function renderList(){
             }
         };
 
-        // delete
         const d = document.createElement("span");
         d.innerText = "🗑";
         d.onclick = (e)=>{
@@ -209,7 +228,6 @@ function renderList(){
             render();
         };
 
-        // share
         const s = document.createElement("span");
         s.innerText = "🔗";
         s.onclick = (e)=>{
@@ -240,10 +258,66 @@ function render(){
     chat.innerHTML="";
 
     (chats[currentChat]?.messages || []).forEach(m=>{
-        const div = document.createElement("div");
-        div.className = m.role==="user"?"user":"bot";
-        div.innerText = m.content;
-        chat.appendChild(div);
+        const wrapper = document.createElement("div");
+        wrapper.className = m.role==="user"?"user":"bot";
+
+        // CODE DETECTION
+        if(m.content.includes("```")){
+            const parts = m.content.split("```");
+
+            parts.forEach((part,i)=>{
+                if(i % 2 === 0){
+                    const text = document.createElement("div");
+                    text.innerText = part;
+                    wrapper.appendChild(text);
+                } else {
+                    const code = document.createElement("div");
+                    code.className = "code-block";
+
+                    const pre = document.createElement("pre");
+                    pre.innerText = part;
+
+                    const btn = document.createElement("div");
+                    btn.className = "copy-btn";
+                    btn.innerText = "📋";
+
+                    btn.onclick = ()=>{
+                        navigator.clipboard.writeText(part);
+                        btn.innerText="✓";
+                        setTimeout(()=>btn.innerText="📋",1000);
+                    };
+
+                    code.appendChild(btn);
+                    code.appendChild(pre);
+                    wrapper.appendChild(code);
+                }
+            });
+
+        } else {
+            wrapper.innerText = m.content;
+        }
+
+        // MESSAGE COPY
+        if(m.role === "bot"){
+            const copy = document.createElement("div");
+            copy.className = "msg-copy";
+            copy.innerText = "📋";
+
+            copy.onclick = ()=>{
+                navigator.clipboard.writeText(m.content);
+                copy.innerText="✓";
+                setTimeout(()=>copy.innerText="📋",1000);
+            };
+
+            wrapper.appendChild(copy);
+        }
+
+        chat.appendChild(wrapper);
+    });
+
+    chat.scrollTo({
+        top: chat.scrollHeight,
+        behavior: "smooth"
     });
 }
 
@@ -256,7 +330,6 @@ async function send(){
 
     chats[currentChat].messages.push({role:"user",content:text});
 
-    // auto title
     if(chats[currentChat].messages.length === 1){
         chats[currentChat].title = text.slice(0,20);
         renderList();
