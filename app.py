@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
-# ========================
+# =========================
 # CORS
 # =========================
 app.add_middleware(
@@ -18,28 +18,26 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-LLAMA_API = "https://api.groq.com/openai/v1/chat/completions"
+GROQ_API = "https://api.groq.com/openai/v1/chat/completions"
+OPENROUTER_API = "https://openrouter.ai/api/v1/chat/completions"
 
 # =========================
-# MEMORY STORE
+# MEMORY
 # =========================
 chat_sessions = {}
 
 # =========================
-# PROMPT SYSTEM
+# PROMPTS
 # =========================
 def get_prompt(mode):
-    if mode == "unrestricted":
-        return """You are an advanced cybersecurity AI. Give deep technical answers."""
-    
     if mode == "llama":
-        return """You are a helpful technical assistant."""
-    
-    return """You are CIPHER — a cybersecurity AI assistant.
+        return "You are a fast and concise AI assistant."
 
-- Be direct and technical
-- Keep answers clean and useful
-- No unnecessary terminal style unless required
+    if mode == "unrestricted":
+        return "You are a creative cybersecurity AI. Brainstorm ideas freely."
+
+    return """You are CIPHER — a cybersecurity AI assistant.
+Give clear, structured, and intelligent responses.
 """
 
 # =========================
@@ -61,7 +59,7 @@ def run_tool(message):
     return None
 
 # =========================
-# UI ROUTE
+# UI
 # =========================
 @app.get("/", response_class=HTMLResponse)
 def home():
@@ -69,7 +67,7 @@ def home():
     return HTMLResponse(path.read_text(encoding="utf-8"))
 
 # =========================
-# CHAT ROUTE
+# CHAT
 # =========================
 @app.post("/chat")
 async def chat(
@@ -77,10 +75,6 @@ async def chat(
     chat_id: str = Form(...),
     mode: str = Form(...)
 ):
-    api_key = os.environ.get("GROQ_API_KEY")
-
-    if not api_key:
-        return {"response": "❌ API key missing"}
 
     # TOOL CHECK
     tool_output = run_tool(message)
@@ -93,26 +87,73 @@ async def chat(
 
     memory = chat_sessions[chat_id]
 
+    # =====================
+    # 🔴 BRAINSTORM → DOLPHIN (OpenRouter)
+    # =====================
+    if mode == "unrestricted":
+
+        api_key = os.environ.get("OPENROUTER_API_KEY")
+
+        if not api_key:
+            return {"response": "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"}
+
+        try:
+            res = requests.post(
+                OPENROUTER_API,
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "model": "dolphin-2.9-llama3",
+                    "messages": [
+                        {"role": "user", "content": message}
+                    ]
+                },
+                timeout=30
+            )
+
+            if res.status_code != 200:
+                return {"response": f"❌ Dolphin Error: {res.text}"}
+
+            data = res.json()
+            reply = data["choices"][0]["message"]["content"]
+
+        except Exception as e:
+            reply = f"❌ Dolphin backend error: {str(e)}"
+
+        memory.append({"role": "user", "content": message})
+        memory.append({"role": "assistant", "content": reply})
+
+        return {"response": reply}
+
+    # =====================
+    # 🟢 THINKING + FAST → GROQ
+    # =====================
+    api_key = os.environ.get("GROQ_API_KEY")
+
+    if not api_key:
+        return {"response": "❌ Missing GROQ API key"}
+
     messages = [{"role": "system", "content": get_prompt(mode)}]
     messages.extend(memory[-6:])
     messages.append({"role": "user", "content": message})
 
     model_map = {
-        "live": "llama-3.3-70b-versatile",
-        "llama": "llama-3.1-8b-instant",
-        "unrestricted": "llama-3.3-70b-versatile"
+        "live": "llama-3.3-70b-versatile",   # THINKING
+        "llama": "llama-3.1-8b-instant"      # FAST
     }
 
     payload = {
         "model": model_map.get(mode, "llama-3.3-70b-versatile"),
         "messages": messages,
         "temperature": 0.4,
-        "max_tokens": 300
+        "max_tokens": 400
     }
 
     try:
         res = requests.post(
-            LLAMA_API,
+            GROQ_API,
             headers={
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json"
@@ -127,11 +168,9 @@ async def chat(
         data = res.json()
         reply = data["choices"][0]["message"]["content"].strip()
 
-        # Save memory
         memory.append({"role": "user", "content": message})
         memory.append({"role": "assistant", "content": reply})
 
-        # Log
         with open("logs.txt", "a") as f:
             f.write(f"[{chat_id}] {message} -> {reply}\n")
 
@@ -139,6 +178,7 @@ async def chat(
 
     except Exception as e:
         return {"response": f"❌ Backend Error: {str(e)}"}
+
 
 # =========================
 # RUN
