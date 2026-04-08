@@ -85,7 +85,7 @@ async def chat(
     memory = chat_sessions[chat_id]
 
     # =====================
-    # 🔴 BRAINSTORM → DOLPHIN
+    # 🔴 UNRESTRICTED → OPENROUTER (DOLPHIN)
     # =====================
     if mode == "unrestricted":
 
@@ -99,11 +99,15 @@ async def chat(
                 OPENROUTER_API,
                 headers={
                     "Authorization": f"Bearer {api_key}",
+                    "HTTP-Referer": "http://localhost:3000",  # ✅ REQUIRED
+                    "X-Title": "Cypher AI",                   # ✅ REQUIRED
                     "Content-Type": "application/json"
                 },
                 json={
-                    "model": "dolphin-2.9-llama3",
+                    "model": "cognitivecomputations/dolphin-mixtral-8x7b",  # ✅ FIXED
                     "messages": [
+                        {"role": "system", "content": get_prompt(mode)},
+                        *memory[-6:],
                         {"role": "user", "content": message}
                     ]
                 },
@@ -132,7 +136,7 @@ async def chat(
         return {"response": reply}
 
     # =====================
-    # 🟢 GROQ (THINKING + FAST)
+    # 🟢 GROQ
     # =====================
     api_key = os.environ.get("GROQ_API_KEY")
 
