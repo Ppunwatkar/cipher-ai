@@ -21,9 +21,6 @@ app.add_middleware(
 GROQ_API = "https://api.groq.com/openai/v1/chat/completions"
 OPENROUTER_API = "https://openrouter.ai/api/v1/chat/completions"
 
-# =========================
-# MEMORY
-# =========================
 chat_sessions = {}
 
 # =========================
@@ -88,49 +85,46 @@ async def chat(
     memory = chat_sessions[chat_id]
 
     # =====================
-    # 🔴 BRAINSTORM → DOLPHIN (OpenRouter)
+    # 🔴 BRAINSTORM → DOLPHIN
     # =====================
     if mode == "unrestricted":
 
         api_key = os.environ.get("OPENROUTER_API_KEY")
 
         if not api_key:
-            return {"response": "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"}
+            return {"response": "❌ Missing OpenRouter API key"}
 
         try:
-    res = requests.post(
-        OPENROUTER_API,
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        },
-        json={
-            "model": "dolphin-2.9-llama3",
-            "messages": [
-                {"role": "user", "content": message}
-            ]
-        },
-        timeout=30
-    )
+            res = requests.post(
+                OPENROUTER_API,
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "model": "dolphin-2.9-llama3",
+                    "messages": [
+                        {"role": "user", "content": message}
+                    ]
+                },
+                timeout=30
+            )
 
-    # 🔥 HANDLE HTTP ERROR
-    if res.status_code != 200:
-        return {"response": f"❌ Dolphin HTTP Error: {res.text}"}
+            if res.status_code != 200:
+                return {"response": f"❌ Dolphin HTTP Error: {res.text}"}
 
-    data = res.json()
+            data = res.json()
 
-    # 🔥 HANDLE API ERROR (VERY IMPORTANT)
-    if "error" in data:
-        return {"response": f"❌ Dolphin API Error: {data['error']['message']}"}
+            if "error" in data:
+                return {"response": f"❌ Dolphin API Error: {data['error']['message']}"}
 
-    # ✅ SAFE EXTRACTION
-    reply = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+            reply = data.get("choices", [{}])[0].get("message", {}).get("content", "")
 
-    if not reply:
-        reply = "⚠️ Empty response from Dolphin"
+            if not reply:
+                reply = "⚠️ Empty response from Dolphin"
 
-except Exception as e:
-    reply = f"❌ Dolphin backend error: {str(e)}"
+        except Exception as e:
+            reply = f"❌ Dolphin backend error: {str(e)}"
 
         memory.append({"role": "user", "content": message})
         memory.append({"role": "assistant", "content": reply})
@@ -138,7 +132,7 @@ except Exception as e:
         return {"response": reply}
 
     # =====================
-    # 🟢 THINKING + FAST → GROQ
+    # 🟢 GROQ (THINKING + FAST)
     # =====================
     api_key = os.environ.get("GROQ_API_KEY")
 
@@ -150,8 +144,8 @@ except Exception as e:
     messages.append({"role": "user", "content": message})
 
     model_map = {
-        "live": "llama-3.3-70b-versatile",   # THINKING
-        "llama": "llama-3.1-8b-instant"      # FAST
+        "live": "llama-3.3-70b-versatile",
+        "llama": "llama-3.1-8b-instant"
     }
 
     payload = {
