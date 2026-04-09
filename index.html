@@ -2,193 +2,259 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cypher AI</title>
+<title>CIPHER AI</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
 
 <style>
 body {
-    margin: 0;
-    font-family: monospace;
-    background: #020617;
-    color: #00ffff;
-    display: flex;
+    background:#04070d;
+    color:#e6edf3;
+    font-family: 'Inter', 'Courier New', monospace;
+    font-size:18px; /* 🔥 Bigger base */
+    line-height:1.7;
 }
 
-/* Sidebar */
+/* GRID BACKGROUND */
+body::before {
+    content:"";
+    position:fixed;
+    width:100%;
+    height:100%;
+    background-image:
+        linear-gradient(rgba(0,255,255,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,255,255,0.04) 1px, transparent 1px);
+    background-size: 50px 50px;
+    z-index:-1;
+}
+
+/* SIDEBAR */
 .sidebar {
-    width: 250px;
-    background: #020617;
-    border-right: 1px solid #0ff;
-    padding: 20px;
+    width:300px;
+    background:#0b0f17;
+    border-right:1px solid #1f2937;
 }
 
-.sidebar h2 {
-    color: #00ffff;
-}
-
-.new-chat {
-    margin-top: 20px;
-    padding: 10px;
-    border: 1px solid #0ff;
-    cursor: pointer;
-    text-align: center;
-}
-
-/* Main */
-.main {
-    flex: 1;
-    position: relative;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-}
-
-/* Header */
+/* HEADER */
 .header {
-    padding: 10px;
-    border-bottom: 1px solid #0ff;
-    display: flex;
-    justify-content: space-between;
+    background:#0b0f17;
+    border-bottom:1px solid #1f2937;
 }
 
-/* Modes */
-.modes button {
-    margin-left: 10px;
-    padding: 5px 10px;
-    border: 1px solid #0ff;
-    background: transparent;
-    color: #0ff;
-    cursor: pointer;
+/* MODE BUTTONS */
+.badge {
+    padding:8px 16px;
+    font-size:13px;
+    border:1px solid #00f2ff;
+    cursor:pointer;
 }
 
-.modes .active {
-    background: #0ff;
-    color: black;
+/* CHAT */
+#chat {
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+    max-width:900px;
+    margin:auto;
 }
 
-/* Chat Area */
-.chat {
-    flex: 1;
-    padding: 20px;
-    overflow-y: auto;
+/* MESSAGE */
+.bot, .user {
+    padding:18px;
+    border-radius:10px;
+    font-size:16px;
+    animation: fadeIn 0.2s ease-in;
+    max-width:85%;
 }
 
-/* Input */
-.input-area {
-    padding: 10px;
-    border-top: 1px solid #0ff;
+.bot {
+    background:#0d1117;
+    border-left:4px solid #00f2ff;
 }
 
-textarea {
-    width: 100%;
-    padding: 10px;
-    background: #020617;
-    color: #0ff;
-    border: 1px solid #0ff;
+.user {
+    background:#020617;
+    margin-left:auto;
 }
 
-button.send {
-    margin-top: 10px;
-    padding: 10px;
-    width: 100%;
-    background: #0ff;
-    color: black;
-    border: none;
+/* INPUT */
+.input-box {
+    background:#04070d;
+    border:1px solid #00f2ff;
+    box-shadow:0 0 12px rgba(0,255,255,0.2);
+    font-size:16px;
+    padding:14px;
 }
 
-/* Grid background */
-.main::before {
-    content: "";
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    background-image: linear-gradient(#0ff 1px, transparent 1px),
-                      linear-gradient(90deg, #0ff 1px, transparent 1px);
-    background-size: 40px 40px;
-    opacity: 0.05;
-    z-index: 0;
+/* BUTTON */
+.btn {
+    border:1px solid #00f2ff;
+    padding:14px;
+    font-size:14px;
 }
 
-.chat, .header, .input-area {
-    position: relative;
-    z-index: 1;
+/* CHAT LIST */
+.chat-item {
+    padding:8px;
+    cursor:pointer;
+    font-size:14px;
+}
+
+/* ANIMATION */
+@keyframes fadeIn {
+    from {opacity:0; transform: translateY(6px);}
+    to {opacity:1; transform: translateY(0);}
 }
 </style>
 </head>
 
-<body>
+<body class="flex h-screen overflow-hidden">
 
-<div class="sidebar">
-    <h2>CYPHER</h2>
-    <p>CYBERSECURITY AI</p>
+<!-- SIDEBAR -->
+<div class="sidebar p-6 flex flex-col">
+<h1 class="text-cyan-400 text-2xl font-bold">CIPHER</h1>
+<p class="text-sm text-gray-500 mb-6">CYBERSECURITY AI</p>
 
-    <div class="new-chat">+ NEW CHAT</div>
+<button onclick="createNewChat()" class="btn">+ NEW CHAT</button>
+
+<div id="chatList" class="mt-6 overflow-y-auto"></div>
 </div>
 
-<div class="main">
+<!-- MAIN -->
+<div class="flex-1 flex flex-col">
 
-    <div class="header">
-        <div>RESEARCH TERMINAL</div>
+<!-- HEADER -->
+<div class="header p-4 flex justify-between">
+<span class="text-cyan-400 text-lg">RESEARCH TERMINAL</span>
 
-        <div class="modes">
-            <button class="active" onclick="setMode(event, 'thinking')">THINKING</button>
-            <button onclick="setMode(event, 'fast')">FAST</button>
-            <button onclick="setMode(event, 'programming')">PROGRAMMING</button>
-        </div>
-    </div>
+<div class="flex gap-3">
+<span class="badge" data-mode="thinking">THINKING</span>
+<span class="badge" data-mode="fast">FAST</span>
+<span class="badge" data-mode="brainstorm">BRAINSTORM</span>
+</div>
+</div>
 
-    <div id="chat" class="chat"></div>
+<!-- CHAT -->
+<div id="chat" class="flex-1 p-8 overflow-y-auto"></div>
 
-    <div class="input-area">
-        <textarea id="input" placeholder="Ask about exploits, recon, CTFs..."></textarea>
-        <button class="send" onclick="sendMessage()">SEND ▶</button>
-    </div>
+<!-- INPUT -->
+<div class="p-6 flex flex-col gap-3 max-w-4xl mx-auto w-full">
+<textarea id="msg"
+class="input-box rounded-md"
+placeholder="Ask about exploits, recon, CTFs..."
+rows="2"></textarea>
+
+<div class="text-sm text-gray-500">
+Try: recon scan | sql injection | xss payload | whois example.com
+</div>
+
+<button onclick="send()" class="btn">SEND ▶</button>
+</div>
 
 </div>
 
 <script>
-let mode = "thinking";
-let chat_id = localStorage.getItem("chat_id") || Date.now().toString();
-localStorage.setItem("chat_id", chat_id);
+let chats = {};
+let currentChat = null;
+let currentMode = "thinking";
 
-function setMode(event, selectedMode) {
-    mode = selectedMode;
+/* INIT */
+document.addEventListener("DOMContentLoaded", () => {
 
-    document.querySelectorAll(".modes button").forEach(btn => {
-        btn.classList.remove("active");
+    document.querySelectorAll(".badge").forEach(el=>{
+        el.onclick = () => {
+            currentMode = el.dataset.mode;
+
+            document.querySelectorAll(".badge").forEach(b=>{
+                b.classList.remove("bg-cyan-400");
+            });
+
+            el.classList.add("bg-cyan-400");
+        }
     });
 
-    event.target.classList.add("active");
+    createNewChat();
+});
+
+/* NEW CHAT */
+function createNewChat(){
+    currentChat = "chat_" + Date.now();
+
+    chats[currentChat] = {
+        title: "New Chat",
+        messages: []
+    };
+
+    renderList();
+    render();
 }
 
-function addMessage(text) {
+/* CHAT LIST */
+function renderList(){
+    const list = document.getElementById("chatList");
+    list.innerHTML = "";
+
+    Object.keys(chats).forEach(id=>{
+        const div = document.createElement("div");
+        div.className = "chat-item";
+        div.innerText = chats[id].title;
+
+        div.onclick = ()=>{
+            currentChat = id;
+            render();
+        };
+
+        list.appendChild(div);
+    });
+}
+
+/* RENDER */
+function render(){
     const chat = document.getElementById("chat");
-    const div = document.createElement("div");
-    div.textContent = text;
-    chat.appendChild(div);
+    chat.innerHTML="";
+
+    (chats[currentChat]?.messages || []).forEach(m=>{
+        const div = document.createElement("div");
+        div.className = m.role==="user"?"user":"bot";
+        div.innerText = m.content;
+        chat.appendChild(div);
+    });
+
+    chat.scrollTop = chat.scrollHeight;
 }
 
-async function sendMessage() {
-    const input = document.getElementById("input");
-    const text = input.value.trim();
+/* SEND */
+async function send(){
+    const input = document.getElementById("msg");
+    if(!input.value.trim()) return;
 
-    if (!text) return;
+    const text = input.value;
 
-    addMessage("You: " + text);
-    input.value = "";
+    chats[currentChat].messages.push({role:"user",content:text});
+    render();
 
-    const formData = new FormData();
-    formData.append("message", text);
-    formData.append("chat_id", chat_id);
-    formData.append("mode", mode);
+    input.value="";
 
-    const res = await fetch("/chat", {
-        method: "POST",
-        body: formData
+    const res = await fetch("/chat",{
+        method:"POST",
+        headers:{
+            "Content-Type":"application/x-www-form-urlencoded"
+        },
+        body:new URLSearchParams({
+            message:text,
+            chat_id:currentChat,
+            mode:currentMode
+        })
     });
 
     const data = await res.json();
-    addMessage("AI: " + data.response);
+
+    chats[currentChat].messages.push({
+        role:"bot",
+        content:data.response
+    });
+
+    render();
 }
 </script>
 
