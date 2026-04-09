@@ -56,13 +56,13 @@ def get_prompt(mode):
 # =========================
 def get_model(mode):
     if mode == "thinking":
-        return "anthropic/claude-3.5-sonnet"   # BEST for coding
+        return "anthropic/claude-3.5-sonnet"   # Best reasoning + coding
 
     elif mode == "programming":
-        return "nousresearch/nous-hermes-2-mixtral"  # less restrictive
+        return "mistralai/mixtral-8x7b-instruct"  # Fixed ✅
 
     else:
-        return "mistralai/mixtral-8x7b-instruct"  # fallback
+        return "mistralai/mixtral-8x7b-instruct"
 
 
 # =========================
@@ -75,7 +75,7 @@ def home():
 
 
 # =========================
-# OPENROUTER (Claude + Mixtral)
+# OPENROUTER
 # =========================
 def call_openrouter(messages, model):
     api_key = os.environ.get("OPENROUTER_API_KEY")
