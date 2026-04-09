@@ -8,118 +8,142 @@
 <style>
 body {
     margin: 0;
-    background: #0b1220;
-    color: white;
-    font-family: Arial, sans-serif;
+    font-family: monospace;
+    background: #020617;
+    color: #00ffff;
+    display: flex;
+}
+
+/* Sidebar */
+.sidebar {
+    width: 250px;
+    background: #020617;
+    border-right: 1px solid #0ff;
+    padding: 20px;
+}
+
+.sidebar h2 {
+    color: #00ffff;
+}
+
+.new-chat {
+    margin-top: 20px;
+    padding: 10px;
+    border: 1px solid #0ff;
+    cursor: pointer;
+    text-align: center;
+}
+
+/* Main */
+.main {
+    flex: 1;
+    position: relative;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
 
 /* Header */
 .header {
-    text-align: center;
-    padding: 15px;
-    font-size: 22px;
-    font-weight: bold;
-}
-
-/* Mode Buttons */
-.modes {
+    padding: 10px;
+    border-bottom: 1px solid #0ff;
     display: flex;
-    justify-content: center;
-    gap: 10px;
-    margin-bottom: 10px;
+    justify-content: space-between;
 }
 
-.mode-btn {
-    padding: 6px 14px;
-    border-radius: 20px;
-    border: none;
+/* Modes */
+.modes button {
+    margin-left: 10px;
+    padding: 5px 10px;
+    border: 1px solid #0ff;
+    background: transparent;
+    color: #0ff;
     cursor: pointer;
-    background: #1f2937;
-    color: white;
 }
 
-.mode-btn.active {
-    background: #3b82f6;
+.modes .active {
+    background: #0ff;
+    color: black;
 }
 
-/* Chat Container */
-.chat-container {
-    width: 90%;
-    max-width: 900px;
-    height: 70vh;
-    margin: auto;
-    background: #111827;
-    border-radius: 10px;
-    padding: 15px;
+/* Chat Area */
+.chat {
+    flex: 1;
+    padding: 20px;
     overflow-y: auto;
 }
 
-/* Messages */
-.message {
-    margin: 10px 0;
-    padding: 10px;
-    border-radius: 8px;
-    max-width: 80%;
-}
-
-.user {
-    background: #3b82f6;
-    margin-left: auto;
-}
-
-.bot {
-    background: #1f2937;
-}
-
-/* Input Area */
+/* Input */
 .input-area {
-    display: flex;
-    width: 90%;
-    max-width: 900px;
-    margin: 10px auto;
-    gap: 10px;
+    padding: 10px;
+    border-top: 1px solid #0ff;
 }
 
-input {
-    flex: 1;
-    padding: 12px;
-    border-radius: 6px;
-    border: none;
+textarea {
+    width: 100%;
+    padding: 10px;
+    background: #020617;
+    color: #0ff;
+    border: 1px solid #0ff;
 }
 
 button.send {
-    padding: 12px 16px;
-    background: #3b82f6;
+    margin-top: 10px;
+    padding: 10px;
+    width: 100%;
+    background: #0ff;
+    color: black;
     border: none;
-    border-radius: 6px;
-    color: white;
-    cursor: pointer;
 }
 
-/* Mobile */
-@media (max-width: 600px) {
-    .chat-container {
-        height: 65vh;
-    }
+/* Grid background */
+.main::before {
+    content: "";
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-image: linear-gradient(#0ff 1px, transparent 1px),
+                      linear-gradient(90deg, #0ff 1px, transparent 1px);
+    background-size: 40px 40px;
+    opacity: 0.05;
+    z-index: 0;
+}
+
+.chat, .header, .input-area {
+    position: relative;
+    z-index: 1;
 }
 </style>
 </head>
 
 <body>
 
-<div class="header">⚡ Cypher AI</div>
+<div class="sidebar">
+    <h2>CYPHER</h2>
+    <p>CYBERSECURITY AI</p>
 
-<div class="modes">
-    <button class="mode-btn active" onclick="setMode(event, 'thinking')">🧠 Thinking</button>
-    <button class="mode-btn" onclick="setMode(event, 'programming')">💻 Programming</button>
-    <button class="mode-btn" onclick="setMode(event, 'fast')">⚡ Fast</button>
+    <div class="new-chat">+ NEW CHAT</div>
 </div>
 
-<div id="chat" class="chat-container"></div>
+<div class="main">
 
-<div class="input-area">
-    <input id="input" placeholder="Ask anything..." />
-    <button class="send" onclick="sendMessage()">Send</button>
+    <div class="header">
+        <div>RESEARCH TERMINAL</div>
+
+        <div class="modes">
+            <button class="active" onclick="setMode(event, 'thinking')">THINKING</button>
+            <button onclick="setMode(event, 'fast')">FAST</button>
+            <button onclick="setMode(event, 'programming')">PROGRAMMING</button>
+        </div>
+    </div>
+
+    <div id="chat" class="chat"></div>
+
+    <div class="input-area">
+        <textarea id="input" placeholder="Ask about exploits, recon, CTFs..."></textarea>
+        <button class="send" onclick="sendMessage()">SEND ▶</button>
+    </div>
+
 </div>
 
 <script>
@@ -127,37 +151,30 @@ let mode = "thinking";
 let chat_id = localStorage.getItem("chat_id") || Date.now().toString();
 localStorage.setItem("chat_id", chat_id);
 
-/* Mode switch */
 function setMode(event, selectedMode) {
     mode = selectedMode;
 
-    document.querySelectorAll(".mode-btn").forEach(btn => {
+    document.querySelectorAll(".modes button").forEach(btn => {
         btn.classList.remove("active");
     });
 
     event.target.classList.add("active");
 }
 
-/* Add message */
-function addMessage(text, sender) {
+function addMessage(text) {
     const chat = document.getElementById("chat");
-
     const div = document.createElement("div");
-    div.className = "message " + sender;
-    div.innerText = text;
-
+    div.textContent = text;
     chat.appendChild(div);
-    chat.scrollTop = chat.scrollHeight;
 }
 
-/* Send message */
 async function sendMessage() {
     const input = document.getElementById("input");
     const text = input.value.trim();
 
     if (!text) return;
 
-    addMessage(text, "user");
+    addMessage("You: " + text);
     input.value = "";
 
     const formData = new FormData();
@@ -165,24 +182,14 @@ async function sendMessage() {
     formData.append("chat_id", chat_id);
     formData.append("mode", mode);
 
-    try {
-        const res = await fetch("/chat", {
-            method: "POST",
-            body: formData
-        });
+    const res = await fetch("/chat", {
+        method: "POST",
+        body: formData
+    });
 
-        const data = await res.json();
-        addMessage(data.response, "bot");
-
-    } catch (err) {
-        addMessage("❌ Server error", "bot");
-    }
+    const data = await res.json();
+    addMessage("AI: " + data.response);
 }
-
-/* Enter key */
-document.getElementById("input").addEventListener("keypress", function(e) {
-    if (e.key === "Enter") sendMessage();
-});
 </script>
 
 </body>
