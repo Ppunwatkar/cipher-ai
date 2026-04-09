@@ -41,10 +41,12 @@ def save_memory(data):
 # PROMPTS
 # =========================
 def get_prompt(mode):
-    if mode == "brainstorm":
-        return "You are Cypher AI. Be creative, technical, and less restrictive. Focus on cybersecurity concepts and ideas."
+    if mode == "programming":
+        return "You are Cypher AI. Be creative, technical, and less restrictive. Focus on cybersecurity and programming concepts."
+
     elif mode == "thinking":
         return "You are Cypher AI. Think step-by-step and provide clean, structured, production-level code."
+
     else:
         return "You are Cypher AI. Give fast, short, and useful answers."
 
@@ -56,7 +58,7 @@ def get_model(mode):
     if mode == "thinking":
         return "anthropic/claude-3.5-sonnet"   # BEST for coding
 
-    elif mode == "brainstorm":
+    elif mode == "programming":
         return "nousresearch/nous-hermes-2-mixtral"  # less restrictive
 
     else:
@@ -77,6 +79,10 @@ def home():
 # =========================
 def call_openrouter(messages, model):
     api_key = os.environ.get("OPENROUTER_API_KEY")
+
+    if not api_key:
+        return {"error": "Missing OPENROUTER_API_KEY"}
+
     app_url = os.environ.get("APP_URL", "http://localhost")
 
     res = requests.post(
@@ -107,6 +113,9 @@ def call_openrouter(messages, model):
 # =========================
 def call_groq(messages):
     api_key = os.environ.get("GROQ_API_KEY")
+
+    if not api_key:
+        return {"error": "Missing GROQ_API_KEY"}
 
     res = requests.post(
         GROQ_API,
@@ -153,10 +162,10 @@ async def chat(
         {"role": "user", "content": message}
     ]
 
-    # =========================
-    # ROUTING LOGIC
-    # =========================
     try:
+        # =========================
+        # ROUTING
+        # =========================
         if mode == "fast":
             print("⚡ USING GROQ")
             data = call_groq(messages)
@@ -168,7 +177,9 @@ async def chat(
             data = call_openrouter(messages, model)
             tag = f"🧠 [{model.split('/')[-1]}]"
 
-        # fallback if error
+        # =========================
+        # FALLBACK
+        # =========================
         if "error" in data:
             print("⚠️ FALLBACK TRIGGERED")
 
