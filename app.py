@@ -45,33 +45,13 @@ def save_memory(data):
 # =========================
 def get_prompt(mode):
     prompts = {
-        "thinking": "You are an analytical AI. Think step-by-step and give structured answers.",
-        "fast": "You are a fast assistant. Give short, direct answers.",
-        "brainstorm": """You are a creative cybersecurity AI.
-Be direct, practical, and idea-focused.
-Avoid unnecessary disclaimers.
-Give bold, technical, and useful responses."""
+        "thinking": "Think step-by-step and give structured answers.",
+        "fast": "Give short, direct answers.",
+        "brainstorm": """Be highly creative, direct, and technical.
+Focus on ideas, strategies, and depth.
+Avoid unnecessary disclaimers."""
     }
     return prompts.get(mode, prompts["fast"])
-
-# =========================
-# TOOL SYSTEM
-# =========================
-def run_tool(message):
-    msg = message.lower()
-
-    if "nmap" in msg:
-        return """[SIMULATION]
-nmap scan:
-22/tcp open ssh
-80/tcp open http"""
-
-    if "whois" in msg:
-        return """[SIMULATION]
-Domain: example.com
-Registrar: ICANN"""
-
-    return None
 
 # =========================
 # UI
@@ -82,17 +62,21 @@ def home():
     return HTMLResponse(path.read_text(encoding="utf-8"))
 
 # =========================
-# OPENROUTER (DOLPHIN)
+# OPENROUTER
 # =========================
 def call_openrouter(messages):
     api_key = os.environ.get("OPENROUTER_API_KEY")
     app_url = os.environ.get("APP_URL")
 
-    print("🔍 DEBUG APP_URL:", app_url)
-    print("🔍 DEBUG API KEY EXISTS:", bool(api_key))
+    print("====== OPENROUTER DEBUG ======")
+    print("APP_URL:", app_url)
+    print("API_KEY_EXISTS:", bool(api_key))
 
     if not api_key:
         return {"error": {"message": "Missing OpenRouter API key"}}
+
+    if not app_url:
+        return {"error": {"message": "APP_URL not set in Railway"}}
 
     try:
         res = requests.post(
@@ -111,8 +95,8 @@ def call_openrouter(messages):
             timeout=30
         )
 
-        print("🧠 OpenRouter STATUS:", res.status_code)
-        print("🧠 OpenRouter RAW:", res.text)
+        print("STATUS:", res.status_code)
+        print("RAW RESPONSE:", res.text)
 
         if res.status_code != 200:
             return {"error": {"message": res.text}}
@@ -146,7 +130,7 @@ def call_groq(messages):
             timeout=30
         )
 
-        print("⚡ Groq STATUS:", res.status_code)
+        print("GROQ STATUS:", res.status_code)
 
         if res.status_code != 200:
             return {"error": {"message": res.text}}
@@ -166,12 +150,7 @@ async def chat(
     mode: str = Form(...)
 ):
 
-    print("🟡 MODE RECEIVED:", mode)
-
-    # TOOL
-    tool = run_tool(message)
-    if tool:
-        return {"response": tool}
+    print("MODE RECEIVED:", mode)
 
     memory_data = load_memory()
 
@@ -182,7 +161,7 @@ async def chat(
 
     messages = [
         {"role": "system", "content": get_prompt(mode)},
-        *history[-8:],
+        *history[-6:],
         {"role": "user", "content": message}
     ]
 
@@ -190,17 +169,16 @@ async def chat(
     # MODE SWITCH
     # =========================
     if mode == "brainstorm":
-        print("🧠 USING DOLPHIN")
+        print("USING DOLPHIN")
         data = call_openrouter(messages)
 
-        # ❌ NO FALLBACK (for debugging)
         if "error" in data:
             return {"response": f"❌ DOLPHIN ERROR:\n{data}"}
 
         tag = "🧠 [DOLPHIN]"
 
     else:
-        print("⚡ USING GROQ")
+        print("USING GROQ")
         data = call_groq(messages)
 
         if "error" in data:
