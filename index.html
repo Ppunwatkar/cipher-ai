@@ -9,31 +9,43 @@
 <style>
 body {
     background:#04070d;
-    color:#c9d1d9;
-    font-family: 'Courier New', monospace;
-    font-size:16px; /* 🔥 Bigger */
-    line-height:1.6;
+    color:#e6edf3;
+    font-family: 'Inter', 'Courier New', monospace;
+    font-size:18px; /* 🔥 Bigger base */
+    line-height:1.7;
 }
 
+/* GRID BACKGROUND */
 body::before {
     content:"";
     position:fixed;
     width:100%;
     height:100%;
     background-image:
-        linear-gradient(rgba(0,255,255,0.05) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0,255,255,0.05) 1px, transparent 1px);
-    background-size: 40px 40px;
+        linear-gradient(rgba(0,255,255,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,255,255,0.04) 1px, transparent 1px);
+    background-size: 50px 50px;
     z-index:-1;
 }
 
-.sidebar { width:260px; background:#0b0f17; border-right:1px solid #1f2937; }
-.header { background:#0b0f17; border-bottom:1px solid #1f2937; }
+/* SIDEBAR */
+.sidebar {
+    width:300px;
+    background:#0b0f17;
+    border-right:1px solid #1f2937;
+}
 
+/* HEADER */
+.header {
+    background:#0b0f17;
+    border-bottom:1px solid #1f2937;
+}
+
+/* MODE BUTTONS */
 .badge {
-    padding:4px 10px;
-    font-size:11px;
-    border:1px solid;
+    padding:8px 16px;
+    font-size:13px;
+    border:1px solid #00f2ff;
     cursor:pointer;
 }
 
@@ -41,103 +53,56 @@ body::before {
 #chat {
     display:flex;
     flex-direction:column;
-    gap:6px;
+    gap:14px;
+    max-width:900px;
+    margin:auto;
 }
 
+/* MESSAGE */
 .bot, .user {
-    padding:12px;
-    margin-top:10px;
-    border-radius:6px;
+    padding:18px;
+    border-radius:10px;
+    font-size:16px;
     animation: fadeIn 0.2s ease-in;
-    position:relative;
-    font-size:15px;
+    max-width:85%;
 }
 
 .bot {
     background:#0d1117;
-    border-left:3px solid #00f2ff;
+    border-left:4px solid #00f2ff;
 }
 
 .user {
-    text-align:right;
     background:#020617;
     margin-left:auto;
-}
-
-/* COPY BUTTON */
-.msg-copy {
-    position:absolute;
-    top:6px;
-    right:6px;
-    font-size:11px;
-    opacity:0;
-    cursor:pointer;
-}
-
-.bot:hover .msg-copy {
-    opacity:1;
-}
-
-/* CODE BLOCK */
-.code-block {
-    background:#020617;
-    border:1px solid #1f2937;
-    border-radius:8px;
-    padding:10px;
-    margin-top:10px;
-    position:relative;
-}
-
-.copy-btn {
-    position:absolute;
-    top:6px;
-    right:6px;
-    font-size:10px;
-    opacity:0;
-    cursor:pointer;
-}
-
-.code-block:hover .copy-btn {
-    opacity:1;
 }
 
 /* INPUT */
 .input-box {
     background:#04070d;
     border:1px solid #00f2ff;
-    box-shadow:0 0 10px rgba(0,255,255,0.2);
-    font-size:15px;
-    resize:none;
+    box-shadow:0 0 12px rgba(0,255,255,0.2);
+    font-size:16px;
+    padding:14px;
 }
 
 /* BUTTON */
-.btn { border:1px solid #00f2ff; padding:10px; }
+.btn {
+    border:1px solid #00f2ff;
+    padding:14px;
+    font-size:14px;
+}
 
 /* CHAT LIST */
 .chat-item {
-    display:flex;
-    justify-content:space-between;
-    padding:4px;
+    padding:8px;
     cursor:pointer;
-}
-
-.chat-actions {
-    display:none;
-    gap:5px;
-}
-
-.chat-item:hover .chat-actions {
-    display:flex;
-}
-
-.chat-actions span {
-    font-size:10px;
-    cursor:pointer;
+    font-size:14px;
 }
 
 /* ANIMATION */
 @keyframes fadeIn {
-    from {opacity:0; transform: translateY(5px);}
+    from {opacity:0; transform: translateY(6px);}
     to {opacity:1; transform: translateY(0);}
 }
 </style>
@@ -145,35 +110,41 @@ body::before {
 
 <body class="flex h-screen overflow-hidden">
 
-<div class="sidebar p-5 flex flex-col">
-<h1 class="text-cyan-400 text-xl font-bold">CIPHER</h1>
-<p class="text-xs text-gray-500 mb-6">CYBERSECURITY AI</p>
+<!-- SIDEBAR -->
+<div class="sidebar p-6 flex flex-col">
+<h1 class="text-cyan-400 text-2xl font-bold">CIPHER</h1>
+<p class="text-sm text-gray-500 mb-6">CYBERSECURITY AI</p>
 
-<button onclick="createNewChat()" class="btn text-xs">+ NEW CHAT</button>
-<div id="chatList" class="mt-4 text-xs overflow-y-auto"></div>
+<button onclick="createNewChat()" class="btn">+ NEW CHAT</button>
+
+<div id="chatList" class="mt-6 overflow-y-auto"></div>
 </div>
 
+<!-- MAIN -->
 <div class="flex-1 flex flex-col">
 
-<div class="header p-3 flex justify-between text-xs">
-<span class="text-cyan-400">RESEARCH TERMINAL</span>
+<!-- HEADER -->
+<div class="header p-4 flex justify-between">
+<span class="text-cyan-400 text-lg">RESEARCH TERMINAL</span>
 
-<div class="flex gap-2">
-<span class="badge" data-mode="live">THINKING</span>
-<span class="badge" data-mode="llama">FAST</span>
-<span class="badge" data-mode="unrestricted">BRAINSTORM</span>
+<div class="flex gap-3">
+<span class="badge" data-mode="thinking">THINKING</span>
+<span class="badge" data-mode="fast">FAST</span>
+<span class="badge" data-mode="brainstorm">BRAINSTORM</span>
 </div>
 </div>
 
-<div id="chat" class="flex-1 p-6 overflow-y-auto"></div>
+<!-- CHAT -->
+<div id="chat" class="flex-1 p-8 overflow-y-auto"></div>
 
-<div class="p-4 flex gap-2 flex-col">
+<!-- INPUT -->
+<div class="p-6 flex flex-col gap-3 max-w-4xl mx-auto w-full">
 <textarea id="msg"
-class="flex-1 input-box px-3 py-2"
+class="input-box rounded-md"
 placeholder="Ask about exploits, recon, CTFs..."
-rows="1"></textarea>
+rows="2"></textarea>
 
-<div class="text-xs text-gray-500">
+<div class="text-sm text-gray-500">
 Try: recon scan | sql injection | xss payload | whois example.com
 </div>
 
@@ -183,17 +154,15 @@ Try: recon scan | sql injection | xss payload | whois example.com
 </div>
 
 <script>
-
 let chats = {};
 let currentChat = null;
-let currentMode = "live";
+let currentMode = "thinking";
 
 /* INIT */
 document.addEventListener("DOMContentLoaded", () => {
 
     document.querySelectorAll(".badge").forEach(el=>{
         el.onclick = () => {
-
             currentMode = el.dataset.mode;
 
             document.querySelectorAll(".badge").forEach(b=>{
@@ -205,13 +174,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     createNewChat();
-});
-
-/* AUTO RESIZE */
-const msg = document.getElementById("msg");
-msg.addEventListener("input", ()=>{
-    msg.style.height = "auto";
-    msg.style.height = msg.scrollHeight + "px";
 });
 
 /* NEW CHAT */
@@ -233,62 +195,16 @@ function renderList(){
     list.innerHTML = "";
 
     Object.keys(chats).forEach(id=>{
-        const wrapper = document.createElement("div");
-        wrapper.className = "chat-item";
+        const div = document.createElement("div");
+        div.className = "chat-item";
+        div.innerText = chats[id].title;
 
-        const name = document.createElement("span");
-        name.innerText = chats[id].title;
-
-        name.onclick = ()=>{
+        div.onclick = ()=>{
             currentChat = id;
             render();
         };
 
-        const actions = document.createElement("div");
-        actions.className = "chat-actions";
-
-        const r = document.createElement("span");
-        r.innerText = "✏️";
-        r.onclick = (e)=>{
-            e.stopPropagation();
-            const n = prompt("Rename chat", chats[id].title);
-            if(n){
-                chats[id].title = n;
-                renderList();
-            }
-        };
-
-        const d = document.createElement("span");
-        d.innerText = "🗑";
-        d.onclick = (e)=>{
-            e.stopPropagation();
-            delete chats[id];
-            currentChat = Object.keys(chats)[0];
-            renderList();
-            render();
-        };
-
-        const s = document.createElement("span");
-        s.innerText = "🔗";
-        s.onclick = (e)=>{
-            e.stopPropagation();
-
-            const text = chats[id].messages
-                .map(m=>`${m.role}: ${m.content}`)
-                .join("\n\n");
-
-            navigator.clipboard.writeText(text);
-            alert("Copied!");
-        };
-
-        actions.appendChild(r);
-        actions.appendChild(d);
-        actions.appendChild(s);
-
-        wrapper.appendChild(name);
-        wrapper.appendChild(actions);
-
-        list.appendChild(wrapper);
+        list.appendChild(div);
     });
 }
 
@@ -298,65 +214,16 @@ function render(){
     chat.innerHTML="";
 
     (chats[currentChat]?.messages || []).forEach(m=>{
-        const wrapper = document.createElement("div");
-        wrapper.className = m.role==="user"?"user":"bot";
-
-        if(m.content.includes("```")){
-            const parts = m.content.split("```");
-
-            parts.forEach((part,i)=>{
-                if(i % 2 === 0){
-                    const text = document.createElement("div");
-                    text.innerText = part;
-                    wrapper.appendChild(text);
-                } else {
-                    const code = document.createElement("div");
-                    code.className = "code-block";
-
-                    const pre = document.createElement("pre");
-                    pre.innerText = part;
-
-                    const btn = document.createElement("div");
-                    btn.className = "copy-btn";
-                    btn.innerText = "Copy";
-
-                    btn.onclick = ()=>{
-                        navigator.clipboard.writeText(part);
-                        btn.innerText="Copied";
-                        setTimeout(()=>btn.innerText="Copy",1000);
-                    };
-
-                    code.appendChild(btn);
-                    code.appendChild(pre);
-                    wrapper.appendChild(code);
-                }
-            });
-
-        } else {
-            wrapper.innerText = m.content;
-        }
-
-        if(m.role === "bot"){
-            const copy = document.createElement("div");
-            copy.className = "msg-copy";
-            copy.innerText = "Copy";
-
-            copy.onclick = ()=>{
-                navigator.clipboard.writeText(m.content);
-                copy.innerText="Copied";
-                setTimeout(()=>copy.innerText="Copy",1000);
-            };
-
-            wrapper.appendChild(copy);
-        }
-
-        chat.appendChild(wrapper);
+        const div = document.createElement("div");
+        div.className = m.role==="user"?"user":"bot";
+        div.innerText = m.content;
+        chat.appendChild(div);
     });
 
-    chat.scrollTo({top: chat.scrollHeight, behavior:"smooth"});
+    chat.scrollTop = chat.scrollHeight;
 }
 
-/* SEND (WITH TYPING) */
+/* SEND */
 async function send(){
     const input = document.getElementById("msg");
     if(!input.value.trim()) return;
@@ -364,76 +231,31 @@ async function send(){
     const text = input.value;
 
     chats[currentChat].messages.push({role:"user",content:text});
-
-    if(chats[currentChat].messages.length === 1){
-        chats[currentChat].title = text.split(" ").slice(0,4).join(" ");
-        renderList();
-    }
-
     render();
+
     input.value="";
 
-    const chat = document.getElementById("chat");
+    const res = await fetch("/chat",{
+        method:"POST",
+        headers:{
+            "Content-Type":"application/x-www-form-urlencoded"
+        },
+        body:new URLSearchParams({
+            message:text,
+            chat_id:currentChat,
+            mode:currentMode
+        })
+    });
 
-    const botDiv = document.createElement("div");
-    botDiv.className = "bot";
-    chat.appendChild(botDiv);
+    const data = await res.json();
 
-    let dots = 0;
-    const loader = setInterval(()=>{
-        botDiv.innerText = "Thinking" + ".".repeat(dots % 4);
-        dots++;
-    },300);
+    chats[currentChat].messages.push({
+        role:"bot",
+        content:data.response
+    });
 
-    try{
-        const res = await fetch("/chat",{
-            method:"POST",
-            headers:{
-                "Content-Type":"application/x-www-form-urlencoded"
-            },
-            body:new URLSearchParams({
-                message:text,
-                chat_id:currentChat,
-                mode:currentMode
-            })
-        });
-
-        const data = await res.json();
-        clearInterval(loader);
-
-        const reply = data.response;
-        let i = 0;
-
-        const typing = setInterval(()=>{
-            botDiv.innerText = reply.slice(0,i);
-            i++;
-
-            if(i > reply.length){
-                clearInterval(typing);
-
-                chats[currentChat].messages.push({
-                    role:"bot",
-                    content:reply
-                });
-
-                render();
-            }
-        },12);
-
-    } catch(e){
-        clearInterval(loader);
-        botDiv.innerText="❌ Error";
-    }
+    render();
 }
-
-/* ENTER FIX */
-document.getElementById("msg").addEventListener("keydown",function(e){
-    if(e.key==="Enter" && !e.shiftKey){
-        e.preventDefault();
-        send();
-    }
-});
-
 </script>
 
 </body>
