@@ -83,6 +83,7 @@ def home():
 # =========================
 def call_openrouter(messages):
     api_key = os.environ.get("OPENROUTER_API_KEY")
+    app_url = os.environ.get("APP_URL", "https://your-app.up.railway.app")
 
     if not api_key:
         return {"error": {"message": "Missing OpenRouter API key"}}
@@ -92,8 +93,8 @@ def call_openrouter(messages):
             OPENROUTER_API,
             headers={
                 "Authorization": f"Bearer {api_key}",
-                "HTTP-Referer": "http://localhost:3000",  # REQUIRED
-                "X-Title": "Cypher AI",                   # REQUIRED
+                "HTTP-Referer": app_url,  # ✅ FIXED (NO localhost)
+                "X-Title": "Cypher AI",
                 "Content-Type": "application/json"
             },
             json={
