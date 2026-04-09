@@ -19,9 +19,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# =========================
-# API ENDPOINTS
-# =========================
 GROQ_API = "https://api.groq.com/openai/v1/chat/completions"
 OPENROUTER_API = "https://openrouter.ai/api/v1/chat/completions"
 
@@ -44,14 +41,13 @@ def save_memory(data):
 # PROMPTS
 # =========================
 def get_prompt(mode):
-    prompts = {
-        "thinking": "Think step-by-step and give structured answers.",
-        "fast": "Give short, direct answers.",
-        "brainstorm": """Be highly creative, direct, and technical.
-Focus on ideas, strategies, and depth.
-Avoid unnecessary disclaimers."""
-    }
-    return prompts.get(mode, prompts["fast"])
+    if mode == "brainstorm":
+        return """Be highly creative, direct, and technical.
+Focus on ideas and depth. Avoid unnecessary disclaimers."""
+    elif mode == "thinking":
+        return "Think step-by-step and give structured answers."
+    else:
+        return "Give short, fast answers."
 
 # =========================
 # UI
@@ -62,49 +58,39 @@ def home():
     return HTMLResponse(path.read_text(encoding="utf-8"))
 
 # =========================
-# OPENROUTER
+# OPENROUTER (DOLPHIN)
 # =========================
 def call_openrouter(messages):
     api_key = os.environ.get("OPENROUTER_API_KEY")
     app_url = os.environ.get("APP_URL")
 
-    print("====== OPENROUTER DEBUG ======")
     print("APP_URL:", app_url)
-    print("API_KEY_EXISTS:", bool(api_key))
 
-    if not api_key:
-        return {"error": {"message": "Missing OpenRouter API key"}}
+    if not api_key or not app_url:
+        return {"error": {"message": "Missing API key or APP_URL"}}
 
-    if not app_url:
-        return {"error": {"message": "APP_URL not set in Railway"}}
+    res = requests.post(
+        OPENROUTER_API,
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "HTTP-Referer": app_url,
+            "X-Title": "Cypher AI",
+            "Content-Type": "application/json"
+        },
+        json={
+            "model": "cognitivecomputations/dolphin-mixtral-8x7b",
+            "messages": messages,
+            "temperature": 0.9
+        }
+    )
 
-    try:
-        res = requests.post(
-            OPENROUTER_API,
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "HTTP-Referer": app_url,
-                "X-Title": "Cypher AI",
-                "Content-Type": "application/json"
-            },
-            json={
-                "model": "cognitivecomputations/dolphin-mixtral-8x7b",
-                "messages": messages,
-                "temperature": 0.9
-            },
-            timeout=30
-        )
+    print("DOLPHIN STATUS:", res.status_code)
+    print("DOLPHIN RAW:", res.text)
 
-        print("STATUS:", res.status_code)
-        print("RAW RESPONSE:", res.text)
+    if res.status_code != 200:
+        return {"error": {"message": res.text}}
 
-        if res.status_code != 200:
-            return {"error": {"message": res.text}}
-
-        return res.json()
-
-    except Exception as e:
-        return {"error": {"message": str(e)}}
+    return res.json()
 
 # =========================
 # GROQ
@@ -112,33 +98,24 @@ def call_openrouter(messages):
 def call_groq(messages):
     api_key = os.environ.get("GROQ_API_KEY")
 
-    if not api_key:
-        return {"error": {"message": "Missing GROQ API key"}}
+    res = requests.post(
+        GROQ_API,
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        },
+        json={
+            "model": "llama-3.3-70b-versatile",
+            "messages": messages
+        }
+    )
 
-    try:
-        res = requests.post(
-            GROQ_API,
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json"
-            },
-            json={
-                "model": "llama-3.3-70b-versatile",
-                "messages": messages,
-                "temperature": 0.4
-            },
-            timeout=30
-        )
+    print("GROQ STATUS:", res.status_code)
 
-        print("GROQ STATUS:", res.status_code)
+    if res.status_code != 200:
+        return {"error": {"message": res.text}}
 
-        if res.status_code != 200:
-            return {"error": {"message": res.text}}
-
-        return res.json()
-
-    except Exception as e:
-        return {"error": {"message": str(e)}}
+    return res.json()
 
 # =========================
 # CHAT
@@ -150,7 +127,9 @@ async def chat(
     mode: str = Form(...)
 ):
 
-    print("MODE RECEIVED:", mode)
+    # 🔥 FIX: normalize mode
+    mode = mode.lower().strip()
+    print("MODE:", mode)
 
     memory_data = load_memory()
 
@@ -166,7 +145,7 @@ async def chat(
     ]
 
     # =========================
-    # MODE SWITCH
+    # SWITCH LOGIC
     # =========================
     if mode == "brainstorm":
         print("USING DOLPHIN")
@@ -186,9 +165,6 @@ async def chat(
 
         tag = "⚡ [GROQ]"
 
-    # =========================
-    # RESPONSE
-    # =========================
     try:
         reply = data["choices"][0]["message"]["content"]
     except:
@@ -196,7 +172,6 @@ async def chat(
 
     reply = f"{tag}\n{reply}"
 
-    # SAVE MEMORY
     history.append({"role": "user", "content": message})
     history.append({"role": "assistant", "content": reply})
     save_memory(memory_data)
