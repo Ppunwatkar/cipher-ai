@@ -48,9 +48,9 @@ def get_prompt(mode):
         "thinking": "You are an analytical AI. Think step-by-step and give structured answers.",
         "fast": "You are a fast assistant. Give short, direct answers.",
         "brainstorm": """You are a creative cybersecurity AI.
-Respond directly and clearly.
-Focus on ideas, strategies, and technical depth.
-Avoid unnecessary disclaimers. Keep responses sharp and useful."""
+Be direct, practical, and idea-focused.
+Avoid unnecessary disclaimers.
+Give bold, technical, and useful responses."""
     }
     return prompts.get(mode, prompts["fast"])
 
@@ -86,7 +86,10 @@ def home():
 # =========================
 def call_openrouter(messages):
     api_key = os.environ.get("OPENROUTER_API_KEY")
-    app_url = os.environ.get("APP_URL", "https://your-app.up.railway.app")
+    app_url = os.environ.get("APP_URL")
+
+    print("🔍 DEBUG APP_URL:", app_url)
+    print("🔍 DEBUG API KEY EXISTS:", bool(api_key))
 
     if not api_key:
         return {"error": {"message": "Missing OpenRouter API key"}}
@@ -103,12 +106,13 @@ def call_openrouter(messages):
             json={
                 "model": "cognitivecomputations/dolphin-mixtral-8x7b",
                 "messages": messages,
-                "temperature": 0.9  # more creative
+                "temperature": 0.9
             },
             timeout=30
         )
 
         print("🧠 OpenRouter STATUS:", res.status_code)
+        print("🧠 OpenRouter RAW:", res.text)
 
         if res.status_code != 200:
             return {"error": {"message": res.text}}
@@ -162,7 +166,9 @@ async def chat(
     mode: str = Form(...)
 ):
 
-    # TOOL CHECK
+    print("🟡 MODE RECEIVED:", mode)
+
+    # TOOL
     tool = run_tool(message)
     if tool:
         return {"response": tool}
@@ -181,36 +187,35 @@ async def chat(
     ]
 
     # =========================
-    # MODE SWITCH LOGIC
+    # MODE SWITCH
     # =========================
     if mode == "brainstorm":
-        # 🧠 Dolphin
+        print("🧠 USING DOLPHIN")
         data = call_openrouter(messages)
 
+        # ❌ NO FALLBACK (for debugging)
         if "error" in data:
-            print("⚠️ Dolphin failed → fallback to Groq")
-            data = call_groq(messages)
-            tag = "⚡ [GROQ - FALLBACK]"
-        else:
-            tag = "🧠 [DOLPHIN]"
+            return {"response": f"❌ DOLPHIN ERROR:\n{data}"}
+
+        tag = "🧠 [DOLPHIN]"
 
     else:
-        # ⚡ Groq (thinking / fast)
+        print("⚡ USING GROQ")
         data = call_groq(messages)
+
+        if "error" in data:
+            return {"response": f"❌ GROQ ERROR:\n{data}"}
+
         tag = "⚡ [GROQ]"
 
     # =========================
-    # RESPONSE PARSE
+    # RESPONSE
     # =========================
-    if "error" in data:
-        return {"response": f"❌ {data['error']['message']}"}
-
     try:
         reply = data["choices"][0]["message"]["content"]
     except:
-        return {"response": "❌ Invalid API response"}
+        return {"response": f"❌ RAW RESPONSE:\n{data}"}
 
-    # Add model tag
     reply = f"{tag}\n{reply}"
 
     # SAVE MEMORY
