@@ -13,7 +13,7 @@ import models
 from sqlalchemy.orm import Session
 
 # =========================
-# APP INIT (FIXED POSITION)
+# APP INIT
 # =========================
 app = FastAPI()
 
@@ -72,7 +72,7 @@ def get_model(mode):
         return "mistralai/mixtral-8x7b-instruct"
 
 # =========================
-# UI ROUTE
+# UI
 # =========================
 @app.get("/", response_class=HTMLResponse)
 def home():
@@ -86,6 +86,7 @@ def call_openrouter(messages, model):
     api_key = os.environ.get("OPENROUTER_API_KEY")
 
     if not api_key:
+        print("❌ Missing OPENROUTER_API_KEY")
         return {"error": "Missing OPENROUTER_API_KEY"}
 
     app_url = os.environ.get("APP_URL", "http://localhost")
@@ -105,6 +106,8 @@ def call_openrouter(messages, model):
         }
     )
 
+    print("🧠 OpenRouter status:", res.status_code)
+
     if res.status_code != 200:
         return {"error": res.text}
 
@@ -117,6 +120,7 @@ def call_groq(messages):
     api_key = os.environ.get("GROQ_API_KEY")
 
     if not api_key:
+        print("❌ Missing GROQ_API_KEY")
         return {"error": "Missing GROQ_API_KEY"}
 
     res = requests.post(
@@ -131,13 +135,15 @@ def call_groq(messages):
         }
     )
 
+    print("⚡ Groq status:", res.status_code)
+
     if res.status_code != 200:
         return {"error": res.text}
 
     return res.json()
 
 # =========================
-# CHAT ROUTE (FULLY FIXED)
+# CHAT ROUTE (FINAL FIXED)
 # =========================
 @app.post("/chat")
 async def chat(
@@ -147,13 +153,13 @@ async def chat(
     mode: str = Form(...),
     db: Session = Depends(get_db)
 ):
-    print("📩 Incoming message:", message)
+    print("\n📩 Incoming message:", message)
     print("📌 Chat ID:", chat_id)
 
     mode = mode.lower().strip()
 
     # =========================
-    # CREATE / GET CHAT
+    # CREATE OR GET CHAT
     # =========================
     chat = db.query(models.Chat).filter(models.Chat.id == chat_id).first()
 
@@ -162,7 +168,7 @@ async def chat(
 
         chat = models.Chat(
             id=chat_id,
-            user_id=1,  # temporary (auth later)
+            user_id=1,
             title="New Chat"
         )
         db.add(chat)
@@ -176,6 +182,8 @@ async def chat(
         .filter(models.Message.chat_id == chat_id)\
         .order_by(models.Message.id.desc())\
         .limit(6).all()
+
+    print("📚 Loaded history:", len(history))
 
     history_messages = [
         {"role": m.role, "content": m.content}
@@ -200,7 +208,7 @@ async def chat(
         tag = f"🧠 [{model.split('/')[-1]}]"
 
     if "error" in data:
-        print("⚠️ OpenRouter failed → fallback to Groq")
+        print("⚠️ Falling back to Groq")
         data = call_groq(messages)
         tag = "⚡ [FALLBACK-GROQ]"
 
@@ -215,7 +223,7 @@ async def chat(
     # =========================
     # SAVE TO DATABASE
     # =========================
-    print("💾 Saving messages to DB")
+    print("💾 Saving messages...")
 
     user_msg = models.Message(
         chat_id=chat_id,
