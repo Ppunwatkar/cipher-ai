@@ -26,7 +26,7 @@ GROQ_API = "https://api.groq.com/openai/v1/chat/completions"
 OPENROUTER_API = "https://openrouter.ai/api/v1/chat/completions"
 
 # =========================
-# MEMORY FILE
+# MEMORY
 # =========================
 MEMORY_FILE = Path("memory/chats.json")
 MEMORY_FILE.parent.mkdir(exist_ok=True)
@@ -45,23 +45,26 @@ def save_memory(data):
 # =========================
 def get_prompt(mode):
     prompts = {
-        "assistant": "You are a helpful AI assistant.",
-        "research": "You are a deep research AI. Give structured answers.",
-        "redteam": "You are a cybersecurity trainer. Explain attacks safely."
+        "thinking": "You are an analytical AI. Think step-by-step and give structured answers.",
+        "fast": "You are a fast assistant. Give short, direct answers.",
+        "brainstorm": """You are a creative cybersecurity AI.
+Respond directly and clearly.
+Focus on ideas, strategies, and technical depth.
+Avoid unnecessary disclaimers. Keep responses sharp and useful."""
     }
-    return prompts.get(mode, prompts["assistant"])
+    return prompts.get(mode, prompts["fast"])
 
 # =========================
-# TOOL SYSTEM (SAFE SIM)
+# TOOL SYSTEM
 # =========================
 def run_tool(message):
     msg = message.lower()
 
     if "nmap" in msg:
         return """[SIMULATION]
-nmap scan result:
-22/tcp open  ssh
-80/tcp open  http"""
+nmap scan:
+22/tcp open ssh
+80/tcp open http"""
 
     if "whois" in msg:
         return """[SIMULATION]
@@ -79,7 +82,7 @@ def home():
     return HTMLResponse(path.read_text(encoding="utf-8"))
 
 # =========================
-# OPENROUTER CALL (FIXED)
+# OPENROUTER (DOLPHIN)
 # =========================
 def call_openrouter(messages):
     api_key = os.environ.get("OPENROUTER_API_KEY")
@@ -93,19 +96,19 @@ def call_openrouter(messages):
             OPENROUTER_API,
             headers={
                 "Authorization": f"Bearer {api_key}",
-                "HTTP-Referer": app_url,  # ✅ FIXED (NO localhost)
+                "HTTP-Referer": app_url,
                 "X-Title": "Cypher AI",
                 "Content-Type": "application/json"
             },
             json={
                 "model": "cognitivecomputations/dolphin-mixtral-8x7b",
-                "messages": messages
+                "messages": messages,
+                "temperature": 0.9  # more creative
             },
             timeout=30
         )
 
-        print("🔵 OpenRouter STATUS:", res.status_code)
-        print("🔵 OpenRouter RAW:", res.text)
+        print("🧠 OpenRouter STATUS:", res.status_code)
 
         if res.status_code != 200:
             return {"error": {"message": res.text}}
@@ -116,7 +119,7 @@ def call_openrouter(messages):
         return {"error": {"message": str(e)}}
 
 # =========================
-# GROQ CALL
+# GROQ
 # =========================
 def call_groq(messages):
     api_key = os.environ.get("GROQ_API_KEY")
@@ -133,12 +136,13 @@ def call_groq(messages):
             },
             json={
                 "model": "llama-3.3-70b-versatile",
-                "messages": messages
+                "messages": messages,
+                "temperature": 0.4
             },
             timeout=30
         )
 
-        print("🟢 Groq STATUS:", res.status_code)
+        print("⚡ Groq STATUS:", res.status_code)
 
         if res.status_code != 200:
             return {"error": {"message": res.text}}
@@ -155,11 +159,10 @@ def call_groq(messages):
 async def chat(
     message: str = Form(...),
     chat_id: str = Form(...),
-    mode: str = Form(...),
-    provider: str = Form("auto")  # auto / groq / openrouter
+    mode: str = Form(...)
 ):
 
-    # TOOL
+    # TOOL CHECK
     tool = run_tool(message)
     if tool:
         return {"response": tool}
@@ -178,21 +181,23 @@ async def chat(
     ]
 
     # =========================
-    # PROVIDER LOGIC
+    # MODE SWITCH LOGIC
     # =========================
-    if provider == "openrouter":
-        data = call_openrouter(messages)
-
-    elif provider == "groq":
-        data = call_groq(messages)
-
-    else:
-        # AUTO FALLBACK
+    if mode == "brainstorm":
+        # 🧠 Dolphin
         data = call_openrouter(messages)
 
         if "error" in data:
-            print("⚠️ OpenRouter failed → switching to Groq")
+            print("⚠️ Dolphin failed → fallback to Groq")
             data = call_groq(messages)
+            tag = "⚡ [GROQ - FALLBACK]"
+        else:
+            tag = "🧠 [DOLPHIN]"
+
+    else:
+        # ⚡ Groq (thinking / fast)
+        data = call_groq(messages)
+        tag = "⚡ [GROQ]"
 
     # =========================
     # RESPONSE PARSE
@@ -204,6 +209,9 @@ async def chat(
         reply = data["choices"][0]["message"]["content"]
     except:
         return {"response": "❌ Invalid API response"}
+
+    # Add model tag
+    reply = f"{tag}\n{reply}"
 
     # SAVE MEMORY
     history.append({"role": "user", "content": message})
