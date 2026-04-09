@@ -1,12 +1,22 @@
 import requests
 import os
-import json
 from pathlib import Path
-from fastapi import FastAPI, Form
+from fastapi import FastAPI, Form, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
-from database import SessionLocal, engine, Base
 
+# =========================
+# DATABASE
+# =========================
+from database import SessionLocal, engine, Base
+import models
+from sqlalchemy.orm import Session
+
+Base.metadata.create_all(bind=engine)
+
+# =========================
+# APP INIT
+# =========================
 app = FastAPI()
 
 app.add_middleware(
@@ -20,23 +30,15 @@ app.add_middleware(
 GROQ_API = "https://api.groq.com/openai/v1/chat/completions"
 OPENROUTER_API = "https://openrouter.ai/api/v1/chat/completions"
 
-MEMORY_FILE = Path("memory/chats.json")
-MEMORY_FILE.parent.mkdir(exist_ok=True)
-
-if not MEMORY_FILE.exists():
-    MEMORY_FILE.write_text("{}")
-
-
 # =========================
-# MEMORY
+# DB SESSION
 # =========================
-def load_memory():
-    return json.loads(MEMORY_FILE.read_text())
-
-
-def save_memory(data):
-    MEMORY_FILE.write_text(json.dumps(data, indent=2))
-
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 # =========================
 # PROMPTS
@@ -44,27 +46,21 @@ def save_memory(data):
 def get_prompt(mode):
     if mode == "programming":
         return "You are Cypher AI. Be creative, technical, and less restrictive. Focus on cybersecurity and programming concepts."
-
     elif mode == "thinking":
         return "You are Cypher AI. Think step-by-step and provide clean, structured, production-level code."
-
     else:
         return "You are Cypher AI. Give fast, short, and useful answers."
-
 
 # =========================
 # MODEL ROUTING
 # =========================
 def get_model(mode):
     if mode == "thinking":
-        return "anthropic/claude-3.5-sonnet"   # Best reasoning + coding
-
+        return "anthropic/claude-3.5-sonnet"
     elif mode == "programming":
-        return "mistralai/mixtral-8x7b-instruct"  # Fixed ✅
-
+        return "mistralai/mixtral-8x7b-instruct"
     else:
         return "mistralai/mixtral-8x7b-instruct"
-
 
 # =========================
 # UI
@@ -73,7 +69,6 @@ def get_model(mode):
 def home():
     path = Path(__file__).parent / "index.html"
     return HTMLResponse(path.read_text(encoding="utf-8"))
-
 
 # =========================
 # OPENROUTER
@@ -101,16 +96,13 @@ def call_openrouter(messages, model):
         }
     )
 
-    print(f"🧠 OPENROUTER ({model}) STATUS:", res.status_code)
-
     if res.status_code != 200:
         return {"error": res.text}
 
     return res.json()
 
-
 # =========================
-# GROQ (FAST)
+# GROQ
 # =========================
 def call_groq(messages):
     api_key = os.environ.get("GROQ_API_KEY")
@@ -130,84 +122,84 @@ def call_groq(messages):
         }
     )
 
-    print("⚡ GROQ STATUS:", res.status_code)
-
     if res.status_code != 200:
         return {"error": res.text}
 
     return res.json()
 
-
 # =========================
-# CHAT
+# CHAT (DB VERSION)
 # =========================
 @app.post("/chat")
 async def chat(
+    request: Request,
     message: str = Form(...),
     chat_id: str = Form(...),
-    mode: str = Form(...)
+    mode: str = Form(...),
+    db: Session = Depends(get_db)
 ):
     mode = mode.lower().strip()
-    print("MODE:", mode)
 
-    memory_data = load_memory()
+    # =========================
+    # GET OR CREATE CHAT
+    # =========================
+    chat = db.query(models.Chat).filter(models.Chat.id == chat_id).first()
 
-    if chat_id not in memory_data:
-        memory_data[chat_id] = []
+    if not chat:
+        chat = models.Chat(
+            id=chat_id,
+            user_id=1,  # TEMP (we'll add auth later)
+            title="New Chat"
+        )
+        db.add(chat)
+        db.commit()
 
-    history = memory_data[chat_id]
+    # =========================
+    # LOAD HISTORY FROM DB
+    # =========================
+    history = db.query(models.Message)\
+        .filter(models.Message.chat_id == chat_id)\
+        .order_by(models.Message.id.desc())\
+        .limit(6).all()
+
+    history_messages = [
+        {"role": m.role, "content": m.content}
+        for m in reversed(history)
+    ]
 
     messages = [
         {"role": "system", "content": get_prompt(mode)},
-        *history[-6:],
+        *history_messages,
         {"role": "user", "content": message}
     ]
 
+    # =========================
+    # MODEL ROUTING
+    # =========================
+    if mode == "fast":
+        data = call_groq(messages)
+        tag = "⚡ [FAST-GROQ]"
+    else:
+        model = get_model(mode)
+        data = call_openrouter(messages, model)
+        tag = f"🧠 [{model.split('/')[-1]}]"
+
+    if "error" in data:
+        data = call_groq(messages)
+        tag = "⚡ [FALLBACK-GROQ]"
+
     try:
-        # =========================
-        # ROUTING
-        # =========================
-        if mode == "fast":
-            print("⚡ USING GROQ")
-            data = call_groq(messages)
-            tag = "⚡ [FAST-GROQ]"
-
-        else:
-            model = get_model(mode)
-            print(f"🧠 USING OPENROUTER: {model}")
-            data = call_openrouter(messages, model)
-            tag = f"🧠 [{model.split('/')[-1]}]"
-
-        # =========================
-        # FALLBACK
-        # =========================
-        if "error" in data:
-            print("⚠️ FALLBACK TRIGGERED")
-
-            data = call_groq(messages)
-            tag = "⚡ [FALLBACK-GROQ]"
-
         reply = data["choices"][0]["message"]["content"]
-
-    except Exception as e:
-        return {"response": f"❌ SYSTEM ERROR:\n{str(e)}"}
+    except:
+        return {"response": f"❌ ERROR:\n{data}"}
 
     reply = f"{tag}\n{reply}"
 
     # =========================
-    # SAVE MEMORY
+    # SAVE TO DATABASE
     # =========================
-    history.append({"role": "user", "content": message})
-    history.append({"role": "assistant", "content": reply})
-    save_memory(memory_data)
+    db.add(models.Message(chat_id=chat_id, role="user", content=message))
+    db.add(models.Message(chat_id=chat_id, role="assistant", content=reply))
+    db.commit()
 
     return {"response": reply}
-
-
-# =========================
-# RUN
-# =========================
-if __name__ == "__main__":
-    import uvicorn
-    port = int(os.environ.get("PORT", 8080))
-    uvicorn.run(app, host="0.0.0.0", port=port)
