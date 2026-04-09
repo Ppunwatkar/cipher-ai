@@ -15,7 +15,7 @@ body {
     line-height:1.7;
 }
 
-/* GRID BACKGROUND */
+/* GRID */
 body::before {
     content:"";
     position:fixed;
@@ -113,77 +113,49 @@ body::before {
 
     body {
         flex-direction: column;
-        overflow: hidden;
     }
 
     /* Hide sidebar */
     .sidebar {
-        display: none;
+        display:none;
     }
 
-    /* Full width main */
-    .flex-1 {
-        width: 100%;
-    }
-
-    /* Header */
-    .header {
-        width: 100%;
-        padding: 12px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .header .flex {
-        gap: 6px;
-        flex-wrap: nowrap;
-    }
-
-    .badge {
-        font-size: 10px;
-        padding: 6px 8px;
-    }
-
-    /* Chat */
+    /* Full width chat */
     #chat {
-        flex: 1;
-        padding: 12px;
-        overflow-y: auto;
-        max-width: 100%;
+        max-width:100%;
+        padding:10px;
     }
 
     .bot, .user {
-        max-width: 100%;
-        font-size: 14px;
-        padding: 12px;
+        max-width:100%;
+        font-size:14px;
+        padding:12px;
     }
 
-    /* Input fixed bottom */
-    .p-6 {
+    /* Fix input bottom */
+    .input-container {
         position: fixed;
         bottom: 0;
         left: 0;
         width: 100%;
-        background: #04070d;
-        border-top: 1px solid #1f2937;
-        padding: 12px;
+        padding: 10px;
+        background:#04070d;
+        border-top:1px solid #1f2937;
     }
 
     textarea {
-        width: 100%;
-        font-size: 14px;
+        width:100%;
+        font-size:14px;
     }
 
     .btn {
-        width: 100%;
-        padding: 12px;
-        font-size: 13px;
+        width:100%;
+        margin-top:8px;
     }
 
-    /* Prevent overlap */
+    /* space for input */
     #chat {
-        padding-bottom: 140px;
+        padding-bottom:150px;
     }
 }
 </style>
@@ -192,13 +164,23 @@ body::before {
 <body class="flex h-screen overflow-hidden">
 
 <!-- SIDEBAR -->
-<div class="sidebar p-6 flex flex-col">
+<div class="sidebar p-6 flex flex-col justify-between">
+
+<div>
 <h1 class="text-cyan-400 text-2xl font-bold">CIPHER</h1>
 <p class="text-sm text-gray-500 mb-6">CYBERSECURITY AI</p>
 
 <button onclick="createNewChat()" class="btn">+ NEW CHAT</button>
 
 <div id="chatList" class="mt-6 overflow-y-auto"></div>
+</div>
+
+<!-- LOGIN SECTION -->
+<div class="flex flex-col gap-2 mt-6">
+<button class="btn">Login</button>
+<button class="btn">Sign Up</button>
+</div>
+
 </div>
 
 <!-- MAIN -->
@@ -219,7 +201,7 @@ body::before {
 <div id="chat" class="flex-1 p-8 overflow-y-auto"></div>
 
 <!-- INPUT -->
-<div class="p-6 flex flex-col gap-3 max-w-4xl mx-auto w-full">
+<div class="input-container p-6 flex flex-col gap-3 max-w-4xl mx-auto w-full">
 <textarea id="msg"
 class="input-box rounded-md"
 placeholder="Ask about exploits, recon, CTFs..."
@@ -239,7 +221,6 @@ let chats = {};
 let currentChat = null;
 let currentMode = "thinking";
 
-/* INIT */
 document.addEventListener("DOMContentLoaded", () => {
 
     document.querySelectorAll(".badge").forEach(el=>{
@@ -257,7 +238,6 @@ document.addEventListener("DOMContentLoaded", () => {
     createNewChat();
 });
 
-/* NEW CHAT */
 function createNewChat(){
     currentChat = "chat_" + Date.now();
 
@@ -270,7 +250,6 @@ function createNewChat(){
     render();
 }
 
-/* CHAT LIST */
 function renderList(){
     const list = document.getElementById("chatList");
     list.innerHTML = "";
@@ -289,7 +268,6 @@ function renderList(){
     });
 }
 
-/* RENDER */
 function render(){
     const chat = document.getElementById("chat");
     chat.innerHTML="";
@@ -304,7 +282,6 @@ function render(){
     chat.scrollTop = chat.scrollHeight;
 }
 
-/* SEND */
 async function send(){
     const input = document.getElementById("msg");
     if(!input.value.trim()) return;
