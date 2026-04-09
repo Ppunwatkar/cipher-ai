@@ -7,7 +7,6 @@
 <script src="https://cdn.tailwindcss.com"></script>
 
 <style>
-/* (UNCHANGED — YOUR ORIGINAL UI) */
 body {
     background:#04070d;
     color:#e6edf3;
@@ -16,6 +15,7 @@ body {
     line-height:1.7;
 }
 
+/* GRID */
 body::before {
     content:"";
     position:fixed;
@@ -28,9 +28,21 @@ body::before {
     z-index:-1;
 }
 
-.sidebar { width:300px; background:#0b0f17; border-right:1px solid #1f2937; }
-.header { background:#0b0f17; border-bottom:1px solid #1f2937; }
+/* SIDEBAR */
+.sidebar {
+    width:260px;
+    background:#0b0f17;
+    border-right:1px solid #1f2937;
+    transition:0.3s;
+}
 
+/* HEADER */
+.header {
+    background:#0b0f17;
+    border-bottom:1px solid #1f2937;
+}
+
+/* BUTTONS */
 .badge {
     padding:8px 16px;
     font-size:13px;
@@ -38,6 +50,7 @@ body::before {
     cursor:pointer;
 }
 
+/* CHAT */
 #chat {
     display:flex;
     flex-direction:column;
@@ -46,6 +59,7 @@ body::before {
     margin:auto;
 }
 
+/* MESSAGE */
 .bot, .user {
     padding:18px;
     border-radius:10px;
@@ -57,6 +71,7 @@ body::before {
 .bot { background:#0d1117; border-left:4px solid #00f2ff; }
 .user { background:#020617; margin-left:auto; }
 
+/* INPUT */
 .input-box {
     background:#04070d;
     border:1px solid #00f2ff;
@@ -65,18 +80,114 @@ body::before {
     padding:14px;
 }
 
-.btn { border:1px solid #00f2ff; padding:14px; font-size:14px; }
+/* BUTTON */
+.btn {
+    border:1px solid #00f2ff;
+    padding:14px;
+    font-size:14px;
+}
 
-.chat-item { padding:8px; cursor:pointer; font-size:14px; }
+/* CHAT LIST */
+.chat-item {
+    padding:8px;
+    cursor:pointer;
+    font-size:14px;
+}
 
+/* ANIMATION */
 @keyframes fadeIn {
     from {opacity:0; transform: translateY(6px);}
     to {opacity:1; transform: translateY(0);}
 }
+
+/* ================= MOBILE ================= */
+@media (max-width:768px){
+
+    body {
+        flex-direction:column;
+    }
+
+    /* Sidebar hidden */
+    .sidebar {
+        position:fixed;
+        left:-100%;
+        top:0;
+        height:100%;
+        z-index:1000;
+    }
+
+    .sidebar.open {
+        left:0;
+    }
+
+    /* Header layout */
+    .header {
+        flex-direction:row;
+        justify-content:space-between;
+        align-items:center;
+    }
+
+    .header .flex {
+        flex-wrap:wrap;
+        gap:6px;
+    }
+
+    .badge {
+        font-size:11px;
+        padding:6px 10px;
+    }
+
+    /* Chat full width */
+    #chat {
+        max-width:100%;
+        padding:12px;
+    }
+
+    .bot, .user {
+        max-width:100%;
+        font-size:14px;
+        padding:12px;
+    }
+
+    .input-box {
+        font-size:14px;
+    }
+
+    .btn {
+        font-size:13px;
+        padding:12px;
+    }
+}
+
+/* ================= TABLET ================= */
+@media (min-width:768px) and (max-width:1024px){
+
+    .sidebar {
+        width:200px;
+    }
+
+    #chat {
+        max-width:100%;
+    }
+
+    .badge {
+        font-size:12px;
+        padding:6px 12px;
+    }
+
+    .bot, .user {
+        max-width:90%;
+        font-size:15px;
+    }
+
+    .max-w-4xl {
+        max-width:90%;
+    }
+}
 </style>
 </head>
 
-<body class="flex h-screen overflow-hidden">
+<body class="flex h-screen overflow-hidden md:flex-row flex-col">
 
 <!-- SIDEBAR -->
 <div class="sidebar p-6 flex flex-col">
@@ -92,7 +203,11 @@ body::before {
 <div class="flex-1 flex flex-col">
 
 <!-- HEADER -->
-<div class="header p-4 flex justify-between">
+<div class="header p-4 flex justify-between items-center">
+
+<!-- MOBILE MENU -->
+<button onclick="toggleSidebar()" class="md:hidden text-cyan-400 text-xl">☰</button>
+
 <span class="text-cyan-400 text-lg">RESEARCH TERMINAL</span>
 
 <div class="flex gap-3">
@@ -125,6 +240,11 @@ Try: recon scan | sql injection | xss payload | whois example.com
 let chats = {};
 let currentChat = null;
 let currentMode = "thinking";
+
+/* SIDEBAR TOGGLE */
+function toggleSidebar(){
+    document.querySelector(".sidebar").classList.toggle("open");
+}
 
 /* INIT */
 document.addEventListener("DOMContentLoaded", () => {
