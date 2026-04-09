@@ -66,7 +66,7 @@ def call_openrouter(messages):
             "Content-Type": "application/json"
         },
         json={
-            "model": "cognitivecomputations/dolphin-mixtral-8x7b",
+            "model": "mistralai/mixtral-8x7b-instruct",
             "messages": messages,
             "temperature": 0.9
         }
