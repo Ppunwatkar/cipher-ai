@@ -5,6 +5,7 @@ from pathlib import Path
 from fastapi import FastAPI, Form
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
+from database import SessionLocal, engine, Base
 
 app = FastAPI()
 
