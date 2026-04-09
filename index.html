@@ -15,7 +15,7 @@ body {
     line-height:1.7;
 }
 
-/* GRID */
+/* GRID BACKGROUND */
 body::before {
     content:"";
     position:fixed;
@@ -33,7 +33,6 @@ body::before {
     width:260px;
     background:#0b0f17;
     border-right:1px solid #1f2937;
-    transition:0.3s;
 }
 
 /* HEADER */
@@ -42,7 +41,7 @@ body::before {
     border-bottom:1px solid #1f2937;
 }
 
-/* BUTTONS */
+/* MODE BUTTONS */
 .badge {
     padding:8px 16px;
     font-size:13px;
@@ -68,8 +67,15 @@ body::before {
     max-width:85%;
 }
 
-.bot { background:#0d1117; border-left:4px solid #00f2ff; }
-.user { background:#020617; margin-left:auto; }
+.bot {
+    background:#0d1117;
+    border-left:4px solid #00f2ff;
+}
+
+.user {
+    background:#020617;
+    margin-left:auto;
+}
 
 /* INPUT */
 .input-box {
@@ -100,94 +106,90 @@ body::before {
     to {opacity:1; transform: translateY(0);}
 }
 
-/* ================= MOBILE ================= */
-@media (max-width:768px){
+/* =========================
+   MOBILE FIX (CHATGPT STYLE)
+========================= */
+@media (max-width: 768px) {
 
     body {
-        flex-direction:column;
+        flex-direction: column;
+        overflow: hidden;
     }
 
-    /* Sidebar hidden */
+    /* Hide sidebar */
     .sidebar {
-        position:fixed;
-        left:-100%;
-        top:0;
-        height:100%;
-        z-index:1000;
+        display: none;
     }
 
-    .sidebar.open {
-        left:0;
+    /* Full width main */
+    .flex-1 {
+        width: 100%;
     }
 
-    /* Header layout */
+    /* Header */
     .header {
-        flex-direction:row;
-        justify-content:space-between;
-        align-items:center;
+        width: 100%;
+        padding: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
     }
 
     .header .flex {
-        flex-wrap:wrap;
-        gap:6px;
+        gap: 6px;
+        flex-wrap: nowrap;
     }
 
     .badge {
-        font-size:11px;
-        padding:6px 10px;
+        font-size: 10px;
+        padding: 6px 8px;
     }
 
-    /* Chat full width */
+    /* Chat */
     #chat {
-        max-width:100%;
-        padding:12px;
+        flex: 1;
+        padding: 12px;
+        overflow-y: auto;
+        max-width: 100%;
     }
 
     .bot, .user {
-        max-width:100%;
-        font-size:14px;
-        padding:12px;
+        max-width: 100%;
+        font-size: 14px;
+        padding: 12px;
     }
 
-    .input-box {
-        font-size:14px;
+    /* Input fixed bottom */
+    .p-6 {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background: #04070d;
+        border-top: 1px solid #1f2937;
+        padding: 12px;
+    }
+
+    textarea {
+        width: 100%;
+        font-size: 14px;
     }
 
     .btn {
-        font-size:13px;
-        padding:12px;
-    }
-}
-
-/* ================= TABLET ================= */
-@media (min-width:768px) and (max-width:1024px){
-
-    .sidebar {
-        width:200px;
+        width: 100%;
+        padding: 12px;
+        font-size: 13px;
     }
 
+    /* Prevent overlap */
     #chat {
-        max-width:100%;
-    }
-
-    .badge {
-        font-size:12px;
-        padding:6px 12px;
-    }
-
-    .bot, .user {
-        max-width:90%;
-        font-size:15px;
-    }
-
-    .max-w-4xl {
-        max-width:90%;
+        padding-bottom: 140px;
     }
 }
 </style>
 </head>
 
-<body class="flex h-screen overflow-hidden md:flex-row flex-col">
+<body class="flex h-screen overflow-hidden">
 
 <!-- SIDEBAR -->
 <div class="sidebar p-6 flex flex-col">
@@ -203,11 +205,7 @@ body::before {
 <div class="flex-1 flex flex-col">
 
 <!-- HEADER -->
-<div class="header p-4 flex justify-between items-center">
-
-<!-- MOBILE MENU -->
-<button onclick="toggleSidebar()" class="md:hidden text-cyan-400 text-xl">☰</button>
-
+<div class="header p-4 flex justify-between">
 <span class="text-cyan-400 text-lg">RESEARCH TERMINAL</span>
 
 <div class="flex gap-3">
@@ -240,11 +238,6 @@ Try: recon scan | sql injection | xss payload | whois example.com
 let chats = {};
 let currentChat = null;
 let currentMode = "thinking";
-
-/* SIDEBAR TOGGLE */
-function toggleSidebar(){
-    document.querySelector(".sidebar").classList.toggle("open");
-}
 
 /* INIT */
 document.addEventListener("DOMContentLoaded", () => {
