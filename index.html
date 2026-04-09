@@ -8,27 +8,17 @@
 <style>
 body {
     margin: 0;
+    background: #0b1220;
+    color: white;
     font-family: Arial, sans-serif;
-    background: #0d1117;
-    color: #fff;
-}
-
-/* Container */
-.container {
-    max-width: 900px;
-    margin: auto;
-    padding: 10px;
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
 }
 
 /* Header */
 .header {
     text-align: center;
-    font-size: 24px;
+    padding: 15px;
+    font-size: 22px;
     font-weight: bold;
-    padding: 10px;
 }
 
 /* Mode Buttons */
@@ -37,89 +27,79 @@ body {
     justify-content: center;
     gap: 10px;
     margin-bottom: 10px;
-    flex-wrap: wrap;
 }
 
 .mode-btn {
-    padding: 8px 14px;
+    padding: 6px 14px;
     border-radius: 20px;
     border: none;
     cursor: pointer;
-    background: #21262d;
-    color: #fff;
-    font-size: 14px;
+    background: #1f2937;
+    color: white;
 }
 
 .mode-btn.active {
-    background: #2f81f7;
+    background: #3b82f6;
 }
 
-/* Chat Box */
-.chat-box {
-    flex: 1;
-    overflow-y: auto;
-    padding: 10px;
+/* Chat Container */
+.chat-container {
+    width: 90%;
+    max-width: 900px;
+    height: 70vh;
+    margin: auto;
+    background: #111827;
     border-radius: 10px;
-    background: #161b22;
+    padding: 15px;
+    overflow-y: auto;
 }
 
 /* Messages */
 .message {
     margin: 10px 0;
     padding: 10px;
-    border-radius: 10px;
-    max-width: 85%;
-    word-wrap: break-word;
+    border-radius: 8px;
+    max-width: 80%;
 }
 
 .user {
-    background: #2f81f7;
-    align-self: flex-end;
+    background: #3b82f6;
+    margin-left: auto;
 }
 
 .bot {
-    background: #30363d;
-    align-self: flex-start;
+    background: #1f2937;
 }
 
 /* Input Area */
 .input-area {
     display: flex;
+    width: 90%;
+    max-width: 900px;
+    margin: 10px auto;
     gap: 10px;
-    margin-top: 10px;
 }
 
 input {
     flex: 1;
     padding: 12px;
-    border-radius: 8px;
+    border-radius: 6px;
     border: none;
-    font-size: 16px;
 }
 
 button.send {
     padding: 12px 16px;
+    background: #3b82f6;
     border: none;
-    border-radius: 8px;
-    background: #2f81f7;
+    border-radius: 6px;
     color: white;
-    font-size: 16px;
     cursor: pointer;
 }
 
-/* Mobile Optimization */
+/* Mobile */
 @media (max-width: 600px) {
-    .header {
-        font-size: 20px;
-    }
-
-    input {
-        font-size: 14px;
-    }
-
-    .mode-btn {
-        font-size: 12px;
-        padding: 6px 10px;
+    .chat-container {
+        height: 65vh;
     }
 }
 </style>
@@ -127,26 +107,19 @@ button.send {
 
 <body>
 
-<div class="container">
+<div class="header">⚡ Cypher AI</div>
 
-    <div class="header">⚡ Cypher AI</div>
+<div class="modes">
+    <button class="mode-btn active" onclick="setMode(event, 'thinking')">🧠 Thinking</button>
+    <button class="mode-btn" onclick="setMode(event, 'programming')">💻 Programming</button>
+    <button class="mode-btn" onclick="setMode(event, 'fast')">⚡ Fast</button>
+</div>
 
-    <!-- Modes -->
-    <div class="modes">
-        <button class="mode-btn active" onclick="setMode(this, 'thinking')">🧠 Thinking</button>
-        <button class="mode-btn" onclick="setMode(this, 'programming')">💻 Programming</button>
-        <button class="mode-btn" onclick="setMode(this, 'fast')">⚡ Fast</button>
-    </div>
+<div id="chat" class="chat-container"></div>
 
-    <!-- Chat -->
-    <div id="chat" class="chat-box"></div>
-
-    <!-- Input -->
-    <div class="input-area">
-        <input id="input" placeholder="Ask anything..." />
-        <button class="send" onclick="sendMessage()">Send</button>
-    </div>
-
+<div class="input-area">
+    <input id="input" placeholder="Ask anything..." />
+    <button class="send" onclick="sendMessage()">Send</button>
 </div>
 
 <script>
@@ -154,13 +127,18 @@ let mode = "thinking";
 let chat_id = localStorage.getItem("chat_id") || Date.now().toString();
 localStorage.setItem("chat_id", chat_id);
 
-function setMode(btn, selectedMode) {
+/* Mode switch */
+function setMode(event, selectedMode) {
     mode = selectedMode;
 
-    document.querySelectorAll(".mode-btn").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
+    document.querySelectorAll(".mode-btn").forEach(btn => {
+        btn.classList.remove("active");
+    });
+
+    event.target.classList.add("active");
 }
 
+/* Add message */
 function addMessage(text, sender) {
     const chat = document.getElementById("chat");
 
@@ -172,6 +150,7 @@ function addMessage(text, sender) {
     chat.scrollTop = chat.scrollHeight;
 }
 
+/* Send message */
 async function sendMessage() {
     const input = document.getElementById("input");
     const text = input.value.trim();
@@ -196,11 +175,11 @@ async function sendMessage() {
         addMessage(data.response, "bot");
 
     } catch (err) {
-        addMessage("❌ Error connecting to server", "bot");
+        addMessage("❌ Server error", "bot");
     }
 }
 
-/* Enter key support */
+/* Enter key */
 document.getElementById("input").addEventListener("keypress", function(e) {
     if (e.key === "Enter") sendMessage();
 });
