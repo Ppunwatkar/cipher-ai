@@ -8,9 +8,6 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
-# =========================
-# CORS
-# =========================
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -22,9 +19,6 @@ app.add_middleware(
 GROQ_API = "https://api.groq.com/openai/v1/chat/completions"
 OPENROUTER_API = "https://openrouter.ai/api/v1/chat/completions"
 
-# =========================
-# MEMORY
-# =========================
 MEMORY_FILE = Path("memory/chats.json")
 MEMORY_FILE.parent.mkdir(exist_ok=True)
 
@@ -42,8 +36,7 @@ def save_memory(data):
 # =========================
 def get_prompt(mode):
     if mode == "brainstorm":
-        return """Be highly creative, direct, and technical.
-Focus on ideas and depth. Avoid unnecessary disclaimers."""
+        return "Be creative, direct, and technical. Focus on ideas."
     elif mode == "thinking":
         return "Think step-by-step and give structured answers."
     else:
@@ -64,11 +57,6 @@ def call_openrouter(messages):
     api_key = os.environ.get("OPENROUTER_API_KEY")
     app_url = os.environ.get("APP_URL")
 
-    print("APP_URL:", app_url)
-
-    if not api_key or not app_url:
-        return {"error": {"message": "Missing API key or APP_URL"}}
-
     res = requests.post(
         OPENROUTER_API,
         headers={
@@ -84,11 +72,10 @@ def call_openrouter(messages):
         }
     )
 
-    print("DOLPHIN STATUS:", res.status_code)
-    print("DOLPHIN RAW:", res.text)
+    print("🧠 DOLPHIN STATUS:", res.status_code)
 
     if res.status_code != 200:
-        return {"error": {"message": res.text}}
+        return {"error": res.text}
 
     return res.json()
 
@@ -110,10 +97,10 @@ def call_groq(messages):
         }
     )
 
-    print("GROQ STATUS:", res.status_code)
+    print("⚡ GROQ STATUS:", res.status_code)
 
     if res.status_code != 200:
-        return {"error": {"message": res.text}}
+        return {"error": res.text}
 
     return res.json()
 
@@ -127,7 +114,6 @@ async def chat(
     mode: str = Form(...)
 ):
 
-    # 🔥 FIX: normalize mode
     mode = mode.lower().strip()
     print("MODE:", mode)
 
@@ -145,10 +131,10 @@ async def chat(
     ]
 
     # =========================
-    # SWITCH LOGIC
+    # ROUTING
     # =========================
     if mode == "brainstorm":
-        print("USING DOLPHIN")
+        print("🧠 USING DOLPHIN")
         data = call_openrouter(messages)
 
         if "error" in data:
@@ -157,7 +143,7 @@ async def chat(
         tag = "🧠 [DOLPHIN]"
 
     else:
-        print("USING GROQ")
+        print("⚡ USING GROQ")
         data = call_groq(messages)
 
         if "error" in data:
@@ -168,7 +154,7 @@ async def chat(
     try:
         reply = data["choices"][0]["message"]["content"]
     except:
-        return {"response": f"❌ RAW RESPONSE:\n{data}"}
+        return {"response": f"❌ RAW:\n{data}"}
 
     reply = f"{tag}\n{reply}"
 
