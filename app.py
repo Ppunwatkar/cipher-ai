@@ -25,22 +25,43 @@ MEMORY_FILE.parent.mkdir(exist_ok=True)
 if not MEMORY_FILE.exists():
     MEMORY_FILE.write_text("{}")
 
+
+# =========================
+# MEMORY
+# =========================
 def load_memory():
     return json.loads(MEMORY_FILE.read_text())
 
+
 def save_memory(data):
     MEMORY_FILE.write_text(json.dumps(data, indent=2))
+
 
 # =========================
 # PROMPTS
 # =========================
 def get_prompt(mode):
     if mode == "brainstorm":
-        return "Be creative, direct, and technical. Focus on ideas."
+        return "You are Cypher AI. Be creative, technical, and less restrictive. Focus on cybersecurity concepts and ideas."
     elif mode == "thinking":
-        return "Think step-by-step and give structured answers."
+        return "You are Cypher AI. Think step-by-step and provide clean, structured, production-level code."
     else:
-        return "Give short, fast answers."
+        return "You are Cypher AI. Give fast, short, and useful answers."
+
+
+# =========================
+# MODEL ROUTING
+# =========================
+def get_model(mode):
+    if mode == "thinking":
+        return "anthropic/claude-3.5-sonnet"   # BEST for coding
+
+    elif mode == "brainstorm":
+        return "nousresearch/nous-hermes-2-mixtral"  # less restrictive
+
+    else:
+        return "mistralai/mixtral-8x7b-instruct"  # fallback
+
 
 # =========================
 # UI
@@ -50,12 +71,13 @@ def home():
     path = Path(__file__).parent / "index.html"
     return HTMLResponse(path.read_text(encoding="utf-8"))
 
+
 # =========================
-# OPENROUTER (DOLPHIN)
+# OPENROUTER (Claude + Mixtral)
 # =========================
-def call_openrouter(messages):
+def call_openrouter(messages, model):
     api_key = os.environ.get("OPENROUTER_API_KEY")
-    app_url = os.environ.get("APP_URL")
+    app_url = os.environ.get("APP_URL", "http://localhost")
 
     res = requests.post(
         OPENROUTER_API,
@@ -66,21 +88,22 @@ def call_openrouter(messages):
             "Content-Type": "application/json"
         },
         json={
-            "model": "mistralai/mixtral-8x7b-instruct",
+            "model": model,
             "messages": messages,
-            "temperature": 0.9
+            "temperature": 0.7
         }
     )
 
-    print("🧠 DOLPHIN STATUS:", res.status_code)
+    print(f"🧠 OPENROUTER ({model}) STATUS:", res.status_code)
 
     if res.status_code != 200:
         return {"error": res.text}
 
     return res.json()
 
+
 # =========================
-# GROQ
+# GROQ (FAST)
 # =========================
 def call_groq(messages):
     api_key = os.environ.get("GROQ_API_KEY")
@@ -104,6 +127,7 @@ def call_groq(messages):
 
     return res.json()
 
+
 # =========================
 # CHAT
 # =========================
@@ -113,7 +137,6 @@ async def chat(
     chat_id: str = Form(...),
     mode: str = Form(...)
 ):
-
     mode = mode.lower().strip()
     print("MODE:", mode)
 
@@ -131,38 +154,43 @@ async def chat(
     ]
 
     # =========================
-    # ROUTING
+    # ROUTING LOGIC
     # =========================
-    if mode == "brainstorm":
-        print("🧠 USING DOLPHIN")
-        data = call_openrouter(messages)
-
-        if "error" in data:
-            return {"response": f"❌ DOLPHIN ERROR:\n{data}"}
-
-        tag = "🧠 [DOLPHIN]"
-
-    else:
-        print("⚡ USING GROQ")
-        data = call_groq(messages)
-
-        if "error" in data:
-            return {"response": f"❌ GROQ ERROR:\n{data}"}
-
-        tag = "⚡ [GROQ]"
-
     try:
+        if mode == "fast":
+            print("⚡ USING GROQ")
+            data = call_groq(messages)
+            tag = "⚡ [FAST-GROQ]"
+
+        else:
+            model = get_model(mode)
+            print(f"🧠 USING OPENROUTER: {model}")
+            data = call_openrouter(messages, model)
+            tag = f"🧠 [{model.split('/')[-1]}]"
+
+        # fallback if error
+        if "error" in data:
+            print("⚠️ FALLBACK TRIGGERED")
+
+            data = call_groq(messages)
+            tag = "⚡ [FALLBACK-GROQ]"
+
         reply = data["choices"][0]["message"]["content"]
-    except:
-        return {"response": f"❌ RAW:\n{data}"}
+
+    except Exception as e:
+        return {"response": f"❌ SYSTEM ERROR:\n{str(e)}"}
 
     reply = f"{tag}\n{reply}"
 
+    # =========================
+    # SAVE MEMORY
+    # =========================
     history.append({"role": "user", "content": message})
     history.append({"role": "assistant", "content": reply})
     save_memory(memory_data)
 
     return {"response": reply}
+
 
 # =========================
 # RUN
