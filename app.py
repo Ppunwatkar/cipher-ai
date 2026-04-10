@@ -1,22 +1,19 @@
 import requests
 import os
 from pathlib import Path
-from fastapi import FastAPI, Form, Depends, Request
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, Form, Depends
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
-# =========================
-# DATABASE
-# =========================
 from database import SessionLocal, engine, Base
 import models
 from sqlalchemy.orm import Session
 
-# =========================
-# APP INIT
-# =========================
 app = FastAPI()
 
+# =========================
+# CORS FIX (IMPORTANT)
+# =========================
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -30,7 +27,7 @@ app.add_middleware(
 # =========================
 @app.on_event("startup")
 def startup():
-    print("🚀 App started")
+    print("🚀 Backend running...")
     Base.metadata.create_all(bind=engine)
 
 # =========================
@@ -44,93 +41,60 @@ def get_db():
         db.close()
 
 # =========================
-# UI
+# ROOT (SERVE UI)
 # =========================
-@app.get("/", response_class=HTMLResponse)
+@app.get("/")
 def home():
-    path = Path(__file__).parent / "index.html"
+    path = Path("index.html")
     return HTMLResponse(path.read_text())
 
 # =========================
-# DEBUG ROUTE (VERY IMPORTANT)
+# DEBUG ROUTE
 # =========================
-@app.get("/test-db")
-def test_db(db: Session = Depends(get_db)):
-    try:
-        count = db.query(models.Message).count()
-        return {"status": "DB working", "messages": count}
-    except Exception as e:
-        return {"error": str(e)}
+@app.get("/ping")
+def ping():
+    return {"status": "alive"}
 
 # =========================
-# CHAT (FORCED SAVE VERSION)
+# CHAT ROUTE (FORCED WORKING)
 # =========================
 @app.post("/chat")
-async def chat(
+def chat(
     message: str = Form(...),
     chat_id: str = Form(...),
     mode: str = Form(...),
     db: Session = Depends(get_db)
 ):
-    print("\n📩 MESSAGE RECEIVED:", message)
-    print("📌 CHAT ID:", chat_id)
-
-    # =========================
-    # CREATE CHAT IF NOT EXISTS
-    # =========================
-    chat = db.query(models.Chat).filter(models.Chat.id == chat_id).first()
-
-    if not chat:
-        print("🆕 Creating new chat")
-        chat = models.Chat(id=chat_id, user_id=1, title="New Chat")
-        db.add(chat)
-        db.commit()
-        db.refresh(chat)
-
-    # =========================
-    # FORCE SAVE USER MESSAGE
-    # =========================
     try:
-        print("💾 Saving USER message")
+        print("📩 RECEIVED:", message)
 
-        user_msg = models.Message(
-            chat_id=chat_id,
-            role="user",
-            content=message
-        )
+        # CREATE CHAT
+        chat = db.query(models.Chat).filter(models.Chat.id == chat_id).first()
 
-        db.add(user_msg)
+        if not chat:
+            chat = models.Chat(id=chat_id, user_id=1, title="New Chat")
+            db.add(chat)
+            db.commit()
+            db.refresh(chat)
+
+        # SAVE USER MESSAGE
+        db.add(models.Message(chat_id=chat_id, role="user", content=message))
         db.commit()
 
-        print("✅ User message saved")
+        # SIMPLE RESPONSE
+        reply = "✅ Backend working + saved to DB"
+
+        # SAVE BOT MESSAGE
+        db.add(models.Message(chat_id=chat_id, role="assistant", content=reply))
+        db.commit()
+
+        print("✅ SAVED TO DB")
+
+        return {"response": reply}
 
     except Exception as e:
-        print("❌ ERROR saving user message:", e)
-        return {"response": "DB ERROR"}
-
-    # =========================
-    # SIMPLE REPLY (NO AI FOR NOW)
-    # =========================
-    reply = "✅ Message stored successfully"
-
-    # =========================
-    # SAVE BOT MESSAGE
-    # =========================
-    try:
-        print("💾 Saving BOT message")
-
-        bot_msg = models.Message(
-            chat_id=chat_id,
-            role="assistant",
-            content=reply
+        print("❌ ERROR:", str(e))
+        return JSONResponse(
+            status_code=500,
+            content={"response": "❌ Server error"}
         )
-
-        db.add(bot_msg)
-        db.commit()
-
-        print("✅ Bot message saved")
-
-    except Exception as e:
-        print("❌ ERROR saving bot message:", e)
-
-    return {"response": reply}
