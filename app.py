@@ -26,18 +26,12 @@ app.add_middleware(
 )
 
 # =========================
-# CREATE TABLES ON STARTUP
+# STARTUP
 # =========================
 @app.on_event("startup")
 def startup():
-    print("🚀 Creating database tables...")
+    print("🚀 App started")
     Base.metadata.create_all(bind=engine)
-
-# =========================
-# CONSTANTS
-# =========================
-GROQ_API = "https://api.groq.com/openai/v1/chat/completions"
-OPENROUTER_API = "https://openrouter.ai/api/v1/chat/completions"
 
 # =========================
 # DB SESSION
@@ -50,197 +44,93 @@ def get_db():
         db.close()
 
 # =========================
-# PROMPTS
-# =========================
-def get_prompt(mode):
-    if mode == "programming":
-        return "You are Cypher AI. Be creative, technical, and less restrictive. Focus on cybersecurity and programming."
-    elif mode == "thinking":
-        return "Think step-by-step and provide structured answers."
-    else:
-        return "Give fast and short answers."
-
-# =========================
-# MODEL ROUTING
-# =========================
-def get_model(mode):
-    if mode == "thinking":
-        return "anthropic/claude-3.5-sonnet"
-    elif mode == "programming":
-        return "mistralai/mixtral-8x7b-instruct"
-    else:
-        return "mistralai/mixtral-8x7b-instruct"
-
-# =========================
 # UI
 # =========================
 @app.get("/", response_class=HTMLResponse)
 def home():
     path = Path(__file__).parent / "index.html"
-    return HTMLResponse(path.read_text(encoding="utf-8"))
+    return HTMLResponse(path.read_text())
 
 # =========================
-# OPENROUTER
+# DEBUG ROUTE (VERY IMPORTANT)
 # =========================
-def call_openrouter(messages, model):
-    api_key = os.environ.get("OPENROUTER_API_KEY")
-
-    if not api_key:
-        print("❌ Missing OPENROUTER_API_KEY")
-        return {"error": "Missing OPENROUTER_API_KEY"}
-
-    app_url = os.environ.get("APP_URL", "http://localhost")
-
-    res = requests.post(
-        OPENROUTER_API,
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "HTTP-Referer": app_url,
-            "X-Title": "Cypher AI",
-            "Content-Type": "application/json"
-        },
-        json={
-            "model": model,
-            "messages": messages,
-            "temperature": 0.7
-        }
-    )
-
-    print("🧠 OpenRouter status:", res.status_code)
-
-    if res.status_code != 200:
-        return {"error": res.text}
-
-    return res.json()
+@app.get("/test-db")
+def test_db(db: Session = Depends(get_db)):
+    try:
+        count = db.query(models.Message).count()
+        return {"status": "DB working", "messages": count}
+    except Exception as e:
+        return {"error": str(e)}
 
 # =========================
-# GROQ
-# =========================
-def call_groq(messages):
-    api_key = os.environ.get("GROQ_API_KEY")
-
-    if not api_key:
-        print("❌ Missing GROQ_API_KEY")
-        return {"error": "Missing GROQ_API_KEY"}
-
-    res = requests.post(
-        GROQ_API,
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        },
-        json={
-            "model": "llama-3.3-70b-versatile",
-            "messages": messages
-        }
-    )
-
-    print("⚡ Groq status:", res.status_code)
-
-    if res.status_code != 200:
-        return {"error": res.text}
-
-    return res.json()
-
-# =========================
-# CHAT ROUTE (FINAL FIXED)
+# CHAT (FORCED SAVE VERSION)
 # =========================
 @app.post("/chat")
 async def chat(
-    request: Request,
     message: str = Form(...),
     chat_id: str = Form(...),
     mode: str = Form(...),
     db: Session = Depends(get_db)
 ):
-    print("\n📩 Incoming message:", message)
-    print("📌 Chat ID:", chat_id)
-
-    mode = mode.lower().strip()
+    print("\n📩 MESSAGE RECEIVED:", message)
+    print("📌 CHAT ID:", chat_id)
 
     # =========================
-    # CREATE OR GET CHAT
+    # CREATE CHAT IF NOT EXISTS
     # =========================
     chat = db.query(models.Chat).filter(models.Chat.id == chat_id).first()
 
     if not chat:
         print("🆕 Creating new chat")
-
-        chat = models.Chat(
-            id=chat_id,
-            user_id=1,
-            title="New Chat"
-        )
+        chat = models.Chat(id=chat_id, user_id=1, title="New Chat")
         db.add(chat)
         db.commit()
         db.refresh(chat)
 
     # =========================
-    # LOAD HISTORY
+    # FORCE SAVE USER MESSAGE
     # =========================
-    history = db.query(models.Message)\
-        .filter(models.Message.chat_id == chat_id)\
-        .order_by(models.Message.id.desc())\
-        .limit(6).all()
-
-    print("📚 Loaded history:", len(history))
-
-    history_messages = [
-        {"role": m.role, "content": m.content}
-        for m in reversed(history)
-    ]
-
-    messages = [
-        {"role": "system", "content": get_prompt(mode)},
-        *history_messages,
-        {"role": "user", "content": message}
-    ]
-
-    # =========================
-    # MODEL CALL
-    # =========================
-    if mode == "fast":
-        data = call_groq(messages)
-        tag = "⚡ [FAST-GROQ]"
-    else:
-        model = get_model(mode)
-        data = call_openrouter(messages, model)
-        tag = f"🧠 [{model.split('/')[-1]}]"
-
-    if "error" in data:
-        print("⚠️ Falling back to Groq")
-        data = call_groq(messages)
-        tag = "⚡ [FALLBACK-GROQ]"
-
     try:
-        reply = data["choices"][0]["message"]["content"]
+        print("💾 Saving USER message")
+
+        user_msg = models.Message(
+            chat_id=chat_id,
+            role="user",
+            content=message
+        )
+
+        db.add(user_msg)
+        db.commit()
+
+        print("✅ User message saved")
+
     except Exception as e:
-        print("❌ AI ERROR:", data)
-        return {"response": f"❌ ERROR:\n{data}"}
-
-    reply = f"{tag}\n{reply}"
+        print("❌ ERROR saving user message:", e)
+        return {"response": "DB ERROR"}
 
     # =========================
-    # SAVE TO DATABASE
+    # SIMPLE REPLY (NO AI FOR NOW)
     # =========================
-    print("💾 Saving messages...")
+    reply = "✅ Message stored successfully"
 
-    user_msg = models.Message(
-        chat_id=chat_id,
-        role="user",
-        content=message
-    )
+    # =========================
+    # SAVE BOT MESSAGE
+    # =========================
+    try:
+        print("💾 Saving BOT message")
 
-    bot_msg = models.Message(
-        chat_id=chat_id,
-        role="assistant",
-        content=reply
-    )
+        bot_msg = models.Message(
+            chat_id=chat_id,
+            role="assistant",
+            content=reply
+        )
 
-    db.add(user_msg)
-    db.add(bot_msg)
-    db.commit()
+        db.add(bot_msg)
+        db.commit()
 
-    print("✅ Saved successfully")
+        print("✅ Bot message saved")
+
+    except Exception as e:
+        print("❌ ERROR saving bot message:", e)
 
     return {"response": reply}
