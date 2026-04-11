@@ -1,10 +1,5 @@
 fastapi
 uvicorn
+sqlalchemy
 requests
 python-multipart
-pypdf
-groq
-sqlalchemy
-psycopg2-binary
-passlib[bcrypt]
-python-jose
