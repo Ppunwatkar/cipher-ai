@@ -41,12 +41,16 @@ def get_db():
         db.close()
 
 # =========================
-# ROOT (SERVE UI)
+# ROOT (SERVE UI) ✅ FIXED
 # =========================
-@app.get("/")
+@app.get("/", response_class=HTMLResponse)
 def home():
-    path = Path("index.html")
-    return HTMLResponse(path.read_text())
+    file_path = Path(__file__).parent / "index.html"
+
+    if not file_path.exists():
+        return HTMLResponse("<h1>index.html not found</h1>", status_code=404)
+
+    return HTMLResponse(file_path.read_text())
 
 # =========================
 # DEBUG ROUTE
@@ -56,7 +60,7 @@ def ping():
     return {"status": "alive"}
 
 # =========================
-# CHAT ROUTE (FORCED WORKING)
+# CHAT ROUTE (WORKING)
 # =========================
 @app.post("/chat")
 def chat(
@@ -66,6 +70,7 @@ def chat(
     db: Session = Depends(get_db)
 ):
     try:
+        print("🔥 CHAT ENDPOINT HIT")
         print("📩 RECEIVED:", message)
 
         # CREATE CHAT
