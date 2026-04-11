@@ -1,105 +1,189 @@
-import requests
-import os
-from pathlib import Path
-from fastapi import FastAPI, Form, Depends
-from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.middleware.cors import CORSMiddleware
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CIPHER AI</title>
 
-from database import SessionLocal, engine, Base
-import models
-from sqlalchemy.orm import Session
+<script src="https://cdn.tailwindcss.com"></script>
 
-app = FastAPI()
+<style>
+body {
+    background:#04070d;
+    color:#e6edf3;
+    font-family: 'Inter', 'Courier New', monospace;
+    font-size:18px;
+    line-height:1.7;
+}
+body::before {
+    content:"";
+    position:fixed;
+    width:100%;
+    height:100%;
+    background-image:
+        linear-gradient(rgba(0,255,255,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,255,255,0.04) 1px, transparent 1px);
+    background-size: 50px 50px;
+    z-index:-1;
+}
+.sidebar { width:260px; background:#0b0f17; border-right:1px solid #1f2937; }
+.header { background:#0b0f17; border-bottom:1px solid #1f2937; }
+.badge { padding:8px 16px; font-size:13px; border:1px solid #00f2ff; cursor:pointer; }
+#chat { display:flex; flex-direction:column; gap:14px; max-width:900px; margin:auto; }
+.bot, .user { padding:18px; border-radius:10px; font-size:16px; animation: fadeIn 0.2s ease-in; max-width:85%; }
+.bot { background:#0d1117; border-left:4px solid #00f2ff; }
+.user { background:#020617; margin-left:auto; }
+.input-box { background:#04070d; border:1px solid #00f2ff; box-shadow:0 0 12px rgba(0,255,255,0.2); font-size:16px; padding:14px; }
+.btn { border:1px solid #00f2ff; padding:14px; font-size:14px; }
+.chat-item { padding:8px; cursor:pointer; font-size:14px; }
+@keyframes fadeIn { from {opacity:0; transform: translateY(6px);} to {opacity:1; transform: translateY(0);} }
 
-# =========================
-# CORS FIX (IMPORTANT)
-# =========================
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+@media (max-width: 768px) {
+    .sidebar { display:none; }
+    #chat { max-width:100%; padding:10px; padding-bottom:150px; }
+    .bot, .user { max-width:100%; font-size:14px; padding:12px; }
+    .input-container { position: fixed; bottom: 0; left: 0; width: 100%; padding: 10px; background:#04070d; border-top:1px solid #1f2937; }
+    textarea { width:100%; font-size:14px; }
+    .btn { width:100%; margin-top:8px; }
+}
+</style>
+</head>
 
-# =========================
-# STARTUP
-# =========================
-@app.on_event("startup")
-def startup():
-    print("🚀 Backend running...")
-    Base.metadata.create_all(bind=engine)
+<body class="flex h-screen overflow-hidden">
 
-# =========================
-# DB SESSION
-# =========================
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+<div class="sidebar p-6 flex flex-col justify-between">
+<div>
+<h1 class="text-cyan-400 text-2xl font-bold">CIPHER</h1>
+<p class="text-sm text-gray-500 mb-6">CYBERSECURITY AI</p>
 
-# =========================
-# ROOT (SERVE UI) ✅ FIXED
-# =========================
-@app.get("/", response_class=HTMLResponse)
-def home():
-    file_path = Path(__file__).parent / "index.html"
+<button onclick="createNewChat()" class="btn">+ NEW CHAT</button>
+<div id="chatList" class="mt-6 overflow-y-auto"></div>
+</div>
 
-    if not file_path.exists():
-        return HTMLResponse("<h1>index.html not found</h1>", status_code=404)
+<div class="flex flex-col gap-2 mt-6">
+<button class="btn">Login</button>
+<button class="btn">Sign Up</button>
+</div>
+</div>
 
-    return HTMLResponse(file_path.read_text())
+<div class="flex-1 flex flex-col">
 
-# =========================
-# DEBUG ROUTE
-# =========================
-@app.get("/ping")
-def ping():
-    return {"status": "alive"}
+<div class="header p-4 flex justify-between">
+<span class="text-cyan-400 text-lg">RESEARCH TERMINAL</span>
 
-# =========================
-# CHAT ROUTE (WORKING)
-# =========================
-@app.post("/chat")
-def chat(
-    message: str = Form(...),
-    chat_id: str = Form(...),
-    mode: str = Form(...),
-    db: Session = Depends(get_db)
-):
-    try:
-        print("🔥 CHAT ENDPOINT HIT")
-        print("📩 RECEIVED:", message)
+<div class="flex gap-3">
+<span class="badge bg-cyan-400" data-mode="thinking">THINKING</span>
+<span class="badge" data-mode="fast">FAST</span>
+<span class="badge" data-mode="programming">PROGRAMMING</span>
+</div>
+</div>
 
-        # CREATE CHAT
-        chat = db.query(models.Chat).filter(models.Chat.id == chat_id).first()
+<div id="chat" class="flex-1 p-8 overflow-y-auto"></div>
 
-        if not chat:
-            chat = models.Chat(id=chat_id, user_id=1, title="New Chat")
-            db.add(chat)
-            db.commit()
-            db.refresh(chat)
+<div class="input-container p-6 flex flex-col gap-3 max-w-4xl mx-auto w-full">
+<textarea id="msg" class="input-box rounded-md" placeholder="Ask about exploits, recon, CTFs..." rows="2"></textarea>
 
-        # SAVE USER MESSAGE
-        db.add(models.Message(chat_id=chat_id, role="user", content=message))
-        db.commit()
+<div class="text-sm text-gray-500">
+Try: recon scan | sql injection | xss payload | whois example.com
+</div>
 
-        # SIMPLE RESPONSE
-        reply = "✅ Backend working + saved to DB"
+<button onclick="send()" class="btn">SEND ▶</button>
+</div>
 
-        # SAVE BOT MESSAGE
-        db.add(models.Message(chat_id=chat_id, role="assistant", content=reply))
-        db.commit()
+</div>
 
-        print("✅ SAVED TO DB")
+<script>
+let chats = {};
+let currentChat = null;
+let currentMode = "thinking";
 
-        return {"response": reply}
+document.addEventListener("DOMContentLoaded", () => {
 
-    except Exception as e:
-        print("❌ ERROR:", str(e))
-        return JSONResponse(
-            status_code=500,
-            content={"response": "❌ Server error"}
-        )
+    document.querySelectorAll(".badge").forEach(el=>{
+        el.onclick = () => {
+            currentMode = el.dataset.mode;
+            document.querySelectorAll(".badge").forEach(b=>b.classList.remove("bg-cyan-400"));
+            el.classList.add("bg-cyan-400");
+        }
+    });
+
+    createNewChat();
+});
+
+function createNewChat(){
+    currentChat = "chat_" + Date.now();
+    chats[currentChat] = { title: "New Chat", messages: [] };
+    renderList();
+    render();
+}
+
+function renderList(){
+    const list = document.getElementById("chatList");
+    list.innerHTML = "";
+
+    Object.keys(chats).forEach(id=>{
+        const div = document.createElement("div");
+        div.className = "chat-item";
+        div.innerText = chats[id].title;
+        div.onclick = ()=>{ currentChat = id; render(); };
+        list.appendChild(div);
+    });
+}
+
+function render(){
+    const chat = document.getElementById("chat");
+    chat.innerHTML="";
+
+    chats[currentChat].messages.forEach(m=>{
+        const div = document.createElement("div");
+        div.className = m.role==="user"?"user":"bot";
+        div.innerText = m.content;
+        chat.appendChild(div);
+    });
+
+    chat.scrollTop = chat.scrollHeight;
+}
+
+async function send(){
+    const input = document.getElementById("msg");
+    if(!input.value.trim()) return;
+
+    const text = input.value;
+
+    chats[currentChat].messages.push({role:"user",content:text});
+    render();
+
+    input.value="";
+
+    try {
+        const res = await fetch("https://cipher-ai-production.up.railway.app/chat",{
+            method:"POST",
+            headers:{
+                "Content-Type":"application/x-www-form-urlencoded"
+            },
+            body:new URLSearchParams({
+                message:text,
+                chat_id:currentChat,
+                mode:currentMode
+            })
+        });
+
+        const data = await res.json();
+
+        chats[currentChat].messages.push({
+            role:"bot",
+            content:data.response || "⚠️ No response"
+        });
+
+    } catch(err){
+        chats[currentChat].messages.push({
+            role:"bot",
+            content:"❌ Backend not responding"
+        });
+    }
+
+    render();
+}
+</script>
+
+</body>
+</html>
