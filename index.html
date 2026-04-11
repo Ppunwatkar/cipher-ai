@@ -7,7 +7,6 @@
 <script src="https://cdn.tailwindcss.com"></script>
 
 <style>
-/* KEEP YOUR FULL CSS EXACTLY SAME */
 body {
     background:#04070d;
     color:#e6edf3;
@@ -97,6 +96,9 @@ let chats = {};
 let currentChat = null;
 let currentMode = "thinking";
 
+// ✅ PUT YOUR RAILWAY BACKEND URL HERE
+const BASE_URL = "https://YOUR-RAILWAY-URL.up.railway.app";
+
 document.addEventListener("DOMContentLoaded", () => {
 
     document.querySelectorAll(".badge").forEach(el=>{
@@ -150,14 +152,13 @@ async function send(){
 
     const text = input.value;
 
-    // SHOW USER MESSAGE
     chats[currentChat].messages.push({role:"user",content:text});
     render();
 
     input.value="";
 
     try {
-        const res = await fetch("/chat",{
+        const res = await fetch(`${BASE_URL}/chat`,{
             method:"POST",
             headers:{
                 "Content-Type":"application/x-www-form-urlencoded"
