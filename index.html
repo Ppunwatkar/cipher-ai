@@ -63,6 +63,30 @@ body::before {
     margin-bottom:6px;
 }
 
+/* 🔥 ADDED (NON-DISRUPTIVE) */
+.code-block {
+    background:#020617;
+    border:1px solid #00f2ff;
+    padding:10px;
+    border-radius:6px;
+    margin-top:10px;
+    position:relative;
+    font-size:14px;
+    overflow-x:auto;
+}
+
+.copy-btn {
+    position:absolute;
+    top:6px;
+    right:6px;
+    background:#00f2ff;
+    color:#000;
+    font-size:11px;
+    padding:3px 8px;
+    border-radius:4px;
+    cursor:pointer;
+}
+
 .input-box { background:#04070d; border:1px solid #00f2ff; box-shadow:0 0 12px rgba(0,255,255,0.2); font-size:16px; padding:14px; }
 .btn { border:1px solid #00f2ff; padding:14px; font-size:14px; }
 .chat-item { padding:8px; cursor:pointer; font-size:14px; }
@@ -165,6 +189,31 @@ function getModelLabel(model){
     return "CIPHER";
 }
 
+/* 🔥 NEW FUNCTION (ONLY ADDITION) */
+function formatMessage(content){
+    const parts = content.split("```");
+
+    return parts.map((part, i)=>{
+        if(i % 2 === 1){
+            return `
+            <div class="code-block">
+                <button class="copy-btn" onclick="copyCode(this)">COPY</button>
+                <pre>${part}</pre>
+            </div>
+            `;
+        } else {
+            return `<div>${part}</div>`;
+        }
+    }).join("");
+}
+
+function copyCode(btn){
+    const code = btn.parentElement.querySelector("pre").innerText;
+    navigator.clipboard.writeText(code);
+    btn.innerText = "COPIED";
+    setTimeout(()=>btn.innerText="COPY",1000);
+}
+
 function render(){
     const chat = document.getElementById("chat");
     chat.innerHTML="";
@@ -176,14 +225,16 @@ function render(){
         if(m.role === "bot"){
             const tag = document.createElement("div");
             tag.className = "model-tag";
-            tag.innerText = getModelLabel(m.model); // ✅ FIXED
+            tag.innerText = getModelLabel(m.model);
             div.appendChild(tag);
         }
 
         const text = document.createElement("div");
-        text.innerText = m.content;
-        div.appendChild(text);
 
+        /* 🔥 ONLY CHANGE HERE */
+        text.innerHTML = formatMessage(m.content);
+
+        div.appendChild(text);
         chat.appendChild(div);
     });
 
@@ -222,7 +273,7 @@ async function send(){
         chats[currentChat].messages.push({
             role:"bot",
             content:data.response,
-            model:data.model   // ✅ IMPORTANT FIX
+            model:data.model
         });
 
     } catch(err){
