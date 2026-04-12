@@ -1,5 +1,7 @@
 import os
 import requests
+from pathlib import Path
+
 from fastapi import FastAPI, Form, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
@@ -10,6 +12,10 @@ from database import SessionLocal, engine, Base
 import models
 
 app = FastAPI()
+
+# ✅ IMPORTANT: absolute path fix
+BASE_DIR = Path(__file__).resolve().parent
+
 Base.metadata.create_all(bind=engine)
 
 # =========================
@@ -49,11 +55,16 @@ def get_current_user(token: str = Header(None), db: Session = Depends(get_db)):
         return None
 
 # =========================
-# ROOT
+# ROOT (FIXED)
 # =========================
 @app.get("/")
 def home():
-    return FileResponse("index.html")
+    index_path = BASE_DIR / "index.html"
+
+    if not index_path.exists():
+        return {"error": "index.html NOT FOUND"}
+
+    return FileResponse(index_path)
 
 # =========================
 # GET CHATS
@@ -96,7 +107,6 @@ def chat(
     db.add(models.Message(chat_id=chat_id, role="user", content=message))
     db.commit()
 
-    # AI
     if message.lower() in ["hi", "hello"]:
         reply = "Hi, I'm CIPHER AI — your cybersecurity assistant."
     else:
