@@ -1,4 +1,4 @@
-\<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -10,21 +10,39 @@
 body {
     background:#04070d;
     color:#e6edf3;
-    font-family: 'Inter', monospace;
+    font-family: 'Inter', 'Courier New', monospace;
+    font-size:18px;
+    line-height:1.7;
 }
+body::before {
+    content:"";
+    position:fixed;
+    width:100%;
+    height:100%;
+    background-image:
+        linear-gradient(rgba(0,255,255,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,255,255,0.04) 1px, transparent 1px);
+    background-size: 50px 50px;
+    z-index:-1;
+}
+.sidebar { width:260px; background:#0b0f17; border-right:1px solid #1f2937; }
+.header { background:#0b0f17; border-bottom:1px solid #1f2937; }
+.badge { padding:8px 16px; font-size:13px; border:1px solid #00f2ff; cursor:pointer; }
 
-/* EXISTING STYLES KEEP SAME */
 #chat {
     display:flex;
     flex-direction:column;
     gap:14px;
     max-width:900px;
     margin:auto;
+    width:100%;
 }
 
 .bot, .user {
     padding:18px;
     border-radius:10px;
+    font-size:16px;
+    animation: fadeIn 0.2s ease-in;
     max-width:75%;
 }
 
@@ -39,39 +57,48 @@ body {
     align-self:flex-end;
 }
 
-/* 🔥 CODE BLOCK STYLE */
-.code-block {
-    background:#020617;
-    border:1px solid #00f2ff;
-    padding:12px;
-    border-radius:8px;
-    margin-top:10px;
-    position:relative;
-    font-size:14px;
-    overflow-x:auto;
+.model-tag {
+    font-size:12px;
+    color:#00f2ff;
+    margin-bottom:6px;
 }
 
-/* 🔥 COPY BUTTON */
-.copy-btn {
-    position:absolute;
-    top:6px;
-    right:6px;
-    background:#00f2ff;
-    color:#000;
-    font-size:12px;
-    padding:4px 8px;
-    border-radius:4px;
-    cursor:pointer;
+.input-box { background:#04070d; border:1px solid #00f2ff; box-shadow:0 0 12px rgba(0,255,255,0.2); font-size:16px; padding:14px; }
+.btn { border:1px solid #00f2ff; padding:14px; font-size:14px; }
+.chat-item { padding:8px; cursor:pointer; font-size:14px; }
+
+@keyframes fadeIn { from {opacity:0; transform: translateY(6px);} to {opacity:1; transform: translateY(0);} }
+
+@media (max-width: 768px) {
+    .sidebar { display:none; }
+    #chat { max-width:100%; padding:10px; padding-bottom:150px; }
+    .bot, .user { max-width:100%; font-size:14px; padding:12px; }
+    .input-container { position: fixed; bottom: 0; left: 0; width: 100%; padding: 10px; background:#04070d; border-top:1px solid #1f2937; }
 }
 </style>
 </head>
 
 <body class="flex h-screen overflow-hidden">
 
+<div class="sidebar p-6 flex flex-col justify-between">
+<div>
+<h1 class="text-cyan-400 text-2xl font-bold">CIPHER</h1>
+<p class="text-sm text-gray-500 mb-6">CYBERSECURITY AI</p>
+
+<button onclick="createNewChat()" class="btn">+ NEW CHAT</button>
+<div id="chatList" class="mt-6 overflow-y-auto"></div>
+</div>
+
+<div class="flex flex-col gap-2 mt-6">
+<button class="btn">Login</button>
+<button class="btn">Sign Up</button>
+</div>
+</div>
+
 <div class="flex-1 flex flex-col">
 
-<div class="p-4 border-b border-gray-800 flex justify-between">
-<span class="text-cyan-400">RESEARCH TERMINAL</span>
+<div class="header p-4 flex justify-between">
+<span class="text-cyan-400 text-lg">RESEARCH TERMINAL</span>
 
 <div class="flex gap-3">
 <span class="badge bg-cyan-400" data-mode="thinking">THINKING</span>
@@ -82,50 +109,60 @@ body {
 
 <div id="chat" class="flex-1 p-8 overflow-y-auto"></div>
 
-<div class="p-6">
-<textarea id="msg" class="w-full p-4 bg-black border border-cyan-400" rows="2"></textarea>
-<button onclick="send()" class="w-full mt-3 border border-cyan-400 p-3">SEND ▶</button>
+<div class="input-container p-6 flex flex-col gap-3 max-w-4xl mx-auto w-full">
+<textarea id="msg" class="input-box rounded-md" placeholder="Ask about exploits, recon, CTFs..." rows="2"></textarea>
+
+<div class="text-sm text-gray-500">
+Try: recon scan | sql injection | xss payload | whois example.com
+</div>
+
+<button onclick="send()" class="btn">SEND ▶</button>
 </div>
 
 </div>
 
 <script>
 let chats = {};
-let currentChat = "chat1";
+let currentChat = null;
 let currentMode = "thinking";
 
-chats[currentChat] = {messages: []};
+document.addEventListener("DOMContentLoaded", () => {
+
+    document.querySelectorAll(".badge").forEach(el=>{
+        el.onclick = () => {
+            currentMode = el.dataset.mode;
+            document.querySelectorAll(".badge").forEach(b=>b.classList.remove("bg-cyan-400"));
+            el.classList.add("bg-cyan-400");
+        }
+    });
+
+    createNewChat();
+});
+
+function createNewChat(){
+    currentChat = "chat_" + Date.now();
+    chats[currentChat] = { title: "New Chat", messages: [] };
+    renderList();
+    render();
+}
+
+function renderList(){
+    const list = document.getElementById("chatList");
+    list.innerHTML = "";
+
+    Object.keys(chats).forEach(id=>{
+        const div = document.createElement("div");
+        div.className = "chat-item";
+        div.innerText = chats[id].title;
+        div.onclick = ()=>{ currentChat = id; render(); };
+        list.appendChild(div);
+    });
+}
 
 function getModelLabel(model){
     if(model === "programming") return "DOLPHIN";
     if(model === "fast" || model === "thinking") return "GROQ";
     return "CIPHER";
-}
-
-/* 🔥 PARSE CODE BLOCKS */
-function formatMessage(content){
-    const parts = content.split("```");
-
-    return parts.map((part, i)=>{
-        if(i % 2 === 1){
-            return `
-            <div class="code-block">
-                <button class="copy-btn" onclick="copyCode(this)">COPY</button>
-                <pre>${part}</pre>
-            </div>
-            `;
-        } else {
-            return `<div>${part}</div>`;
-        }
-    }).join("");
-}
-
-/* 🔥 COPY FUNCTION */
-function copyCode(btn){
-    const code = btn.parentElement.querySelector("pre").innerText;
-    navigator.clipboard.writeText(code);
-    btn.innerText = "COPIED";
-    setTimeout(()=>btn.innerText="COPY",1000);
 }
 
 function render(){
@@ -138,13 +175,13 @@ function render(){
 
         if(m.role === "bot"){
             const tag = document.createElement("div");
-            tag.className = "text-xs text-cyan-400 mb-2";
-            tag.innerText = getModelLabel(m.model);
+            tag.className = "model-tag";
+            tag.innerText = getModelLabel(m.model); // ✅ FIXED
             div.appendChild(tag);
         }
 
         const text = document.createElement("div");
-        text.innerHTML = formatMessage(m.content); // 🔥 IMPORTANT
+        text.innerText = m.content;
         div.appendChild(text);
 
         chat.appendChild(div);
@@ -185,13 +222,13 @@ async function send(){
         chats[currentChat].messages.push({
             role:"bot",
             content:data.response,
-            model:data.model
+            model:data.model   // ✅ IMPORTANT FIX
         });
 
     } catch(err){
         chats[currentChat].messages.push({
             role:"bot",
-            content:"❌ Backend error",
+            content:"❌ Backend not responding",
             model:"error"
         });
     }
