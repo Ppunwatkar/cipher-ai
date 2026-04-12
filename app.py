@@ -10,7 +10,6 @@ from database import SessionLocal, engine, Base
 import models
 
 app = FastAPI()
-
 Base.metadata.create_all(bind=engine)
 
 # =========================
@@ -24,9 +23,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# =========================
-# CONFIG
-# =========================
 SECRET_KEY = "cipher_secret"
 ALGORITHM = "HS256"
 
@@ -70,17 +66,12 @@ def get_chats(db: Session = Depends(get_db), user=Depends(get_current_user)):
     return [{"id": c.id} for c in chats]
 
 # =========================
-# GET CHAT HISTORY
+# GET CHAT
 # =========================
 @app.get("/chat/{chat_id}")
 def get_chat(chat_id: str, db: Session = Depends(get_db), user=Depends(get_current_user)):
     msgs = db.query(models.Message).filter(models.Message.chat_id == chat_id).all()
-    return {
-        "messages": [
-            {"role": m.role, "content": m.content}
-            for m in msgs
-        ]
-    }
+    return {"messages": [{"role": m.role, "content": m.content} for m in msgs]}
 
 # =========================
 # CHAT
@@ -96,44 +87,45 @@ def chat(
     if not user:
         return {"response": "❌ Unauthorized", "model": "error"}
 
-    # Create chat if not exists
     chat = db.query(models.Chat).filter(models.Chat.id == chat_id).first()
     if not chat:
         chat = models.Chat(id=chat_id, user_id=user.id)
         db.add(chat)
         db.commit()
 
-    # Save user message
     db.add(models.Message(chat_id=chat_id, role="user", content=message))
     db.commit()
 
-    # Greeting shortcut
+    # AI
     if message.lower() in ["hi", "hello"]:
         reply = "Hi, I'm CIPHER AI — your cybersecurity assistant."
     else:
         api_key = os.environ.get("OPENROUTER_API_KEY")
 
-        response = requests.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-                "HTTP-Referer": "https://cipher-ai-production.up.railway.app",
-                "X-Title": "CIPHER AI"
-            },
-            json={
-                "model": "openai/gpt-3.5-turbo",
-                "messages": [
-                    {"role": "system", "content": "You are a helpful cybersecurity assistant."},
-                    {"role": "user", "content": message}
-                ]
-            }
-        )
+        try:
+            response = requests.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                    "HTTP-Referer": "https://cipher-ai-production.up.railway.app",
+                    "X-Title": "CIPHER AI"
+                },
+                json={
+                    "model": "openai/gpt-3.5-turbo",
+                    "messages": [
+                        {"role": "system", "content": "You are a cybersecurity assistant."},
+                        {"role": "user", "content": message}
+                    ]
+                }
+            )
 
-        data = response.json()
-        reply = data["choices"][0]["message"]["content"]
+            data = response.json()
+            reply = data.get("choices", [{}])[0].get("message", {}).get("content", "⚠️ No response")
 
-    # Save bot reply
+        except:
+            reply = "❌ AI request failed"
+
     db.add(models.Message(chat_id=chat_id, role="assistant", content=reply))
     db.commit()
 
