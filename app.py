@@ -46,15 +46,15 @@ def chat(message: str = Form(...), chat_id: str = Form(...), mode: str = Form(..
             return {"response": "❌ Missing OpenRouter API key"}
 
         # =========================
-        # 🧠 MODE → MODEL (FIXED)
+        # 🧠 MODE → MODEL (FINAL FIX)
         # =========================
         if mode == "thinking":
             model = "deepseek/deepseek-chat"
         elif mode == "fast":
             model = "mistralai/mistral-7b-instruct"
         elif mode == "programming":
-            # ✅ FIXED DOLPHIN MODEL
-            model = "cognitivecomputations/dolphin-mixtral-8x7b"
+            # ✅ FINAL STABLE PROGRAMMING MODEL
+            model = "meta-llama/codellama-34b-instruct"
         else:
             model = "deepseek/deepseek-chat"
 
@@ -71,7 +71,7 @@ You specialize in:
 - CTF solving
 - recon techniques
 
-Give precise, technical, real-world answers.
+For programming mode, give clean and correct code with explanation.
 """
 
         # =========================
@@ -98,7 +98,8 @@ Give precise, technical, real-world answers.
         # 🛑 ERROR HANDLING
         # =========================
         if "choices" not in data:
-            return {"response": f"❌ API Error: {data}"}
+            print("❌ API ERROR:", data)
+            return {"response": f"❌ API Error: {data.get('error', data)}"}
 
         reply = data["choices"][0]["message"]["content"]
 
