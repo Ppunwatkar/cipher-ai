@@ -1,156 +1,10 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>CIPHER AI</title>
-
-<script src="https://cdn.tailwindcss.com"></script>
-
-<style>
-body {
-    background:#04070d;
-    color:#e6edf3;
-    font-family: 'Inter', 'Courier New', monospace;
-    font-size:18px;
-    line-height:1.7;
-}
-body::before {
-    content:"";
-    position:fixed;
-    width:100%;
-    height:100%;
-    background-image:
-        linear-gradient(rgba(0,255,255,0.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0,255,255,0.04) 1px, transparent 1px);
-    background-size: 50px 50px;
-    z-index:-1;
-}
-.sidebar { width:260px; background:#0b0f17; border-right:1px solid #1f2937; }
-.header { background:#0b0f17; border-bottom:1px solid #1f2937; }
-.badge { padding:8px 16px; font-size:13px; border:1px solid #00f2ff; cursor:pointer; }
-
-#chat {
-    display:flex;
-    flex-direction:column;
-    gap:14px;
-    max-width:900px;
-    margin:auto;
-    width:100%;
-}
-
-.bot, .user {
-    padding:18px;
-    border-radius:10px;
-    font-size:16px;
-    animation: fadeIn 0.2s ease-in;
-    max-width:75%;
-}
-
-.bot {
-    background:#0d1117;
-    border-left:4px solid #00f2ff;
-    align-self:flex-start;
-}
-
-.user {
-    background:#020617;
-    align-self:flex-end;
-}
-
-.model-tag {
-    font-size:12px;
-    color:#00f2ff;
-    margin-bottom:6px;
-}
-
-/* 🔥 ADDED (NON-DISRUPTIVE) */
-.code-block {
-    background:#020617;
-    border:1px solid #00f2ff;
-    padding:10px;
-    border-radius:6px;
-    margin-top:10px;
-    position:relative;
-    font-size:14px;
-    overflow-x:auto;
-}
-
-.copy-btn {
-    position:absolute;
-    top:6px;
-    right:6px;
-    background:#00f2ff;
-    color:#000;
-    font-size:11px;
-    padding:3px 8px;
-    border-radius:4px;
-    cursor:pointer;
-}
-
-.input-box { background:#04070d; border:1px solid #00f2ff; box-shadow:0 0 12px rgba(0,255,255,0.2); font-size:16px; padding:14px; }
-.btn { border:1px solid #00f2ff; padding:14px; font-size:14px; }
-.chat-item { padding:8px; cursor:pointer; font-size:14px; }
-
-@keyframes fadeIn { from {opacity:0; transform: translateY(6px);} to {opacity:1; transform: translateY(0);} }
-
-@media (max-width: 768px) {
-    .sidebar { display:none; }
-    #chat { max-width:100%; padding:10px; padding-bottom:150px; }
-    .bot, .user { max-width:100%; font-size:14px; padding:12px; }
-    .input-container { position: fixed; bottom: 0; left: 0; width: 100%; padding: 10px; background:#04070d; border-top:1px solid #1f2937; }
-}
-</style>
-</head>
-
-<body class="flex h-screen overflow-hidden">
-
-<div class="sidebar p-6 flex flex-col justify-between">
-<div>
-<h1 class="text-cyan-400 text-2xl font-bold">CIPHER</h1>
-<p class="text-sm text-gray-500 mb-6">CYBERSECURITY AI</p>
-
-<button onclick="createNewChat()" class="btn">+ NEW CHAT</button>
-<div id="chatList" class="mt-6 overflow-y-auto"></div>
-</div>
-
-<div class="flex flex-col gap-2 mt-6">
-<button class="btn">Login</button>
-<button class="btn">Sign Up</button>
-</div>
-</div>
-
-<div class="flex-1 flex flex-col">
-
-<div class="header p-4 flex justify-between">
-<span class="text-cyan-400 text-lg">RESEARCH TERMINAL</span>
-
-<div class="flex gap-3">
-<span class="badge bg-cyan-400" data-mode="thinking">THINKING</span>
-<span class="badge" data-mode="fast">FAST</span>
-<span class="badge" data-mode="programming">PROGRAMMING</span>
-</div>
-</div>
-
-<div id="chat" class="flex-1 p-8 overflow-y-auto"></div>
-
-<div class="input-container p-6 flex flex-col gap-3 max-w-4xl mx-auto w-full">
-<textarea id="msg" class="input-box rounded-md" placeholder="Ask about exploits, recon, CTFs..." rows="2"></textarea>
-
-<div class="text-sm text-gray-500">
-Try: recon scan | sql injection | xss payload | whois example.com
-</div>
-
-<button onclick="send()" class="btn">SEND ▶</button>
-</div>
-
-</div>
-
 <script>
 let chats = {};
 let currentChat = null;
 let currentMode = "thinking";
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+    await loadChats();
 
     document.querySelectorAll(".badge").forEach(el=>{
         el.onclick = () => {
@@ -163,54 +17,82 @@ document.addEventListener("DOMContentLoaded", () => {
     createNewChat();
 });
 
-function createNewChat(){
-    currentChat = "chat_" + Date.now();
-    chats[currentChat] = { title: "New Chat", messages: [] };
-    renderList();
-    render();
-}
-
-function renderList(){
-    const list = document.getElementById("chatList");
-    list.innerHTML = "";
-
-    Object.keys(chats).forEach(id=>{
-        const div = document.createElement("div");
-        div.className = "chat-item";
-        div.innerText = chats[id].title;
-        div.onclick = ()=>{ currentChat = id; render(); };
-        list.appendChild(div);
-    });
-}
-
 function getModelLabel(model){
     if(model === "programming") return "DOLPHIN";
     if(model === "fast" || model === "thinking") return "GROQ";
     return "CIPHER";
 }
 
-/* 🔥 NEW FUNCTION (ONLY ADDITION) */
+async function loadChats(){
+    const res = await fetch("/chats", {
+        headers:{ token: localStorage.getItem("token") }
+    });
+
+    const data = await res.json();
+
+    data.forEach(c=>{
+        chats[c.id] = { title:"Chat", messages:[] };
+    });
+
+    renderList();
+}
+
+function createNewChat(){
+    currentChat = "chat_" + Date.now();
+    chats[currentChat] = { title:"New Chat", messages:[] };
+    renderList();
+    render();
+}
+
+function renderList(){
+    const list = document.getElementById("chatList");
+    list.innerHTML="";
+
+    Object.keys(chats).forEach(id=>{
+        const div = document.createElement("div");
+        div.className="chat-item";
+        div.innerText=chats[id].title;
+
+        div.onclick = async ()=>{
+            currentChat=id;
+
+            const res = await fetch(`/chat/${id}`,{
+                headers:{ token: localStorage.getItem("token") }
+            });
+
+            const data = await res.json();
+
+            chats[id].messages = data.messages.map(m=>({
+                role:m.role,
+                content:m.content,
+                model:"thinking"
+            }));
+
+            render();
+        };
+
+        list.appendChild(div);
+    });
+}
+
 function formatMessage(content){
     const parts = content.split("```");
 
-    return parts.map((part, i)=>{
-        if(i % 2 === 1){
-            return `
-            <div class="code-block">
+    return parts.map((p,i)=>{
+        if(i%2===1){
+            return `<div class="code-block">
                 <button class="copy-btn" onclick="copyCode(this)">COPY</button>
-                <pre>${part}</pre>
-            </div>
-            `;
-        } else {
-            return `<div>${part}</div>`;
+                <pre>${p}</pre>
+            </div>`;
         }
+        return `<div>${p}</div>`;
     }).join("");
 }
 
 function copyCode(btn){
     const code = btn.parentElement.querySelector("pre").innerText;
     navigator.clipboard.writeText(code);
-    btn.innerText = "COPIED";
+    btn.innerText="COPIED";
     setTimeout(()=>btn.innerText="COPY",1000);
 }
 
@@ -219,47 +101,42 @@ function render(){
     chat.innerHTML="";
 
     chats[currentChat].messages.forEach(m=>{
-        const div = document.createElement("div");
-        div.className = m.role==="user"?"user":"bot";
+        const div=document.createElement("div");
+        div.className=m.role==="user"?"user":"bot";
 
-        if(m.role === "bot"){
-            const tag = document.createElement("div");
-            tag.className = "model-tag";
-            tag.innerText = getModelLabel(m.model);
+        if(m.role==="bot"){
+            const tag=document.createElement("div");
+            tag.className="model-tag";
+            tag.innerText=getModelLabel(m.model);
             div.appendChild(tag);
         }
 
-        const text = document.createElement("div");
-
-        /* 🔥 ONLY CHANGE HERE */
-        text.innerHTML = formatMessage(m.content);
-
+        const text=document.createElement("div");
+        text.innerHTML=formatMessage(m.content);
         div.appendChild(text);
+
         chat.appendChild(div);
     });
 
-    chat.scrollTop = chat.scrollHeight;
+    chat.scrollTop=chat.scrollHeight;
 }
 
 async function send(){
-    const input = document.getElementById("msg");
+    const input=document.getElementById("msg");
     if(!input.value.trim()) return;
 
-    const text = input.value;
+    const text=input.value;
 
-    chats[currentChat].messages.push({
-        role:"user",
-        content:text
-    });
-
+    chats[currentChat].messages.push({role:"user",content:text});
     render();
     input.value="";
 
-    try {
-        const res = await fetch("https://cipher-ai-production.up.railway.app/chat",{
+    try{
+        const res=await fetch("/chat",{
             method:"POST",
             headers:{
-                "Content-Type":"application/x-www-form-urlencoded"
+                "Content-Type":"application/x-www-form-urlencoded",
+                token: localStorage.getItem("token")
             },
             body:new URLSearchParams({
                 message:text,
@@ -268,7 +145,7 @@ async function send(){
             })
         });
 
-        const data = await res.json();
+        const data=await res.json();
 
         chats[currentChat].messages.push({
             role:"bot",
@@ -276,10 +153,10 @@ async function send(){
             model:data.model
         });
 
-    } catch(err){
+    }catch{
         chats[currentChat].messages.push({
             role:"bot",
-            content:"❌ Backend not responding",
+            content:"❌ Backend error",
             model:"error"
         });
     }
@@ -287,6 +164,3 @@ async function send(){
     render();
 }
 </script>
-
-</body>
-</html>
