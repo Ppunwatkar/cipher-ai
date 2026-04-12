@@ -4,11 +4,17 @@ let currentChat = null;
 let currentMode = "thinking";
 
 document.addEventListener("DOMContentLoaded", async () => {
-
     try {
-        await loadChats();   // safe call
-    } catch(e){
-        console.log("⚠️ No chats yet");
+        await loadChats();
+    } catch(e) {
+        console.log("No chats loaded");
+    }
+
+    if(Object.keys(chats).length === 0){
+        createNewChat();
+    } else {
+        currentChat = Object.keys(chats)[0];
+        render();
     }
 
     document.querySelectorAll(".badge").forEach(el=>{
@@ -18,117 +24,97 @@ document.addEventListener("DOMContentLoaded", async () => {
             el.classList.add("bg-cyan-400");
         }
     });
-
-    createNewChat(); // ALWAYS create fallback chat
 });
 
 function getModelLabel(model){
-    if(model === "programming") return "DOLPHIN";
-    if(model === "fast" || model === "thinking") return "GROQ";
+    if(model==="programming") return "DOLPHIN";
+    if(model==="fast"||model==="thinking") return "GROQ";
     return "CIPHER";
 }
 
-/* 🔥 SAFE LOAD CHATS */
 async function loadChats(){
-    const token = localStorage.getItem("token");
-
-    if(!token) return; // ✅ prevents crash
-
     const res = await fetch("/chats", {
-        headers:{ token }
+        headers:{ token: localStorage.getItem("token") || "" }
     });
 
     if(!res.ok) return;
 
     const data = await res.json();
-
     if(!Array.isArray(data)) return;
 
     data.forEach(c=>{
-        chats[c.id] = { title:"Chat", messages:[] };
+        chats[c.id]={title:"Chat",messages:[]};
     });
 
     renderList();
 }
 
-/* 🔥 SAFE CHAT CLICK */
-async function loadChatMessages(id){
-    try{
-        const res = await fetch(`/chat/${id}`, {
-            headers:{ token: localStorage.getItem("token") }
-        });
-
-        const data = await res.json();
-
-        chats[id].messages = (data.messages || []).map(m=>({
-            role:m.role,
-            content:m.content,
-            model:"thinking"
-        }));
-
-        render();
-    }catch(e){
-        console.log("Error loading chat");
-    }
-}
-
 function createNewChat(){
-    currentChat = "chat_" + Date.now();
-    chats[currentChat] = { title:"New Chat", messages:[] };
+    currentChat="chat_"+Date.now();
+    chats[currentChat]={title:"New Chat",messages:[]};
     renderList();
     render();
 }
 
 function renderList(){
-    const list = document.getElementById("chatList");
+    const list=document.getElementById("chatList");
+    if(!list) return;
+
     list.innerHTML="";
 
     Object.keys(chats).forEach(id=>{
-        const div = document.createElement("div");
+        const div=document.createElement("div");
         div.className="chat-item";
         div.innerText=chats[id].title;
 
-        div.onclick = ()=>{
+        div.onclick=async ()=>{
             currentChat=id;
-            loadChatMessages(id);
+
+            try{
+                const res=await fetch(`/chat/${id}`,{
+                    headers:{token:localStorage.getItem("token")||""}
+                });
+
+                const data=await res.json();
+                chats[id].messages=(data.messages||[]).map(m=>({
+                    role:m.role,
+                    content:m.content,
+                    model:"thinking"
+                }));
+
+            }catch{}
+
+            render();
         };
 
         list.appendChild(div);
     });
 }
 
-/* 🔥 SAFE FORMAT */
 function formatMessage(content){
     if(!content) return "";
-
-    const parts = content.split("```");
+    const parts=content.split("```");
 
     return parts.map((p,i)=>{
         if(i%2===1){
             return `<div class="code-block">
-                <button class="copy-btn" onclick="copyCode(this)">COPY</button>
-                <pre>${p}</pre>
-            </div>`;
+            <button class="copy-btn" onclick="copyCode(this)">COPY</button>
+            <pre>${p}</pre></div>`;
         }
         return `<div>${p}</div>`;
     }).join("");
 }
 
 function copyCode(btn){
-    const code = btn.parentElement.querySelector("pre").innerText;
+    const code=btn.parentElement.querySelector("pre").innerText;
     navigator.clipboard.writeText(code);
     btn.innerText="COPIED";
     setTimeout(()=>btn.innerText="COPY",1000);
 }
 
-/* 🔥 SAFE RENDER */
 function render(){
-    const chat = document.getElementById("chat");
-
-    if(!currentChat || !chats[currentChat]){
-        chat.innerHTML = "<div>No chat selected</div>";
-        return;
-    }
+    const chat=document.getElementById("chat");
+    if(!chat||!currentChat) return;
 
     chat.innerHTML="";
 
@@ -155,7 +141,7 @@ function render(){
 
 async function send(){
     const input=document.getElementById("msg");
-    if(!input.value.trim()) return;
+    if(!input||!input.value.trim()) return;
 
     const text=input.value;
 
@@ -168,7 +154,7 @@ async function send(){
             method:"POST",
             headers:{
                 "Content-Type":"application/x-www-form-urlencoded",
-                token: localStorage.getItem("token") || ""
+                token:localStorage.getItem("token")||""
             },
             body:new URLSearchParams({
                 message:text,
@@ -181,8 +167,8 @@ async function send(){
 
         chats[currentChat].messages.push({
             role:"bot",
-            content:data.response,
-            model:data.model
+            content:data.response||"⚠️ No response",
+            model:data.model||"thinking"
         });
 
     }catch{
