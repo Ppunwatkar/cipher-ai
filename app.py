@@ -1,10 +1,17 @@
 import os
 import requests
-from fastapi import FastAPI, Form
+from fastapi import FastAPI, Form, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
+from sqlalchemy.orm import Session
+from jose import jwt
+
+from database import SessionLocal, engine, Base
+import models
 
 app = FastAPI()
+
+Base.metadata.create_all(bind=engine)
 
 # =========================
 # CORS
@@ -18,6 +25,34 @@ app.add_middleware(
 )
 
 # =========================
+# CONFIG
+# =========================
+SECRET_KEY = "cipher_secret"
+ALGORITHM = "HS256"
+
+# =========================
+# DB
+# =========================
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+# =========================
+# AUTH
+# =========================
+def get_current_user(token: str = Header(None), db: Session = Depends(get_db)):
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return db.query(models.User).filter(models.User.id == payload["user_id"]).first()
+    except:
+        return None
+
+# =========================
 # ROOT
 # =========================
 @app.get("/")
@@ -25,83 +60,59 @@ def home():
     return FileResponse("index.html")
 
 # =========================
-# HEALTH
+# GET CHATS
 # =========================
-@app.get("/ping")
-def ping():
-    return {"status": "alive"}
+@app.get("/chats")
+def get_chats(db: Session = Depends(get_db), user=Depends(get_current_user)):
+    if not user:
+        return []
+    chats = db.query(models.Chat).filter(models.Chat.user_id == user.id).all()
+    return [{"id": c.id} for c in chats]
 
 # =========================
-# HELPERS
+# GET CHAT HISTORY
 # =========================
-def is_greeting(msg):
-    return msg.lower().strip() in ["hi", "hello", "hey"]
-
-def is_basic_code(msg):
-    keywords = ["calculator", "simple code", "basic program", "python code"]
-    return any(k in msg.lower() for k in keywords)
+@app.get("/chat/{chat_id}")
+def get_chat(chat_id: str, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    msgs = db.query(models.Message).filter(models.Message.chat_id == chat_id).all()
+    return {
+        "messages": [
+            {"role": m.role, "content": m.content}
+            for m in msgs
+        ]
+    }
 
 # =========================
 # CHAT
 # =========================
 @app.post("/chat")
-def chat(message: str = Form(...), chat_id: str = Form(...), mode: str = Form(...)):
-    try:
-        print("🔥 CHAT HIT:", message)
+def chat(
+    message: str = Form(...),
+    chat_id: str = Form(...),
+    mode: str = Form(...),
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user)
+):
+    if not user:
+        return {"response": "❌ Unauthorized", "model": "error"}
 
+    # Create chat if not exists
+    chat = db.query(models.Chat).filter(models.Chat.id == chat_id).first()
+    if not chat:
+        chat = models.Chat(id=chat_id, user_id=user.id)
+        db.add(chat)
+        db.commit()
+
+    # Save user message
+    db.add(models.Message(chat_id=chat_id, role="user", content=message))
+    db.commit()
+
+    # Greeting shortcut
+    if message.lower() in ["hi", "hello"]:
+        reply = "Hi, I'm CIPHER AI — your cybersecurity assistant."
+    else:
         api_key = os.environ.get("OPENROUTER_API_KEY")
-        if not api_key:
-            return {"response": "❌ Missing API key"}
 
-        # 👋 Greeting
-        if is_greeting(message):
-            return {
-                "response": "Hi, I'm CIPHER AI — your cybersecurity assistant.\n\nWhat would you like to do today?",
-                "model": "system"
-            }
-
-        model = "openai/gpt-3.5-turbo"
-
-        # =========================
-        # 🧠 SMART PROMPTS
-        # =========================
-        if is_basic_code(message):
-            system_prompt = """
-You are CIPHER AI.
-
-This is a normal programming request.
-
-- Be friendly
-- Give correct code
-- No ethical warnings
-"""
-        elif mode == "programming":
-            system_prompt = """
-You are CIPHER AI in PROGRAMMING mode.
-
-- Provide clean working code
-- Minimal explanation
-- Friendly tone
-"""
-        elif mode == "fast":
-            system_prompt = """
-You are CIPHER AI in FAST mode.
-
-- Short answers
-- Direct responses only
-"""
-        else:
-            system_prompt = """
-You are CIPHER AI in THINKING mode.
-
-- Friendly and professional
-- Explain clearly
-- Do NOT assume malicious intent
-"""
-
-        # =========================
-        # API CALL
-        # =========================
         response = requests.post(
             "https://openrouter.ai/api/v1/chat/completions",
             headers={
@@ -111,28 +122,19 @@ You are CIPHER AI in THINKING mode.
                 "X-Title": "CIPHER AI"
             },
             json={
-                "model": model,
+                "model": "openai/gpt-3.5-turbo",
                 "messages": [
-                    {"role": "system", "content": system_prompt},
+                    {"role": "system", "content": "You are a helpful cybersecurity assistant."},
                     {"role": "user", "content": message}
                 ]
             }
         )
 
         data = response.json()
-
-        if "choices" not in data:
-            return {"response": str(data), "model": "error"}
-
         reply = data["choices"][0]["message"]["content"]
 
-        return {
-            "response": reply,
-            "model": mode
-        }
+    # Save bot reply
+    db.add(models.Message(chat_id=chat_id, role="assistant", content=reply))
+    db.commit()
 
-    except Exception as e:
-        return JSONResponse(
-            status_code=500,
-            content={"response": str(e), "model": "error"}
-        )
+    return {"response": reply, "model": mode}
