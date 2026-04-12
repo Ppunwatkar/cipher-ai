@@ -45,17 +45,22 @@ def chat(message: str = Form(...), chat_id: str = Form(...), mode: str = Form(..
         if not api_key:
             return {"response": "❌ Missing OpenRouter API key"}
 
-        # 🧠 MODE → MODEL
+        # =========================
+        # 🧠 MODE → MODEL (FIXED)
+        # =========================
         if mode == "thinking":
             model = "deepseek/deepseek-chat"
         elif mode == "fast":
             model = "mistralai/mistral-7b-instruct"
         elif mode == "programming":
-            model = "deepseek/deepseek-coder"
+            # ✅ FIXED DOLPHIN MODEL
+            model = "cognitivecomputations/dolphin-mixtral-8x7b"
         else:
             model = "deepseek/deepseek-chat"
 
+        # =========================
         # 🧠 SYSTEM PROMPT
+        # =========================
         system_prompt = """
 You are CIPHER AI — an elite cybersecurity assistant.
 
@@ -69,7 +74,9 @@ You specialize in:
 Give precise, technical, real-world answers.
 """
 
+        # =========================
         # 🌐 API CALL
+        # =========================
         response = requests.post(
             "https://openrouter.ai/api/v1/chat/completions",
             headers={
@@ -87,7 +94,9 @@ Give precise, technical, real-world answers.
 
         data = response.json()
 
+        # =========================
         # 🛑 ERROR HANDLING
+        # =========================
         if "choices" not in data:
             return {"response": f"❌ API Error: {data}"}
 
