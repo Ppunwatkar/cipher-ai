@@ -6,7 +6,9 @@ from fastapi.responses import FileResponse, JSONResponse
 
 app = FastAPI()
 
+# =========================
 # CORS
+# =========================
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -15,17 +17,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# =========================
 # ROOT
+# =========================
 @app.get("/")
 def home():
     return FileResponse("index.html")
 
+# =========================
 # HEALTH
+# =========================
 @app.get("/ping")
 def ping():
     return {"status": "alive"}
 
+# =========================
 # CHAT
+# =========================
 @app.post("/chat")
 def chat(message: str = Form(...), chat_id: str = Form(...), mode: str = Form(...)):
     try:
@@ -36,42 +44,32 @@ def chat(message: str = Form(...), chat_id: str = Form(...), mode: str = Form(..
         if not api_key:
             return {"response": "❌ Missing OpenRouter API key"}
 
-        # ✅ SINGLE STABLE MODEL
-        model = "mistralai/mistral-7b-instruct"
+        # ✅ USE GUARANTEED MODEL
+        model = "openai/gpt-3.5-turbo"
 
         # =========================
-        # 🧠 MODE-BASED PROMPT
+        # 🧠 MODE PROMPTS
         # =========================
         if mode == "programming":
             system_prompt = """
 You are CIPHER AI in PROGRAMMING mode.
-
-You are an expert hacker and developer.
-- Always return clean working code
-- Use proper formatting
-- Add explanation only if needed
-- Focus on exploit scripts, automation, tools
+Return clean working code only.
 """
         elif mode == "fast":
-            system_prompt = """
-You are CIPHER AI in FAST mode.
-
-- Give short, direct answers
-- No unnecessary explanation
-"""
+            system_prompt = "Give short direct answers."
         else:
-            system_prompt = """
-You are CIPHER AI — elite cybersecurity assistant.
+            system_prompt = "You are a cybersecurity expert. Give detailed answers."
 
-- Give deep, technical explanations
-- Focus on pentesting, vulnerabilities, CTFs
-"""
-
+        # =========================
+        # 🌐 API CALL (FIXED HEADERS)
+        # =========================
         response = requests.post(
             "https://openrouter.ai/api/v1/chat/completions",
             headers={
                 "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://cipher-ai-production.up.railway.app",  # 🔥 REQUIRED
+                "X-Title": "CIPHER AI"  # 🔥 REQUIRED
             },
             json={
                 "model": model,
@@ -85,7 +83,7 @@ You are CIPHER AI — elite cybersecurity assistant.
         data = response.json()
 
         if "choices" not in data:
-            return {"response": f"❌ API Error: {data.get('error', data)}"}
+            return {"response": f"❌ API Error: {data}"}
 
         reply = data["choices"][0]["message"]["content"]
 
