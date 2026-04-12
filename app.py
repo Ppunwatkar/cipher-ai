@@ -32,6 +32,14 @@ def ping():
     return {"status": "alive"}
 
 # =========================
+# HELLO DETECTION
+# =========================
+def is_greeting(msg):
+    msg = msg.lower().strip()
+    greetings = ["hi", "hello", "hey", "yo", "hola"]
+    return msg in greetings
+
+# =========================
 # CHAT
 # =========================
 @app.post("/chat")
@@ -44,62 +52,58 @@ def chat(message: str = Form(...), chat_id: str = Form(...), mode: str = Form(..
         if not api_key:
             return {"response": "❌ Missing OpenRouter API key"}
 
-        # ✅ Stable model
+        # 👋 HANDLE GREETING SEPARATELY
+        if is_greeting(message):
+            return {
+                "response": "Hi, I'm CIPHER AI — your cybersecurity assistant.\n\nHow can I help you today?"
+            }
+
         model = "openai/gpt-3.5-turbo"
 
         # =========================
-        # 💀 MODE-BASED PERSONALITY
+        # 💀 MODE-BASED PROMPTS
         # =========================
         if mode == "programming":
             system_prompt = """
 You are CIPHER AI in PROGRAMMING mode.
 
-Start your response with:
-"Hi, I'm CIPHER AI — your cybersecurity assistant."
+Behavior:
+- Only provide code when user asks for it
+- Otherwise respond normally
+- If coding requested → give clean working code
+- Minimal explanation
 
-Then:
-- Be friendly but professional
-- Provide clean, working code
-- Keep explanation minimal
-- Focus on scripts, exploits, automation
-
-Style:
-- Greeting → code → short explanation (if needed)
+Tone:
+- Friendly but technical
 """
 
         elif mode == "fast":
             system_prompt = """
 You are CIPHER AI in FAST mode.
 
-Start your response with:
-"Hi, I'm CIPHER AI."
+Behavior:
+- Short answers
+- Commands or payloads if relevant
+- No unnecessary explanation
 
-Then:
-- Give short, direct answers
-- Prefer commands or payloads
-- No long explanations
-
-Style:
-- Friendly → concise output
+Tone:
+- Friendly and concise
 """
 
-        else:  # THINKING MODE
+        else:  # THINKING
             system_prompt = """
 You are CIPHER AI in THINKING mode.
 
-Start your response with:
-"Hi, I'm CIPHER AI — your cybersecurity assistant."
+Behavior:
+- Friendly and professional
+- Give structured cybersecurity explanations
 
-Then:
-- Be friendly and slightly conversational
-- Provide deep, structured cybersecurity insights
-
-Format:
+Format (only when needed):
 1. Concept
 2. Attack Flow
 3. Example / Payload
 
-Focus on real-world pentesting and vulnerabilities.
+Do NOT force structure for simple questions.
 """
 
         # =========================
@@ -117,25 +121,13 @@ Focus on real-world pentesting and vulnerabilities.
                 "model": model,
                 "messages": [
                     {"role": "system", "content": system_prompt},
-                    {
-                        "role": "user",
-                        "content": f"""
-{message}
-
-Respond as CIPHER AI:
-- Start with a friendly greeting
-- Then give a cybersecurity-focused answer
-"""
-                    }
+                    {"role": "user", "content": message}
                 ]
             }
         )
 
         data = response.json()
 
-        # =========================
-        # ERROR HANDLING
-        # =========================
         if "choices" not in data:
             return {"response": f"❌ API Error: {data}"}
 
