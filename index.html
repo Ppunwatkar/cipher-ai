@@ -4,7 +4,12 @@ let currentChat = null;
 let currentMode = "thinking";
 
 document.addEventListener("DOMContentLoaded", async () => {
-    await loadChats();
+
+    try {
+        await loadChats();   // safe call
+    } catch(e){
+        console.log("⚠️ No chats yet");
+    }
 
     document.querySelectorAll(".badge").forEach(el=>{
         el.onclick = () => {
@@ -14,7 +19,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     });
 
-    createNewChat();
+    createNewChat(); // ALWAYS create fallback chat
 });
 
 function getModelLabel(model){
@@ -23,18 +28,48 @@ function getModelLabel(model){
     return "CIPHER";
 }
 
+/* 🔥 SAFE LOAD CHATS */
 async function loadChats(){
+    const token = localStorage.getItem("token");
+
+    if(!token) return; // ✅ prevents crash
+
     const res = await fetch("/chats", {
-        headers:{ token: localStorage.getItem("token") }
+        headers:{ token }
     });
 
+    if(!res.ok) return;
+
     const data = await res.json();
+
+    if(!Array.isArray(data)) return;
 
     data.forEach(c=>{
         chats[c.id] = { title:"Chat", messages:[] };
     });
 
     renderList();
+}
+
+/* 🔥 SAFE CHAT CLICK */
+async function loadChatMessages(id){
+    try{
+        const res = await fetch(`/chat/${id}`, {
+            headers:{ token: localStorage.getItem("token") }
+        });
+
+        const data = await res.json();
+
+        chats[id].messages = (data.messages || []).map(m=>({
+            role:m.role,
+            content:m.content,
+            model:"thinking"
+        }));
+
+        render();
+    }catch(e){
+        console.log("Error loading chat");
+    }
 }
 
 function createNewChat(){
@@ -53,29 +88,19 @@ function renderList(){
         div.className="chat-item";
         div.innerText=chats[id].title;
 
-        div.onclick = async ()=>{
+        div.onclick = ()=>{
             currentChat=id;
-
-            const res = await fetch(`/chat/${id}`,{
-                headers:{ token: localStorage.getItem("token") }
-            });
-
-            const data = await res.json();
-
-            chats[id].messages = data.messages.map(m=>({
-                role:m.role,
-                content:m.content,
-                model:"thinking"
-            }));
-
-            render();
+            loadChatMessages(id);
         };
 
         list.appendChild(div);
     });
 }
 
+/* 🔥 SAFE FORMAT */
 function formatMessage(content){
+    if(!content) return "";
+
     const parts = content.split("```");
 
     return parts.map((p,i)=>{
@@ -96,8 +121,15 @@ function copyCode(btn){
     setTimeout(()=>btn.innerText="COPY",1000);
 }
 
+/* 🔥 SAFE RENDER */
 function render(){
     const chat = document.getElementById("chat");
+
+    if(!currentChat || !chats[currentChat]){
+        chat.innerHTML = "<div>No chat selected</div>";
+        return;
+    }
+
     chat.innerHTML="";
 
     chats[currentChat].messages.forEach(m=>{
@@ -113,8 +145,8 @@ function render(){
 
         const text=document.createElement("div");
         text.innerHTML=formatMessage(m.content);
-        div.appendChild(text);
 
+        div.appendChild(text);
         chat.appendChild(div);
     });
 
@@ -136,7 +168,7 @@ async function send(){
             method:"POST",
             headers:{
                 "Content-Type":"application/x-www-form-urlencoded",
-                token: localStorage.getItem("token")
+                token: localStorage.getItem("token") || ""
             },
             body:new URLSearchParams({
                 message:text,
