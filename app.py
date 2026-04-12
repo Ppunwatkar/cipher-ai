@@ -6,9 +6,7 @@ from fastapi.responses import FileResponse, JSONResponse
 
 app = FastAPI()
 
-# =========================
 # CORS
-# =========================
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -17,66 +15,58 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# =========================
 # ROOT
-# =========================
 @app.get("/")
 def home():
     return FileResponse("index.html")
 
-# =========================
-# HEALTH CHECK
-# =========================
+# HEALTH
 @app.get("/ping")
 def ping():
     return {"status": "alive"}
 
-# =========================
-# CHAT ROUTE (AI ENABLED)
-# =========================
+# CHAT
 @app.post("/chat")
 def chat(message: str = Form(...), chat_id: str = Form(...), mode: str = Form(...)):
     try:
         print("🔥 CHAT HIT:", message)
 
-        # 🔐 GET API KEY
         api_key = os.environ.get("OPENROUTER_API_KEY")
 
         if not api_key:
             return {"response": "❌ Missing OpenRouter API key"}
 
+        # ✅ SINGLE STABLE MODEL
+        model = "mistralai/mistral-7b-instruct"
+
         # =========================
-        # 🧠 MODE → MODEL (FINAL FIX)
+        # 🧠 MODE-BASED PROMPT
         # =========================
-        if mode == "thinking":
-            model = "deepseek/deepseek-chat"
+        if mode == "programming":
+            system_prompt = """
+You are CIPHER AI in PROGRAMMING mode.
+
+You are an expert hacker and developer.
+- Always return clean working code
+- Use proper formatting
+- Add explanation only if needed
+- Focus on exploit scripts, automation, tools
+"""
         elif mode == "fast":
-            model = "mistralai/mistral-7b-instruct"
-        elif mode == "programming":
-            # ✅ FINAL STABLE PROGRAMMING MODEL
-            model = "meta-llama/codellama-34b-instruct"
+            system_prompt = """
+You are CIPHER AI in FAST mode.
+
+- Give short, direct answers
+- No unnecessary explanation
+"""
         else:
-            model = "deepseek/deepseek-chat"
+            system_prompt = """
+You are CIPHER AI — elite cybersecurity assistant.
 
-        # =========================
-        # 🧠 SYSTEM PROMPT
-        # =========================
-        system_prompt = """
-You are CIPHER AI — an elite cybersecurity assistant.
-
-You specialize in:
-- penetration testing
-- vulnerability analysis
-- exploit development
-- CTF solving
-- recon techniques
-
-For programming mode, give clean and correct code with explanation.
+- Give deep, technical explanations
+- Focus on pentesting, vulnerabilities, CTFs
 """
 
-        # =========================
-        # 🌐 API CALL
-        # =========================
         response = requests.post(
             "https://openrouter.ai/api/v1/chat/completions",
             headers={
@@ -94,11 +84,7 @@ For programming mode, give clean and correct code with explanation.
 
         data = response.json()
 
-        # =========================
-        # 🛑 ERROR HANDLING
-        # =========================
         if "choices" not in data:
-            print("❌ API ERROR:", data)
             return {"response": f"❌ API Error: {data.get('error', data)}"}
 
         reply = data["choices"][0]["message"]["content"]
