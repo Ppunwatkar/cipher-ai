@@ -32,12 +32,14 @@ def ping():
     return {"status": "alive"}
 
 # =========================
-# HELLO DETECTION
+# HELPERS
 # =========================
 def is_greeting(msg):
-    msg = msg.lower().strip()
-    greetings = ["hi", "hello", "hey", "yo", "hola"]
-    return msg in greetings
+    return msg.lower().strip() in ["hi", "hello", "hey"]
+
+def is_basic_code(msg):
+    keywords = ["calculator", "simple code", "basic program", "python code"]
+    return any(k in msg.lower() for k in keywords)
 
 # =========================
 # CHAT
@@ -48,66 +50,57 @@ def chat(message: str = Form(...), chat_id: str = Form(...), mode: str = Form(..
         print("🔥 CHAT HIT:", message)
 
         api_key = os.environ.get("OPENROUTER_API_KEY")
-
         if not api_key:
-            return {"response": "❌ Missing OpenRouter API key"}
+            return {"response": "❌ Missing API key"}
 
-        # 👋 HANDLE GREETING SEPARATELY
+        # 👋 Greeting
         if is_greeting(message):
             return {
-                "response": "Hi, I'm CIPHER AI — your cybersecurity assistant.\n\nHow can I help you today?"
+                "response": "Hi, I'm CIPHER AI — your cybersecurity assistant.\n\nWhat would you like to do today?",
+                "model": "system"
             }
 
         model = "openai/gpt-3.5-turbo"
 
         # =========================
-        # 💀 MODE-BASED PROMPTS
+        # 🧠 SMART PROMPTS
         # =========================
-        if mode == "programming":
+        if is_basic_code(message):
+            system_prompt = """
+You are CIPHER AI.
+
+This is a normal programming request.
+
+- Be friendly
+- Give correct code
+- No ethical warnings
+"""
+        elif mode == "programming":
             system_prompt = """
 You are CIPHER AI in PROGRAMMING mode.
 
-Behavior:
-- Only provide code when user asks for it
-- Otherwise respond normally
-- If coding requested → give clean working code
+- Provide clean working code
 - Minimal explanation
-
-Tone:
-- Friendly but technical
+- Friendly tone
 """
-
         elif mode == "fast":
             system_prompt = """
 You are CIPHER AI in FAST mode.
 
-Behavior:
 - Short answers
-- Commands or payloads if relevant
-- No unnecessary explanation
-
-Tone:
-- Friendly and concise
+- Direct responses only
 """
-
-        else:  # THINKING
+        else:
             system_prompt = """
 You are CIPHER AI in THINKING mode.
 
-Behavior:
 - Friendly and professional
-- Give structured cybersecurity explanations
-
-Format (only when needed):
-1. Concept
-2. Attack Flow
-3. Example / Payload
-
-Do NOT force structure for simple questions.
+- Explain clearly
+- Do NOT assume malicious intent
 """
 
         # =========================
-        # 🌐 API CALL
+        # API CALL
         # =========================
         response = requests.post(
             "https://openrouter.ai/api/v1/chat/completions",
@@ -129,15 +122,17 @@ Do NOT force structure for simple questions.
         data = response.json()
 
         if "choices" not in data:
-            return {"response": f"❌ API Error: {data}"}
+            return {"response": str(data), "model": "error"}
 
         reply = data["choices"][0]["message"]["content"]
 
-        return {"response": reply}
+        return {
+            "response": reply,
+            "model": mode
+        }
 
     except Exception as e:
-        print("❌ ERROR:", str(e))
         return JSONResponse(
             status_code=500,
-            content={"response": "❌ Server error"}
+            content={"response": str(e), "model": "error"}
         )
