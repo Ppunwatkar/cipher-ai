@@ -7,7 +7,6 @@
 <script src="https://cdn.tailwindcss.com"></script>
 
 <style>
-/* KEEP YOUR FULL CSS EXACTLY SAME */
 body {
     background:#04070d;
     color:#e6edf3;
@@ -30,7 +29,6 @@ body::before {
 .header { background:#0b0f17; border-bottom:1px solid #1f2937; }
 .badge { padding:8px 16px; font-size:13px; border:1px solid #00f2ff; cursor:pointer; }
 
-/* 🔥 FIXED CHAT ALIGNMENT */
 #chat {
     display:flex;
     flex-direction:column;
@@ -40,7 +38,6 @@ body::before {
     width:100%;
 }
 
-/* UPDATED MESSAGE ALIGNMENT */
 .bot, .user {
     padding:18px;
     border-radius:10px;
@@ -49,20 +46,17 @@ body::before {
     max-width:75%;
 }
 
-/* LEFT BOT */
 .bot {
     background:#0d1117;
     border-left:4px solid #00f2ff;
     align-self:flex-start;
 }
 
-/* RIGHT USER */
 .user {
     background:#020617;
     align-self:flex-end;
 }
 
-/* 🔥 MODEL TAG */
 .model-tag {
     font-size:12px;
     color:#00f2ff;
@@ -80,8 +74,6 @@ body::before {
     #chat { max-width:100%; padding:10px; padding-bottom:150px; }
     .bot, .user { max-width:100%; font-size:14px; padding:12px; }
     .input-container { position: fixed; bottom: 0; left: 0; width: 100%; padding: 10px; background:#04070d; border-top:1px solid #1f2937; }
-    textarea { width:100%; font-size:14px; }
-    .btn { width:100%; margin-top:8px; }
 }
 </style>
 </head>
@@ -134,12 +126,6 @@ let chats = {};
 let currentChat = null;
 let currentMode = "thinking";
 
-/* MODEL NAME */
-function getModelName(){
-    if(currentMode === "programming") return "DOLPHIN";
-    return "GROQ";
-}
-
 document.addEventListener("DOMContentLoaded", () => {
 
     document.querySelectorAll(".badge").forEach(el=>{
@@ -173,6 +159,12 @@ function renderList(){
     });
 }
 
+function getModelLabel(model){
+    if(model === "programming") return "DOLPHIN";
+    if(model === "fast" || model === "thinking") return "GROQ";
+    return "CIPHER";
+}
+
 function render(){
     const chat = document.getElementById("chat");
     chat.innerHTML="";
@@ -181,11 +173,10 @@ function render(){
         const div = document.createElement("div");
         div.className = m.role==="user"?"user":"bot";
 
-        /* ADD MODEL TAG ONLY FOR BOT */
         if(m.role === "bot"){
             const tag = document.createElement("div");
             tag.className = "model-tag";
-            tag.innerText = getModelName();
+            tag.innerText = getModelLabel(m.model); // ✅ FIXED
             div.appendChild(tag);
         }
 
@@ -205,9 +196,12 @@ async function send(){
 
     const text = input.value;
 
-    chats[currentChat].messages.push({role:"user",content:text});
-    render();
+    chats[currentChat].messages.push({
+        role:"user",
+        content:text
+    });
 
+    render();
     input.value="";
 
     try {
@@ -227,13 +221,15 @@ async function send(){
 
         chats[currentChat].messages.push({
             role:"bot",
-            content:data.response
+            content:data.response,
+            model:data.model   // ✅ IMPORTANT FIX
         });
 
     } catch(err){
         chats[currentChat].messages.push({
             role:"bot",
-            content:"❌ Backend not responding"
+            content:"❌ Backend not responding",
+            model:"error"
         });
     }
 
