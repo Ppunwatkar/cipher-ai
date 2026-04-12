@@ -7,13 +7,14 @@
 <script src="https://cdn.tailwindcss.com"></script>
 
 <style>
+/* KEEP YOUR FULL CSS EXACTLY SAME */
 body {
     background:#04070d;
     color:#e6edf3;
-    font-family: 'Inter', monospace;
+    font-family: 'Inter', 'Courier New', monospace;
+    font-size:18px;
+    line-height:1.7;
 }
-
-/* GRID BACKGROUND */
 body::before {
     content:"";
     position:fixed;
@@ -25,111 +26,167 @@ body::before {
     background-size: 50px 50px;
     z-index:-1;
 }
+.sidebar { width:260px; background:#0b0f17; border-right:1px solid #1f2937; }
+.header { background:#0b0f17; border-bottom:1px solid #1f2937; }
+.badge { padding:8px 16px; font-size:13px; border:1px solid #00f2ff; cursor:pointer; }
 
-/* CHAT LAYOUT FIX */
+/* 🔥 FIXED CHAT ALIGNMENT */
 #chat {
     display:flex;
     flex-direction:column;
-    gap:16px;
+    gap:14px;
     max-width:900px;
     margin:auto;
     width:100%;
 }
 
-/* MESSAGE STYLING */
+/* UPDATED MESSAGE ALIGNMENT */
 .bot, .user {
-    padding:16px;
-    border-radius:12px;
-    max-width:70%;
+    padding:18px;
+    border-radius:10px;
+    font-size:16px;
     animation: fadeIn 0.2s ease-in;
+    max-width:75%;
 }
 
-/* LEFT ALIGN BOT */
+/* LEFT BOT */
 .bot {
     background:#0d1117;
     border-left:4px solid #00f2ff;
     align-self:flex-start;
 }
 
-/* RIGHT ALIGN USER */
+/* RIGHT USER */
 .user {
     background:#020617;
     align-self:flex-end;
 }
 
-/* MODEL TAG */
+/* 🔥 MODEL TAG */
 .model-tag {
     font-size:12px;
     color:#00f2ff;
     margin-bottom:6px;
 }
 
-@keyframes fadeIn {
-    from {opacity:0; transform: translateY(6px);}
-    to {opacity:1; transform: translateY(0);}
+.input-box { background:#04070d; border:1px solid #00f2ff; box-shadow:0 0 12px rgba(0,255,255,0.2); font-size:16px; padding:14px; }
+.btn { border:1px solid #00f2ff; padding:14px; font-size:14px; }
+.chat-item { padding:8px; cursor:pointer; font-size:14px; }
+
+@keyframes fadeIn { from {opacity:0; transform: translateY(6px);} to {opacity:1; transform: translateY(0);} }
+
+@media (max-width: 768px) {
+    .sidebar { display:none; }
+    #chat { max-width:100%; padding:10px; padding-bottom:150px; }
+    .bot, .user { max-width:100%; font-size:14px; padding:12px; }
+    .input-container { position: fixed; bottom: 0; left: 0; width: 100%; padding: 10px; background:#04070d; border-top:1px solid #1f2937; }
+    textarea { width:100%; font-size:14px; }
+    .btn { width:100%; margin-top:8px; }
 }
 </style>
 </head>
 
 <body class="flex h-screen overflow-hidden">
 
+<div class="sidebar p-6 flex flex-col justify-between">
+<div>
+<h1 class="text-cyan-400 text-2xl font-bold">CIPHER</h1>
+<p class="text-sm text-gray-500 mb-6">CYBERSECURITY AI</p>
+
+<button onclick="createNewChat()" class="btn">+ NEW CHAT</button>
+<div id="chatList" class="mt-6 overflow-y-auto"></div>
+</div>
+
+<div class="flex flex-col gap-2 mt-6">
+<button class="btn">Login</button>
+<button class="btn">Sign Up</button>
+</div>
+</div>
+
 <div class="flex-1 flex flex-col">
 
-<div class="p-4 border-b border-gray-800 flex justify-between">
+<div class="header p-4 flex justify-between">
 <span class="text-cyan-400 text-lg">RESEARCH TERMINAL</span>
 
 <div class="flex gap-3">
-<span class="badge bg-cyan-400 px-3 py-1 cursor-pointer" data-mode="thinking">THINKING</span>
-<span class="badge px-3 py-1 border border-cyan-400 cursor-pointer" data-mode="fast">FAST</span>
-<span class="badge px-3 py-1 border border-cyan-400 cursor-pointer" data-mode="programming">PROGRAMMING</span>
+<span class="badge bg-cyan-400" data-mode="thinking">THINKING</span>
+<span class="badge" data-mode="fast">FAST</span>
+<span class="badge" data-mode="programming">PROGRAMMING</span>
 </div>
 </div>
 
 <div id="chat" class="flex-1 p-8 overflow-y-auto"></div>
 
-<div class="p-6">
-<textarea id="msg" class="w-full p-4 bg-black border border-cyan-400" placeholder="Ask..." rows="2"></textarea>
-<button onclick="send()" class="w-full mt-3 border border-cyan-400 p-3">SEND ▶</button>
+<div class="input-container p-6 flex flex-col gap-3 max-w-4xl mx-auto w-full">
+<textarea id="msg" class="input-box rounded-md" placeholder="Ask about exploits, recon, CTFs..." rows="2"></textarea>
+
+<div class="text-sm text-gray-500">
+Try: recon scan | sql injection | xss payload | whois example.com
+</div>
+
+<button onclick="send()" class="btn">SEND ▶</button>
 </div>
 
 </div>
 
 <script>
 let chats = {};
-let currentChat = "chat1";
+let currentChat = null;
 let currentMode = "thinking";
 
-chats[currentChat] = {messages: []};
-
-/* MODE SWITCH */
-document.querySelectorAll(".badge").forEach(el=>{
-    el.onclick = () => {
-        currentMode = el.dataset.mode;
-        document.querySelectorAll(".badge").forEach(b=>b.classList.remove("bg-cyan-400"));
-        el.classList.add("bg-cyan-400");
-    }
-});
-
-/* MODEL NAME LOGIC */
+/* MODEL NAME */
 function getModelName(){
     if(currentMode === "programming") return "DOLPHIN";
     return "GROQ";
 }
 
-/* RENDER CHAT */
+document.addEventListener("DOMContentLoaded", () => {
+
+    document.querySelectorAll(".badge").forEach(el=>{
+        el.onclick = () => {
+            currentMode = el.dataset.mode;
+            document.querySelectorAll(".badge").forEach(b=>b.classList.remove("bg-cyan-400"));
+            el.classList.add("bg-cyan-400");
+        }
+    });
+
+    createNewChat();
+});
+
+function createNewChat(){
+    currentChat = "chat_" + Date.now();
+    chats[currentChat] = { title: "New Chat", messages: [] };
+    renderList();
+    render();
+}
+
+function renderList(){
+    const list = document.getElementById("chatList");
+    list.innerHTML = "";
+
+    Object.keys(chats).forEach(id=>{
+        const div = document.createElement("div");
+        div.className = "chat-item";
+        div.innerText = chats[id].title;
+        div.onclick = ()=>{ currentChat = id; render(); };
+        list.appendChild(div);
+    });
+}
+
 function render(){
     const chat = document.getElementById("chat");
     chat.innerHTML="";
 
     chats[currentChat].messages.forEach(m=>{
         const div = document.createElement("div");
-        div.className = m.role==="user" ? "user" : "bot";
+        div.className = m.role==="user"?"user":"bot";
 
+        /* ADD MODEL TAG ONLY FOR BOT */
         if(m.role === "bot"){
-            const model = document.createElement("div");
-            model.className = "model-tag";
-            model.innerText = getModelName();
-            div.appendChild(model);
+            const tag = document.createElement("div");
+            tag.className = "model-tag";
+            tag.innerText = getModelName();
+            div.appendChild(tag);
         }
 
         const text = document.createElement("div");
@@ -142,7 +199,6 @@ function render(){
     chat.scrollTop = chat.scrollHeight;
 }
 
-/* SEND */
 async function send(){
     const input = document.getElementById("msg");
     if(!input.value.trim()) return;
@@ -151,6 +207,7 @@ async function send(){
 
     chats[currentChat].messages.push({role:"user",content:text});
     render();
+
     input.value="";
 
     try {
@@ -176,7 +233,7 @@ async function send(){
     } catch(err){
         chats[currentChat].messages.push({
             role:"bot",
-            content:"❌ Backend error"
+            content:"❌ Backend not responding"
         });
     }
 
