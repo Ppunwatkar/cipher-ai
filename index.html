@@ -3,11 +3,16 @@ let chats = {};
 let currentChat = null;
 let currentMode = "thinking";
 
+// 🔥 FIX: base URL for Railway
+const BASE_URL = window.location.origin;
+
 document.addEventListener("DOMContentLoaded", async () => {
+    console.log("✅ UI LOADED");
+
     try {
         await loadChats();
     } catch(e) {
-        console.log("No chats loaded");
+        console.log("No chats loaded", e);
     }
 
     if(Object.keys(chats).length === 0){
@@ -32,21 +37,38 @@ function getModelLabel(model){
     return "CIPHER";
 }
 
+// =========================
+// LOAD CHATS (SAFE)
+// =========================
 async function loadChats(){
-    const res = await fetch("/chats", {
-        headers:{ token: localStorage.getItem("token") || "" }
-    });
+    try{
+        const res = await fetch(BASE_URL + "/chats", {
+            headers:{ token: localStorage.getItem("token") || "" }
+        });
 
-    if(!res.ok) return;
+        if(!res.ok){
+            console.warn("Chats API failed:", res.status);
+            return;
+        }
 
-    const data = await res.json();
-    if(!Array.isArray(data)) return;
+        const data = await res.json();
 
-    data.forEach(c=>{
-        chats[c.id]={title:"Chat",messages:[]};
-    });
+        if(!Array.isArray(data)){
+            console.warn("Invalid chats response:", data);
+            return;
+        }
 
-    renderList();
+        data.forEach(c=>{
+            if(c && c.id){
+                chats[c.id]={title:"Chat",messages:[]};
+            }
+        });
+
+        renderList();
+
+    }catch(e){
+        console.error("loadChats error:", e);
+    }
 }
 
 function createNewChat(){
@@ -56,9 +78,16 @@ function createNewChat(){
     render();
 }
 
+// =========================
+// RENDER CHAT LIST
+// =========================
 function renderList(){
     const list=document.getElementById("chatList");
-    if(!list) return;
+
+    if(!list){
+        console.error("chatList not found ❌");
+        return;
+    }
 
     list.innerHTML="";
 
@@ -71,18 +100,23 @@ function renderList(){
             currentChat=id;
 
             try{
-                const res=await fetch(`/chat/${id}`,{
+                const res=await fetch(BASE_URL + "/chat/" + id,{
                     headers:{token:localStorage.getItem("token")||""}
                 });
 
-                const data=await res.json();
-                chats[id].messages=(data.messages||[]).map(m=>({
-                    role:m.role,
-                    content:m.content,
-                    model:"thinking"
-                }));
+                if(res.ok){
+                    const data=await res.json();
 
-            }catch{}
+                    chats[id].messages=(data.messages||[]).map(m=>({
+                        role:m.role,
+                        content:m.content,
+                        model:"thinking"
+                    }));
+                }
+
+            }catch(e){
+                console.error("Chat load error:", e);
+            }
 
             render();
         };
@@ -91,30 +125,48 @@ function renderList(){
     });
 }
 
+// =========================
+// FORMAT MESSAGE
+// =========================
 function formatMessage(content){
     if(!content) return "";
+
     const parts=content.split("```");
 
     return parts.map((p,i)=>{
         if(i%2===1){
             return `<div class="code-block">
-            <button class="copy-btn" onclick="copyCode(this)">COPY</button>
-            <pre>${p}</pre></div>`;
+                <button class="copy-btn" onclick="copyCode(this)">COPY</button>
+                <pre>${p}</pre>
+            </div>`;
         }
         return `<div>${p}</div>`;
     }).join("");
 }
 
 function copyCode(btn){
-    const code=btn.parentElement.querySelector("pre").innerText;
+    const code=btn.parentElement.querySelector("pre")?.innerText || "";
     navigator.clipboard.writeText(code);
+
     btn.innerText="COPIED";
     setTimeout(()=>btn.innerText="COPY",1000);
 }
 
+// =========================
+// RENDER CHAT
+// =========================
 function render(){
     const chat=document.getElementById("chat");
-    if(!chat||!currentChat) return;
+
+    if(!chat){
+        console.error("chat container missing ❌");
+        return;
+    }
+
+    if(!currentChat || !chats[currentChat]){
+        chat.innerHTML="<div>No chat selected</div>";
+        return;
+    }
 
     chat.innerHTML="";
 
@@ -139,18 +191,31 @@ function render(){
     chat.scrollTop=chat.scrollHeight;
 }
 
+// =========================
+// SEND MESSAGE
+// =========================
 async function send(){
     const input=document.getElementById("msg");
-    if(!input||!input.value.trim()) return;
+
+    if(!input){
+        console.error("input missing ❌");
+        return;
+    }
+
+    if(!input.value.trim()) return;
 
     const text=input.value;
 
-    chats[currentChat].messages.push({role:"user",content:text});
+    chats[currentChat].messages.push({
+        role:"user",
+        content:text
+    });
+
     render();
     input.value="";
 
     try{
-        const res=await fetch("/chat",{
+        const res=await fetch(BASE_URL + "/chat",{
             method:"POST",
             headers:{
                 "Content-Type":"application/x-www-form-urlencoded",
@@ -163,15 +228,21 @@ async function send(){
             })
         });
 
+        if(!res.ok){
+            throw new Error("API failed");
+        }
+
         const data=await res.json();
 
         chats[currentChat].messages.push({
             role:"bot",
-            content:data.response||"⚠️ No response",
-            model:data.model||"thinking"
+            content:data?.response || "⚠️ No response",
+            model:data?.model || "thinking"
         });
 
-    }catch{
+    }catch(e){
+        console.error("SEND ERROR:", e);
+
         chats[currentChat].messages.push({
             role:"bot",
             content:"❌ Backend error",
