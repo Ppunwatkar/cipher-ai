@@ -124,8 +124,13 @@ display:none;align-items:center;justify-content:center;
 
 <button onclick="submitAuth()" class="btn mt-4 w-full">Continue</button>
 
+<!-- GOOGLE BUTTON -->
+<button onclick="googleLogin()" class="btn mt-2 w-full">
+Continue with Google
+</button>
+
 <p onclick="toggleAuth()" class="text-gray-400 text-sm mt-3 cursor-pointer">
-Don't have an account? Sign up
+Switch mode
 </p>
 
 </div>
@@ -139,6 +144,7 @@ let authMode = "login";
 
 const BASE_URL = window.location.origin;
 
+// MODE SWITCH
 document.querySelectorAll(".badge").forEach(el=>{
     el.onclick=()=>{
         currentMode=el.dataset.mode;
@@ -147,6 +153,7 @@ document.querySelectorAll(".badge").forEach(el=>{
     }
 });
 
+// AUTH UI
 function openAuth(mode){
     authMode = mode;
     document.getElementById("authModal").style.display="flex";
@@ -183,13 +190,31 @@ async function submitAuth(){
 
     if(data.token){
         localStorage.setItem("token",data.token);
-        alert("Logged in");
+        alert("Logged in ✅");
         closeAuth();
     } else {
         alert(data.msg);
     }
 }
 
+// GOOGLE LOGIN
+function googleLogin(){
+    window.location.href = BASE_URL + "/auth/google";
+}
+
+// HANDLE GOOGLE TOKEN
+window.onload = () => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
+
+    if(token){
+        localStorage.setItem("token", token);
+        window.history.replaceState({}, document.title, "/");
+        alert("Logged in with Google ✅");
+    }
+};
+
+// CHAT
 function createNewChat(){
     currentChat="chat_"+Date.now();
     chats[currentChat]={messages:[]};
