@@ -1,8 +1,8 @@
 import os
 import requests
-from fastapi import FastAPI, Form, Depends, Header
+from fastapi import FastAPI, Form, Depends, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import sessionmaker, declarative_base, Session
@@ -10,15 +10,17 @@ from sqlalchemy.orm import sessionmaker, declarative_base, Session
 from passlib.context import CryptContext
 from jose import jwt, JWTError
 
+from authlib.integrations.starlette_client import OAuth
+
 # =========================
 # CONFIG
 # =========================
 SECRET_KEY = "cipher_secret"
 ALGORITHM = "HS256"
 
-DATABASE_URL = "sqlite:///./cipher.db"
+DATABASE_URL = os.environ.get("DATABASE_URL")
 
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
 
@@ -38,19 +40,19 @@ app.add_middleware(
 )
 
 # =========================
-# MODEL
+# DB MODEL
 # =========================
 class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True)
-    username = Column(String, unique=True)
+    username = Column(String, unique=True, index=True)
     password = Column(String)
 
 Base.metadata.create_all(bind=engine)
 
 # =========================
-# UTILS
+# AUTH UTILS
 # =========================
 def hash_password(p):
     return pwd_context.hash(p)
@@ -68,6 +70,19 @@ def get_current_user(token: str = Header(None)):
         return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
     except JWTError:
         return None
+
+# =========================
+# GOOGLE AUTH
+# =========================
+oauth = OAuth()
+
+oauth.register(
+    name="google",
+    client_id=os.environ.get("GOOGLE_CLIENT_ID"),
+    client_secret=os.environ.get("GOOGLE_CLIENT_SECRET"),
+    server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
+    client_kwargs={"scope": "openid email profile"},
+)
 
 # =========================
 # ROOT
@@ -105,8 +120,38 @@ def login(username: str = Form(...), password: str = Form(...)):
         return {"msg": "Invalid credentials"}
 
     token = create_token({"user_id": user.id})
-
     return {"token": token}
+
+# =========================
+# GOOGLE LOGIN
+# =========================
+@app.get("/auth/google")
+async def google_login(request: Request):
+    redirect_uri = request.url_for("google_callback")
+    return await oauth.google.authorize_redirect(request, redirect_uri)
+
+# =========================
+# GOOGLE CALLBACK
+# =========================
+@app.get("/auth/google/callback")
+async def google_callback(request: Request):
+    db: Session = SessionLocal()
+
+    token = await oauth.google.authorize_access_token(request)
+    user_info = token.get("userinfo")
+
+    email = user_info["email"]
+
+    user = db.query(User).filter(User.username == email).first()
+
+    if not user:
+        user = User(username=email, password="oauth")
+        db.add(user)
+        db.commit()
+
+    jwt_token = create_token({"user_id": user.id})
+
+    return RedirectResponse(f"/?token={jwt_token}")
 
 # =========================
 # CHAT (PROTECTED)
@@ -116,7 +161,7 @@ def chat(
     message: str = Form(...),
     chat_id: str = Form(...),
     mode: str = Form(...),
-    user = Depends(get_current_user)
+    user=Depends(get_current_user)
 ):
     if not user:
         return {"response": "❌ Please login first", "model": "error"}
@@ -147,5 +192,5 @@ def chat(
 
         return {"response": reply, "model": mode}
 
-    except Exception as e:
+    except Exception:
         return JSONResponse(status_code=500, content={"response": "❌ Server error"})
