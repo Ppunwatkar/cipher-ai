@@ -1,4 +1,4 @@
-import os
+\import os
 import requests
 from fastapi import FastAPI, Form, Depends, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,6 +12,7 @@ from jose import jwt, JWTError
 
 from authlib.integrations.starlette_client import OAuth
 from starlette.middleware.sessions import SessionMiddleware
+from starlette.middleware.proxy_headers import ProxyHeadersMiddleware
 
 # =========================
 # CONFIG
@@ -30,22 +31,26 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 app = FastAPI()
 
 # =========================
-# MIDDLEWARE (FIXED)
+# MIDDLEWARE (FINAL FIX)
 # =========================
+app.add_middleware(
+    ProxyHeadersMiddleware,
+    trusted_hosts="*"
+)
+
+app.add_middleware(
+    SessionMiddleware,
+    secret_key="super_secret",
+    same_site="none",
+    https_only=True
+)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-)
-
-# 🔥 FIXED SESSION FOR GOOGLE OAUTH
-app.add_middleware(
-    SessionMiddleware,
-    secret_key="super_secret",
-    same_site="none",
-    https_only=True
 )
 
 # =========================
@@ -136,7 +141,7 @@ def login(username: str = Form(...), password: str = Form(...)):
     return {"token": token}
 
 # =========================
-# GOOGLE LOGIN (HTTPS FIX)
+# GOOGLE LOGIN
 # =========================
 @app.get("/auth/google")
 async def google_login(request: Request):
@@ -153,11 +158,8 @@ async def google_callback(request: Request):
     try:
         token = await oauth.google.authorize_access_token(request)
 
-        # 🔥 ALWAYS use parse_id_token (fix)
+        # 🔥 FIXED
         user_info = await oauth.google.parse_id_token(request, token)
-
-        if not user_info:
-            return JSONResponse(status_code=400, content={"error": "No user info"})
 
         email = user_info.get("email")
 
@@ -179,7 +181,7 @@ async def google_callback(request: Request):
         return RedirectResponse(f"/?token={jwt_token}")
 
     except Exception as e:
-        print("GOOGLE ERROR FULL:", str(e))
+        print("GOOGLE ERROR:", str(e))
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 # =========================
