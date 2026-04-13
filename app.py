@@ -30,7 +30,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 app = FastAPI()
 
 # =========================
-# MIDDLEWARE
+# MIDDLEWARE (FIXED)
 # =========================
 app.add_middleware(
     CORSMiddleware,
@@ -40,7 +40,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.add_middleware(SessionMiddleware, secret_key="super_secret")
+# 🔥 FIXED SESSION FOR GOOGLE OAUTH
+app.add_middleware(
+    SessionMiddleware,
+    secret_key="super_secret",
+    same_site="none",
+    https_only=True
+)
 
 # =========================
 # DB MODEL
@@ -71,7 +77,7 @@ def get_current_user(token: str = Header(None)):
         return None
     try:
         return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-    except:
+    except JWTError:
         return None
 
 # =========================
@@ -95,7 +101,7 @@ def home():
     return FileResponse("index.html")
 
 # =========================
-# SIGNUP / LOGIN
+# SIGNUP
 # =========================
 @app.post("/signup")
 def signup(username: str = Form(...), password: str = Form(...)):
@@ -110,6 +116,9 @@ def signup(username: str = Form(...), password: str = Form(...)):
 
     return {"msg": "Signup success"}
 
+# =========================
+# LOGIN
+# =========================
 @app.post("/login")
 def login(username: str = Form(...), password: str = Form(...)):
     db: Session = SessionLocal()
@@ -117,7 +126,7 @@ def login(username: str = Form(...), password: str = Form(...)):
     user = db.query(User).filter(User.username == username).first()
 
     if not user or not verify_password(password, user.password):
-        return {"msg": "Invalid"}
+        return {"msg": "Invalid credentials"}
 
     token = create_token({
         "user_id": user.id,
@@ -127,7 +136,7 @@ def login(username: str = Form(...), password: str = Form(...)):
     return {"token": token}
 
 # =========================
-# GOOGLE LOGIN
+# GOOGLE LOGIN (HTTPS FIX)
 # =========================
 @app.get("/auth/google")
 async def google_login(request: Request):
@@ -135,7 +144,7 @@ async def google_login(request: Request):
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 # =========================
-# GOOGLE CALLBACK (FIXED)
+# GOOGLE CALLBACK (FINAL FIX)
 # =========================
 @app.get("/auth/google/callback")
 async def google_callback(request: Request):
@@ -144,11 +153,16 @@ async def google_callback(request: Request):
     try:
         token = await oauth.google.authorize_access_token(request)
 
-        user_info = token.get("userinfo")
+        # 🔥 ALWAYS use parse_id_token (fix)
+        user_info = await oauth.google.parse_id_token(request, token)
+
         if not user_info:
-            user_info = await oauth.google.parse_id_token(request, token)
+            return JSONResponse(status_code=400, content={"error": "No user info"})
 
         email = user_info.get("email")
+
+        if not email:
+            return JSONResponse(status_code=400, content={"error": "No email"})
 
         user = db.query(User).filter(User.username == email).first()
 
@@ -165,15 +179,19 @@ async def google_callback(request: Request):
         return RedirectResponse(f"/?token={jwt_token}")
 
     except Exception as e:
-        print("GOOGLE ERROR:", e)
-        return JSONResponse(status_code=500, content={"error": "OAuth failed"})
+        print("GOOGLE ERROR FULL:", str(e))
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 # =========================
 # CHAT (PROTECTED)
 # =========================
 @app.post("/chat")
-def chat(message: str = Form(...), chat_id: str = Form(...), mode: str = Form(...), user=Depends(get_current_user)):
-
+def chat(
+    message: str = Form(...),
+    chat_id: str = Form(...),
+    mode: str = Form(...),
+    user=Depends(get_current_user)
+):
     if not user:
         return {"response": "❌ Unauthorized", "model": "error"}
 
@@ -183,19 +201,20 @@ def chat(message: str = Form(...), chat_id: str = Form(...), mode: str = Form(..
         "https://openrouter.ai/api/v1/chat/completions",
         headers={
             "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://cipher-ai-production.up.railway.app",
+            "X-Title": "CIPHER AI"
         },
         json={
             "model": "openai/gpt-3.5-turbo",
             "messages": [
-                {"role": "system", "content": "You are CIPHER AI."},
+                {"role": "system", "content": "You are CIPHER AI — a cybersecurity assistant."},
                 {"role": "user", "content": message}
             ]
         }
     )
 
     data = response.json()
-
     reply = data.get("choices", [{}])[0].get("message", {}).get("content", "⚠️ Error")
 
     return {"response": reply, "model": mode}
