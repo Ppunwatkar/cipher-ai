@@ -40,7 +40,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 🔥 REQUIRED FOR GOOGLE AUTH
+# REQUIRED FOR GOOGLE AUTH
 app.add_middleware(
     SessionMiddleware,
     secret_key="super_secret_session_key"
@@ -130,11 +130,12 @@ def login(username: str = Form(...), password: str = Form(...)):
     return {"token": token}
 
 # =========================
-# GOOGLE LOGIN
+# GOOGLE LOGIN (FIXED HTTPS)
 # =========================
 @app.get("/auth/google")
 async def google_login(request: Request):
-    redirect_uri = request.url_for("google_callback")
+    # FORCE HTTPS redirect to fix mismatch error
+    redirect_uri = "https://cipher-ai-production.up.railway.app/auth/google/callback"
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 # =========================
