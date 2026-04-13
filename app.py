@@ -11,6 +11,7 @@ from passlib.context import CryptContext
 from jose import jwt, JWTError
 
 from authlib.integrations.starlette_client import OAuth
+from starlette.middleware.sessions import SessionMiddleware
 
 # =========================
 # CONFIG
@@ -29,7 +30,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 app = FastAPI()
 
 # =========================
-# CORS
+# MIDDLEWARE
 # =========================
 app.add_middleware(
     CORSMiddleware,
@@ -37,6 +38,12 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+)
+
+# 🔥 REQUIRED FOR GOOGLE AUTH
+app.add_middleware(
+    SessionMiddleware,
+    secret_key="super_secret_session_key"
 )
 
 # =========================
@@ -192,5 +199,9 @@ def chat(
 
         return {"response": reply, "model": mode}
 
-    except Exception:
-        return JSONResponse(status_code=500, content={"response": "❌ Server error"})
+    except Exception as e:
+        print("ERROR:", e)
+        return JSONResponse(
+            status_code=500,
+            content={"response": "❌ Server error", "model": "error"}
+        )
