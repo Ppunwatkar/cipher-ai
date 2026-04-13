@@ -12,7 +12,6 @@ from jose import jwt, JWTError
 
 from authlib.integrations.starlette_client import OAuth
 from starlette.middleware.sessions import SessionMiddleware
-from starlette.middleware.proxy_headers import ProxyHeadersMiddleware
 
 # =========================
 # CONFIG
@@ -31,18 +30,13 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 app = FastAPI()
 
 # =========================
-# MIDDLEWARE (FINAL FIX)
+# MIDDLEWARE (FIXED)
 # =========================
-app.add_middleware(
-    ProxyHeadersMiddleware,
-    trusted_hosts="*"
-)
-
 app.add_middleware(
     SessionMiddleware,
     secret_key="super_secret",
-    same_site="none",
-    https_only=True
+    same_site="lax",   # 🔥 FIXED (important)
+    https_only=False   # 🔥 FIXED (Railway compatibility)
 )
 
 app.add_middleware(
@@ -149,7 +143,7 @@ async def google_login(request: Request):
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 # =========================
-# GOOGLE CALLBACK (FINAL FIX)
+# GOOGLE CALLBACK (FINAL)
 # =========================
 @app.get("/auth/google/callback")
 async def google_callback(request: Request):
@@ -158,7 +152,6 @@ async def google_callback(request: Request):
     try:
         token = await oauth.google.authorize_access_token(request)
 
-        # 🔥 FIXED
         user_info = await oauth.google.parse_id_token(request, token)
 
         email = user_info.get("email")
@@ -185,15 +178,11 @@ async def google_callback(request: Request):
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 # =========================
-# CHAT (PROTECTED)
+# CHAT
 # =========================
 @app.post("/chat")
-def chat(
-    message: str = Form(...),
-    chat_id: str = Form(...),
-    mode: str = Form(...),
-    user=Depends(get_current_user)
-):
+def chat(message: str = Form(...), chat_id: str = Form(...), mode: str = Form(...), user=Depends(get_current_user)):
+
     if not user:
         return {"response": "❌ Unauthorized", "model": "error"}
 
@@ -203,14 +192,12 @@ def chat(
         "https://openrouter.ai/api/v1/chat/completions",
         headers={
             "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-            "HTTP-Referer": "https://cipher-ai-production.up.railway.app",
-            "X-Title": "CIPHER AI"
+            "Content-Type": "application/json"
         },
         json={
             "model": "openai/gpt-3.5-turbo",
             "messages": [
-                {"role": "system", "content": "You are CIPHER AI — a cybersecurity assistant."},
+                {"role": "system", "content": "You are CIPHER AI."},
                 {"role": "user", "content": message}
             ]
         }
