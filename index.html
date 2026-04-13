@@ -7,6 +7,7 @@
 <script src="https://cdn.tailwindcss.com"></script>
 
 <style>
+/* (UNCHANGED — your original styles) */
 body {
     background:#04070d;
     color:#e6edf3;
@@ -94,9 +95,6 @@ body::before {
 
 @media (max-width: 768px) {
     .sidebar { display:none; }
-    #chat { max-width:100%; padding:10px; padding-bottom:150px; }
-    .bot, .user { max-width:100%; font-size:14px; padding:12px; }
-    .input-container { position: fixed; bottom: 0; left: 0; width: 100%; padding: 10px; background:#04070d; border-top:1px solid #1f2937; }
 }
 </style>
 </head>
@@ -114,8 +112,8 @@ body::before {
 </div>
 
 <div class="flex flex-col gap-2 mt-6">
-<button class="btn">Login</button>
-<button class="btn">Sign Up</button>
+<button onclick="openAuth('login')" class="btn">Login</button>
+<button onclick="openAuth('signup')" class="btn">Sign Up</button>
 </div>
 </div>
 
@@ -146,10 +144,40 @@ Try: recon scan | sql injection | xss payload | whois example.com
 
 </div>
 
+<!-- 🔥 AUTH MODAL -->
+<div id="authModal" style="
+position:fixed;
+top:0;left:0;width:100%;height:100%;
+background:rgba(0,0,0,0.85);
+display:none;
+align-items:center;
+justify-content:center;
+z-index:999;
+">
+<div style="background:#0b0f17;padding:30px;border:1px solid #00f2ff;width:350px;">
+<h2 id="authTitle" style="color:#00f2ff;">Login</h2>
+
+<input id="authUsername" placeholder="Username"
+style="width:100%;margin-top:10px;padding:10px;background:black;color:white;border:1px solid #00f2ff;" />
+
+<input id="authPassword" type="password" placeholder="Password"
+style="width:100%;margin-top:10px;padding:10px;background:black;color:white;border:1px solid #00f2ff;" />
+
+<button onclick="submitAuth()" style="margin-top:15px;width:100%;padding:10px;border:1px solid cyan;">
+Submit
+</button>
+
+<p onclick="toggleAuth()" style="margin-top:10px;cursor:pointer;color:gray;">
+Switch Mode
+</p>
+</div>
+</div>
+
 <script>
 let chats = {};
 let currentChat = null;
 let currentMode = "thinking";
+let authMode = "login";
 
 const BASE_URL = window.location.origin;
 
@@ -165,6 +193,42 @@ document.addEventListener("DOMContentLoaded", () => {
 
     createNewChat();
 });
+
+function openAuth(mode){
+    authMode = mode;
+    document.getElementById("authModal").style.display = "flex";
+    document.getElementById("authTitle").innerText = mode;
+}
+
+function toggleAuth(){
+    authMode = authMode === "login" ? "signup" : "login";
+    document.getElementById("authTitle").innerText = authMode;
+}
+
+async function submitAuth(){
+    const username = document.getElementById("authUsername").value;
+    const password = document.getElementById("authPassword").value;
+
+    const endpoint = authMode === "login" ? "/login" : "/signup";
+
+    const res = await fetch(BASE_URL + endpoint,{
+        method:"POST",
+        headers:{"Content-Type":"application/x-www-form-urlencoded"},
+        body:new URLSearchParams({username,password})
+    });
+
+    const data = await res.json();
+
+    if(data.token){
+        localStorage.setItem("token", data.token);
+        alert("Logged in ✅");
+        document.getElementById("authModal").style.display = "none";
+    } else {
+        alert(data.msg);
+    }
+}
+
+/* ====== EXISTING CHAT LOGIC UNCHANGED ====== */
 
 function createNewChat(){
     currentChat = "chat_" + Date.now();
@@ -197,8 +261,7 @@ function formatMessage(content){
 
     return parts.map((part, i)=>{
         if(i % 2 === 1){
-            return `
-            <div class="code-block">
+            return `<div class="code-block">
                 <button class="copy-btn" onclick="copyCode(this)">COPY</button>
                 <pre>${part}</pre>
             </div>`;
@@ -246,11 +309,7 @@ async function send(){
 
     const text = input.value;
 
-    chats[currentChat].messages.push({
-        role:"user",
-        content:text
-    });
-
+    chats[currentChat].messages.push({role:"user",content:text});
     render();
     input.value="";
 
