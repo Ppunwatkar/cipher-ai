@@ -9,9 +9,10 @@ body {
     margin: 0;
     font-family: monospace;
     background: #020617;
-    color: #0ff;
+    color: cyan;
 }
 
+/* LAYOUT */
 .container {
     display: flex;
     height: 100vh;
@@ -19,33 +20,41 @@ body {
 
 .sidebar {
     width: 250px;
-    border-right: 1px solid #0ff;
+    border-right: 1px solid cyan;
     padding: 10px;
 }
 
-.chat-area {
+.main {
     flex: 1;
     display: flex;
     flex-direction: column;
 }
 
+/* TOP BAR */
+.topbar {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid cyan;
+    gap: 10px;
+}
+
+.badge {
+    border: 1px solid cyan;
+    padding: 5px 10px;
+    cursor: pointer;
+}
+
+.bg-cyan-400 {
+    background: cyan;
+    color: black;
+}
+
+/* CHAT */
 .chat {
     flex: 1;
     overflow-y: auto;
     padding: 20px;
-}
-
-.input-area {
-    border-top: 1px solid #0ff;
-    padding: 10px;
-}
-
-input, button {
-    width: 100%;
-    padding: 10px;
-    background: transparent;
-    border: 1px solid #0ff;
-    color: #0ff;
 }
 
 .user {
@@ -60,12 +69,35 @@ input, button {
 
 .model-tag {
     font-size: 12px;
-    color: cyan;
     margin-bottom: 5px;
 }
 
+/* INPUT */
+.input-area {
+    border-top: 1px solid cyan;
+    padding: 10px;
+}
+
+input {
+    width: 100%;
+    padding: 10px;
+    background: transparent;
+    border: 1px solid cyan;
+    color: cyan;
+}
+
+button {
+    width: 100%;
+    padding: 10px;
+    background: transparent;
+    border: 1px solid cyan;
+    color: cyan;
+    cursor: pointer;
+}
+
+/* CODE BLOCK */
 .code-block {
-    background: #000;
+    background: black;
     border: 1px solid cyan;
     padding: 10px;
     position: relative;
@@ -75,39 +107,21 @@ input, button {
     position: absolute;
     right: 5px;
     top: 5px;
-    cursor: pointer;
     font-size: 10px;
-}
-
-.topbar {
-    display: flex;
-    gap: 10px;
-    padding: 10px;
-}
-
-.badge {
-    border: 1px solid cyan;
-    padding: 5px;
     cursor: pointer;
 }
 
-.active {
-    background: cyan;
-    color: black;
-}
-
-/* AUTH POPUP */
-.auth-modal {
+/* AUTH MODAL */
+.auth {
     position: fixed;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%);
+    transform: translate(-50%,-50%);
     border: 1px solid cyan;
     padding: 20px;
     background: #020617;
     display: none;
 }
-
 </style>
 </head>
 
@@ -122,11 +136,12 @@ input, button {
     <div id="chatList"></div>
 </div>
 
-<!-- CHAT AREA -->
-<div class="chat-area">
+<!-- MAIN -->
+<div class="main">
 
+    <!-- TOPBAR -->
     <div class="topbar">
-        <div class="badge active" data-mode="thinking">THINKING</div>
+        <div class="badge bg-cyan-400" data-mode="thinking">THINKING</div>
         <div class="badge" data-mode="fast">FAST</div>
         <div class="badge" data-mode="programming">PROGRAMMING</div>
 
@@ -134,8 +149,10 @@ input, button {
         <button onclick="googleLogin()">GOOGLE</button>
     </div>
 
+    <!-- CHAT -->
     <div id="chat" class="chat"></div>
 
+    <!-- INPUT -->
     <div class="input-area">
         <input id="msg" placeholder="Ask something...">
         <button onclick="send()">SEND</button>
@@ -145,62 +162,55 @@ input, button {
 
 </div>
 
-<!-- AUTH MODAL -->
-<div id="authModal" class="auth-modal">
+<!-- AUTH POPUP -->
+<div id="auth" class="auth">
     <h3 id="authTitle">Login</h3>
-
     <input id="username" placeholder="Username">
     <input id="password" type="password" placeholder="Password">
-
     <button onclick="submitAuth()">Submit</button>
-    <button onclick="toggleAuth()">Switch Mode</button>
-    <button onclick="closeAuth()">X</button>
+    <button onclick="toggleAuth()">Switch</button>
+    <button onclick="closeAuth()">Close</button>
 </div>
 
 <script>
 
+/* ================= TOKEN FIX ================= */
+(function () {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
+
+    if (token) {
+        localStorage.setItem("token", token);
+        window.history.replaceState({}, document.title, "/");
+    }
+})();
+
+/* ================= STATE ================= */
 let chats = {};
 let currentChat = null;
 let currentMode = "thinking";
 let authMode = "login";
 
-/* =========================
-   TOKEN FIX (WHITE SCREEN FIX)
-========================= */
-const params = new URLSearchParams(window.location.search);
-const token = params.get("token");
-
-if (token) {
-    localStorage.setItem("token", token);
-    window.location.href = "/";
-}
-
-/* =========================
-   INIT
-========================= */
+/* ================= INIT ================= */
 document.addEventListener("DOMContentLoaded", () => {
-
     createNewChat();
 
-    document.querySelectorAll(".badge").forEach(el => {
+    document.querySelectorAll(".badge").forEach(el=>{
         el.onclick = () => {
             currentMode = el.dataset.mode;
-            document.querySelectorAll(".badge").forEach(b=>b.classList.remove("active"));
-            el.classList.add("active");
+            document.querySelectorAll(".badge").forEach(b=>b.classList.remove("bg-cyan-400"));
+            el.classList.add("bg-cyan-400");
         }
     });
-
 });
 
-/* =========================
-   AUTH
-========================= */
+/* ================= AUTH ================= */
 function openAuth(){
-    document.getElementById("authModal").style.display="block";
+    document.getElementById("auth").style.display="block";
 }
 
 function closeAuth(){
-    document.getElementById("authModal").style.display="none";
+    document.getElementById("auth").style.display="none";
 }
 
 function toggleAuth(){
@@ -209,15 +219,15 @@ function toggleAuth(){
 }
 
 async function submitAuth(){
-    const u = username.value;
-    const p = password.value;
+    const u=username.value;
+    const p=password.value;
 
-    const res = await fetch("/"+authMode,{
+    const res=await fetch("/"+authMode,{
         method:"POST",
         body:new URLSearchParams({username:u,password:p})
     });
 
-    const data = await res.json();
+    const data=await res.json();
 
     if(data.token){
         localStorage.setItem("token",data.token);
@@ -231,9 +241,7 @@ function googleLogin(){
     window.location.href="/auth/google";
 }
 
-/* =========================
-   CHAT SYSTEM
-========================= */
+/* ================= CHAT ================= */
 function createNewChat(){
     currentChat="chat_"+Date.now();
     chats[currentChat]={messages:[]};
@@ -241,7 +249,7 @@ function createNewChat(){
 }
 
 function formatMessage(content){
-    const parts = content.split("```");
+    const parts=content.split("```");
 
     return parts.map((p,i)=>{
         if(i%2===1){
@@ -254,7 +262,7 @@ function formatMessage(content){
 }
 
 function copyCode(btn){
-    const code = btn.parentElement.querySelector("pre").innerText;
+    const code=btn.parentElement.querySelector("pre").innerText;
     navigator.clipboard.writeText(code);
     btn.innerText="COPIED";
     setTimeout(()=>btn.innerText="COPY",1000);
@@ -267,8 +275,8 @@ function getModelLabel(m){
 }
 
 function render(){
-    const chatDiv=document.getElementById("chat");
-    chatDiv.innerHTML="";
+    const chat=document.getElementById("chat");
+    chat.innerHTML="";
 
     chats[currentChat].messages.forEach(m=>{
         const div=document.createElement("div");
@@ -285,29 +293,28 @@ function render(){
         text.innerHTML=formatMessage(m.content);
 
         div.appendChild(text);
-        chatDiv.appendChild(div);
+        chat.appendChild(div);
     });
 
-    chatDiv.scrollTop=chatDiv.scrollHeight;
+    chat.scrollTop=chat.scrollHeight;
 }
 
 async function send(){
     const input=document.getElementById("msg");
-    const text=input.value;
+    if(!input.value.trim()) return;
 
-    if(!text) return;
+    const text=input.value;
 
     chats[currentChat].messages.push({role:"user",content:text});
     render();
-
     input.value="";
 
     try{
-        const res = await fetch("/chat",{
+        const res=await fetch("/chat",{
             method:"POST",
             headers:{
                 "Content-Type":"application/x-www-form-urlencoded",
-                token:localStorage.getItem("token") || ""
+                token:localStorage.getItem("token")||""
             },
             body:new URLSearchParams({
                 message:text,
@@ -316,12 +323,12 @@ async function send(){
             })
         });
 
-        const data = await res.json();
+        const data=await res.json();
 
         chats[currentChat].messages.push({
             role:"bot",
             content:data.response,
-            model:data.model
+            model:data.model || currentMode
         });
 
     }catch{
