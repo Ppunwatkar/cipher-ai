@@ -1,275 +1,147 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>CIPHER AI</title>
-
-<script src="https://cdn.tailwindcss.com"></script>
-
-<style>
-body {
-    background:#04070d;
-    color:#e6edf3;
-    font-family: 'Inter', monospace;
-}
-body::before {
-    content:"";
-    position:fixed;
-    width:100%;
-    height:100%;
-    background-image:
-        linear-gradient(rgba(0,255,255,0.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0,255,255,0.04) 1px, transparent 1px);
-    background-size:50px 50px;
-    z-index:-1;
-}
-
-.sidebar { width:260px; background:#0b0f17; border-right:1px solid #1f2937; }
-.header { background:#0b0f17; border-bottom:1px solid #1f2937; }
-
-.badge { padding:8px 16px; border:1px solid #00f2ff; cursor:pointer; }
-
-#chat { max-width:900px; margin:auto; display:flex; flex-direction:column; gap:14px; }
-
-.bot, .user {
-    padding:16px;
-    border-radius:8px;
-    max-width:75%;
-}
-.bot { background:#0d1117; border-left:4px solid #00f2ff; }
-.user { background:#020617; align-self:flex-end; }
-
-.model-tag { font-size:12px; color:#00f2ff; margin-bottom:6px; }
-
-.code-block {
-    background:#020617;
-    border:1px solid #00f2ff;
-    padding:10px;
-    margin-top:8px;
-    position:relative;
-}
-
-.copy-btn {
-    position:absolute;
-    top:5px;
-    right:5px;
-    background:#00f2ff;
-    color:black;
-    font-size:11px;
-    padding:2px 6px;
-}
-
-.btn { border:1px solid #00f2ff; padding:10px; }
-.input-box { border:1px solid #00f2ff; padding:12px; background:black; }
-</style>
-</head>
-
-<body class="flex h-screen">
-
-<!-- SIDEBAR -->
-<div class="sidebar p-6 flex flex-col justify-between">
-<div>
-<h1 class="text-cyan-400 text-2xl font-bold">CIPHER</h1>
-<p class="text-gray-500 text-sm mb-4">CYBERSECURITY AI</p>
-
-<button onclick="createNewChat()" class="btn">+ NEW CHAT</button>
-<div id="chatList" class="mt-4"></div>
-</div>
-
-<div class="flex flex-col gap-2">
-<button onclick="openAuth('login')" class="btn">Login</button>
-<button onclick="openAuth('signup')" class="btn">Sign Up</button>
-</div>
-</div>
-
-<!-- MAIN -->
-<div class="flex-1 flex flex-col">
-
-<div class="header p-4 flex justify-between">
-<span class="text-cyan-400">RESEARCH TERMINAL</span>
-
-<div class="flex gap-2">
-<span class="badge bg-cyan-400" data-mode="thinking">THINKING</span>
-<span class="badge" data-mode="fast">FAST</span>
-<span class="badge" data-mode="programming">PROGRAMMING</span>
-</div>
-</div>
-
-<div id="chat" class="flex-1 p-6 overflow-y-auto"></div>
-
-<div class="p-4 flex flex-col gap-2 max-w-3xl mx-auto w-full">
-<textarea id="msg" class="input-box" placeholder="Ask something..."></textarea>
-<button onclick="send()" class="btn">SEND</button>
-</div>
-
-</div>
-
-<!-- 🔥 AUTH MODAL -->
-<div id="authModal" style="
-position:fixed;top:0;left:0;width:100%;height:100%;
-background:rgba(0,0,0,0.85);
-display:none;align-items:center;justify-content:center;
-">
-
-<div style="background:#0b0f17;padding:25px;border:1px solid #00f2ff;width:360px;position:relative;">
-
-<!-- CLOSE -->
-<div onclick="closeAuth()" style="position:absolute;right:10px;top:8px;cursor:pointer;color:#00f2ff;">✕</div>
-
-<h2 id="authTitle" class="text-cyan-400 text-lg">Welcome back</h2>
-<p id="authSubtitle" class="text-gray-400 text-sm">Log in to your account</p>
-
-<input id="authUsername" placeholder="Username" class="input-box mt-3 w-full">
-<input id="authPassword" type="password" placeholder="Password" class="input-box mt-3 w-full">
-
-<button onclick="submitAuth()" class="btn mt-4 w-full">Continue</button>
-
-<!-- GOOGLE BUTTON -->
-<button onclick="googleLogin()" class="btn mt-2 w-full">
-Continue with Google
-</button>
-
-<p onclick="toggleAuth()" class="text-gray-400 text-sm mt-3 cursor-pointer">
-Switch mode
-</p>
-
-</div>
-</div>
-
 <script>
 let chats = {};
 let currentChat = null;
 let currentMode = "thinking";
-let authMode = "login";
 
-const BASE_URL = window.location.origin;
+let token = localStorage.getItem("token");
 
-// MODE SWITCH
-document.querySelectorAll(".badge").forEach(el=>{
-    el.onclick=()=>{
-        currentMode=el.dataset.mode;
-        document.querySelectorAll(".badge").forEach(b=>b.classList.remove("bg-cyan-400"));
-        el.classList.add("bg-cyan-400");
+// =====================
+// USER NAME DISPLAY
+// =====================
+function getUser(){
+    try{
+        const data = JSON.parse(atob(token.split('.')[1]));
+        return data.username;
+    }catch{
+        return "Guest";
     }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const newToken = urlParams.get("token");
+
+    if(newToken){
+        localStorage.setItem("token", newToken);
+        window.location.href="/";
+    }
+
+    document.getElementById("userName").innerText = getUser();
+
+    createNewChat();
+
+    document.querySelectorAll(".badge").forEach(el=>{
+        el.onclick = ()=>{
+            currentMode = el.dataset.mode;
+            document.querySelectorAll(".badge").forEach(b=>b.classList.remove("bg-cyan-400"));
+            el.classList.add("bg-cyan-400");
+        }
+    });
 });
 
-// AUTH UI
-function openAuth(mode){
-    authMode = mode;
-    document.getElementById("authModal").style.display="flex";
-    updateAuthUI();
-}
-function closeAuth(){ document.getElementById("authModal").style.display="none"; }
-
-function toggleAuth(){
-    authMode = authMode==="login"?"signup":"login";
-    updateAuthUI();
-}
-
-function updateAuthUI(){
-    if(authMode==="login"){
-        authTitle.innerText="Welcome back";
-        authSubtitle.innerText="Log in to your account";
-    } else {
-        authTitle.innerText="Create account";
-        authSubtitle.innerText="Start using CIPHER AI";
-    }
-}
-
-async function submitAuth(){
-    const username=authUsername.value;
-    const password=authPassword.value;
-
-    const res=await fetch(BASE_URL+"/"+authMode,{
-        method:"POST",
-        headers:{"Content-Type":"application/x-www-form-urlencoded"},
-        body:new URLSearchParams({username,password})
-    });
-
-    const data=await res.json();
-
-    if(data.token){
-        localStorage.setItem("token",data.token);
-        alert("Logged in ✅");
-        closeAuth();
-    } else {
-        alert(data.msg);
-    }
-}
-
-// GOOGLE LOGIN
-function googleLogin(){
-    window.location.href = BASE_URL + "/auth/google";
-}
-
-// HANDLE GOOGLE TOKEN
-window.onload = () => {
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get("token");
-
-    if(token){
-        localStorage.setItem("token", token);
-        window.history.replaceState({}, document.title, "/");
-        alert("Logged in with Google ✅");
-    }
-};
-
-// CHAT
+// =====================
+// CHAT FUNCTIONS
+// =====================
 function createNewChat(){
-    currentChat="chat_"+Date.now();
-    chats[currentChat]={messages:[]};
+    currentChat = "chat_" + Date.now();
+    chats[currentChat] = {title:"New Chat", messages:[], pinned:false};
+    renderList();
     render();
 }
 
-function getModelLabel(m){
-    if(m==="programming")return"DOLPHIN";
-    return"GROQ";
-}
+function renderList(){
+    const list = document.getElementById("chatList");
+    list.innerHTML = "";
 
-function formatMessage(c){
-    return c.split("```").map((p,i)=> i%2? `<div class="code-block"><button class="copy-btn" onclick="copyCode(this)">COPY</button><pre>${p}</pre></div>`:`<div>${p}</div>`).join("");
-}
+    Object.keys(chats)
+    .sort((a,b)=>chats[b].pinned - chats[a].pinned)
+    .forEach(id=>{
+        const div = document.createElement("div");
+        div.className="chat-item";
+        div.innerText = chats[id].title;
 
-function copyCode(btn){
-    navigator.clipboard.writeText(btn.parentElement.innerText);
-    btn.innerText="COPIED";
-}
+        div.onclick = ()=>{
+            currentChat=id;
+            render();
+        };
 
-function render(){
-    chat.innerHTML="";
-    chats[currentChat]?.messages.forEach(m=>{
-        const d=document.createElement("div");
-        d.className=m.role==="user"?"user":"bot";
-        if(m.role==="bot"){
-            d.innerHTML=`<div class="model-tag">${getModelLabel(m.model)}</div>`+formatMessage(m.content);
-        } else d.innerHTML=m.content;
-        chat.appendChild(d);
+        list.appendChild(div);
     });
 }
 
-async function send(){
-    const text=msg.value;
-    if(!text) return;
+function send(){
+    const input = document.getElementById("msg");
+    if(!input.value.trim()) return;
+
+    const text = input.value;
 
     chats[currentChat].messages.push({role:"user",content:text});
-    render();
+    
+    if(chats[currentChat].title==="New Chat"){
+        chats[currentChat].title = text.substring(0,25);
+    }
 
-    const res=await fetch(BASE_URL+"/chat",{
+    render();
+    input.value="";
+
+    fetch("/chat",{
         method:"POST",
         headers:{
             "Content-Type":"application/x-www-form-urlencoded",
-            token:localStorage.getItem("token")||""
+            token:localStorage.getItem("token")
         },
-        body:new URLSearchParams({message:text,chat_id:currentChat,mode:currentMode})
+        body:new URLSearchParams({
+            message:text,
+            chat_id:currentChat,
+            mode:currentMode
+        })
+    })
+    .then(res=>res.json())
+    .then(data=>{
+        chats[currentChat].messages.push({
+            role:"bot",
+            content:data.response,
+            model:data.model
+        });
+        render();
+    });
+}
+
+// =====================
+// SEARCH
+// =====================
+function searchChat(val){
+    document.querySelectorAll(".chat-item").forEach(item=>{
+        item.style.display = item.innerText.toLowerCase().includes(val.toLowerCase()) ? "block":"none";
+    });
+}
+
+// =====================
+// RENDER
+// =====================
+function render(){
+    const chat=document.getElementById("chat");
+    chat.innerHTML="";
+
+    chats[currentChat].messages.forEach(m=>{
+        const div=document.createElement("div");
+        div.className = m.role==="user"?"user":"bot";
+
+        if(m.role==="bot"){
+            const tag=document.createElement("div");
+            tag.className="model-tag";
+            tag.innerText = m.model==="programming"?"DOLPHIN":"GROQ";
+            div.appendChild(tag);
+        }
+
+        const text=document.createElement("div");
+        text.innerText=m.content;
+
+        div.appendChild(text);
+        chat.appendChild(div);
     });
 
-    const data=await res.json();
-
-    chats[currentChat].messages.push({role:"bot",content:data.response,model:data.model});
-    msg.value="";
-    render();
+    chat.scrollTop = chat.scrollHeight;
 }
 </script>
-
-</body>
-</html>
