@@ -1,199 +1,172 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <title>CIPHER AI</title>
 
+<script src="https://cdn.tailwindcss.com"></script>
+
 <style>
 body {
-    margin: 0;
-    font-family: monospace;
-    background: #020617;
-    color: cyan;
+    background:#04070d;
+    color:#e6edf3;
+    font-family: 'Inter', 'Courier New', monospace;
+    font-size:18px;
+    line-height:1.7;
+}
+body::before {
+    content:"";
+    position:fixed;
+    width:100%;
+    height:100%;
+    background-image:
+        linear-gradient(rgba(0,255,255,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,255,255,0.04) 1px, transparent 1px);
+    background-size: 50px 50px;
+    z-index:-1;
+}
+.sidebar { width:260px; background:#0b0f17; border-right:1px solid #1f2937; }
+.header { background:#0b0f17; border-bottom:1px solid #1f2937; }
+.badge { padding:8px 16px; font-size:13px; border:1px solid #00f2ff; cursor:pointer; }
+
+#chat {
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+    max-width:900px;
+    margin:auto;
+    width:100%;
 }
 
-/* LAYOUT */
-.container {
-    display: flex;
-    height: 100vh;
-}
-
-.sidebar {
-    width: 250px;
-    border-right: 1px solid cyan;
-    padding: 10px;
-}
-
-.main {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-}
-
-/* TOP BAR */
-.topbar {
-    display: flex;
-    align-items: center;
-    padding: 10px;
-    border-bottom: 1px solid cyan;
-    gap: 10px;
-}
-
-.badge {
-    border: 1px solid cyan;
-    padding: 5px 10px;
-    cursor: pointer;
-}
-
-.bg-cyan-400 {
-    background: cyan;
-    color: black;
-}
-
-/* CHAT */
-.chat {
-    flex: 1;
-    overflow-y: auto;
-    padding: 20px;
-}
-
-.user {
-    text-align: right;
-    margin: 10px;
+.bot, .user {
+    padding:18px;
+    border-radius:10px;
+    font-size:16px;
+    animation: fadeIn 0.2s ease-in;
+    max-width:75%;
 }
 
 .bot {
-    text-align: left;
-    margin: 10px;
+    background:#0d1117;
+    border-left:4px solid #00f2ff;
+    align-self:flex-start;
+}
+
+.user {
+    background:#020617;
+    align-self:flex-end;
 }
 
 .model-tag {
-    font-size: 12px;
-    margin-bottom: 5px;
+    font-size:12px;
+    color:#00f2ff;
+    margin-bottom:6px;
 }
 
-/* INPUT */
-.input-area {
-    border-top: 1px solid cyan;
-    padding: 10px;
-}
-
-input {
-    width: 100%;
-    padding: 10px;
-    background: transparent;
-    border: 1px solid cyan;
-    color: cyan;
-}
-
-button {
-    width: 100%;
-    padding: 10px;
-    background: transparent;
-    border: 1px solid cyan;
-    color: cyan;
-    cursor: pointer;
-}
-
-/* CODE BLOCK */
 .code-block {
-    background: black;
-    border: 1px solid cyan;
-    padding: 10px;
-    position: relative;
+    background:#020617;
+    border:1px solid #00f2ff;
+    padding:10px;
+    border-radius:6px;
+    margin-top:10px;
+    position:relative;
+    font-size:14px;
+    overflow-x:auto;
 }
 
 .copy-btn {
-    position: absolute;
-    right: 5px;
-    top: 5px;
-    font-size: 10px;
-    cursor: pointer;
+    position:absolute;
+    top:6px;
+    right:6px;
+    background:#00f2ff;
+    color:#000;
+    font-size:11px;
+    padding:3px 8px;
+    border-radius:4px;
+    cursor:pointer;
 }
 
-/* AUTH MODAL */
-.auth {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%,-50%);
-    border: 1px solid cyan;
-    padding: 20px;
-    background: #020617;
-    display: none;
+.input-box { background:#04070d; border:1px solid #00f2ff; box-shadow:0 0 12px rgba(0,255,255,0.2); font-size:16px; padding:14px; }
+.btn { border:1px solid #00f2ff; padding:14px; font-size:14px; }
+.chat-item { padding:8px; cursor:pointer; font-size:14px; }
+
+@keyframes fadeIn { from {opacity:0; transform: translateY(6px);} to {opacity:1; transform: translateY(0);} }
+
+@media (max-width: 768px) {
+    .sidebar { display:none; }
+    #chat { max-width:100%; padding:10px; padding-bottom:150px; }
+    .bot, .user { max-width:100%; font-size:14px; padding:12px; }
+    .input-container { position: fixed; bottom: 0; left: 0; width: 100%; padding: 10px; background:#04070d; border-top:1px solid #1f2937; }
 }
 </style>
 </head>
 
-<body>
-
-<div class="container">
+<body class="flex h-screen overflow-hidden">
 
 <!-- SIDEBAR -->
-<div class="sidebar">
-    <h3>CIPHER</h3>
-    <button onclick="createNewChat()">+ NEW CHAT</button>
-    <div id="chatList"></div>
+<div class="sidebar p-6 flex flex-col justify-between">
+<div>
+<h1 class="text-cyan-400 text-2xl font-bold">CIPHER</h1>
+<p class="text-sm text-gray-500 mb-6">CYBERSECURITY AI</p>
+
+<button onclick="createNewChat()" class="btn">+ NEW CHAT</button>
+<div id="chatList" class="mt-6 overflow-y-auto"></div>
+</div>
+
+<div class="flex flex-col gap-2 mt-6">
+<button class="btn" onclick="loginPrompt()">Login</button>
+<button class="btn" onclick="signupPrompt()">Sign Up</button>
+<button class="btn" onclick="googleLogin()">Google</button>
+</div>
 </div>
 
 <!-- MAIN -->
-<div class="main">
+<div class="flex-1 flex flex-col">
 
-    <!-- TOPBAR -->
-    <div class="topbar">
-        <div class="badge bg-cyan-400" data-mode="thinking">THINKING</div>
-        <div class="badge" data-mode="fast">FAST</div>
-        <div class="badge" data-mode="programming">PROGRAMMING</div>
+<div class="header p-4 flex justify-between">
+<span class="text-cyan-400 text-lg">RESEARCH TERMINAL</span>
 
-        <button onclick="openAuth()">LOGIN</button>
-        <button onclick="googleLogin()">GOOGLE</button>
-    </div>
-
-    <!-- CHAT -->
-    <div id="chat" class="chat"></div>
-
-    <!-- INPUT -->
-    <div class="input-area">
-        <input id="msg" placeholder="Ask something...">
-        <button onclick="send()">SEND</button>
-    </div>
-
+<div class="flex gap-3">
+<span class="badge bg-cyan-400" data-mode="thinking">THINKING</span>
+<span class="badge" data-mode="fast">FAST</span>
+<span class="badge" data-mode="programming">PROGRAMMING</span>
+</div>
 </div>
 
+<div id="chat" class="flex-1 p-8 overflow-y-auto"></div>
+
+<div class="input-container p-6 flex flex-col gap-3 max-w-4xl mx-auto w-full">
+<textarea id="msg" class="input-box rounded-md" placeholder="Ask about exploits, recon, CTFs..." rows="2"></textarea>
+
+<div class="text-sm text-gray-500">
+Try: recon scan | sql injection | xss payload | whois example.com
 </div>
 
-<!-- AUTH POPUP -->
-<div id="auth" class="auth">
-    <h3 id="authTitle">Login</h3>
-    <input id="username" placeholder="Username">
-    <input id="password" type="password" placeholder="Password">
-    <button onclick="submitAuth()">Submit</button>
-    <button onclick="toggleAuth()">Switch</button>
-    <button onclick="closeAuth()">Close</button>
+<button onclick="send()" class="btn">SEND ▶</button>
+</div>
+
 </div>
 
 <script>
 
-/* ================= TOKEN FIX ================= */
+let chats = {};
+let currentChat = null;
+let currentMode = "thinking";
+
+const BASE_URL = window.location.origin;
+
+/* TOKEN FIX */
 (function () {
     const params = new URLSearchParams(window.location.search);
     const token = params.get("token");
-
     if (token) {
         localStorage.setItem("token", token);
         window.history.replaceState({}, document.title, "/");
     }
 })();
 
-/* ================= STATE ================= */
-let chats = {};
-let currentChat = null;
-let currentMode = "thinking";
-let authMode = "login";
-
-/* ================= INIT ================= */
+/* INIT */
 document.addEventListener("DOMContentLoaded", () => {
-    createNewChat();
 
     document.querySelectorAll(".badge").forEach(el=>{
         el.onclick = () => {
@@ -202,54 +175,66 @@ document.addEventListener("DOMContentLoaded", () => {
             el.classList.add("bg-cyan-400");
         }
     });
+
+    createNewChat();
 });
 
-/* ================= AUTH ================= */
-function openAuth(){
-    document.getElementById("auth").style.display="block";
-}
+/* AUTH */
+function loginPrompt(){
+    const username = prompt("Username");
+    const password = prompt("Password");
 
-function closeAuth(){
-    document.getElementById("auth").style.display="none";
-}
-
-function toggleAuth(){
-    authMode = authMode==="login"?"signup":"login";
-    document.getElementById("authTitle").innerText = authMode;
-}
-
-async function submitAuth(){
-    const u=username.value;
-    const p=password.value;
-
-    const res=await fetch("/"+authMode,{
-        method:"POST",
-        body:new URLSearchParams({username:u,password:p})
+    fetch("/login",{method:"POST",body:new URLSearchParams({username,password})})
+    .then(r=>r.json())
+    .then(d=>{
+        if(d.token){
+            localStorage.setItem("token",d.token);
+            alert("Login success");
+        }
     });
+}
 
-    const data=await res.json();
+function signupPrompt(){
+    const username = prompt("Username");
+    const password = prompt("Password");
 
-    if(data.token){
-        localStorage.setItem("token",data.token);
-        closeAuth();
-    } else {
-        alert(JSON.stringify(data));
-    }
+    fetch("/signup",{method:"POST",body:new URLSearchParams({username,password})})
+    .then(()=>alert("Signup done"));
 }
 
 function googleLogin(){
     window.location.href="/auth/google";
 }
 
-/* ================= CHAT ================= */
+/* CHAT */
 function createNewChat(){
-    currentChat="chat_"+Date.now();
-    chats[currentChat]={messages:[]};
+    currentChat = "chat_" + Date.now();
+    chats[currentChat] = { title: "New Chat", messages: [] };
+    renderList();
     render();
 }
 
+function renderList(){
+    const list = document.getElementById("chatList");
+    list.innerHTML = "";
+
+    Object.keys(chats).forEach(id=>{
+        const div = document.createElement("div");
+        div.className = "chat-item";
+        div.innerText = chats[id].title;
+        div.onclick = ()=>{ currentChat = id; render(); };
+        list.appendChild(div);
+    });
+}
+
+function getModelLabel(model){
+    if(model==="programming") return "DOLPHIN";
+    if(model==="fast"||model==="thinking") return "GROQ";
+    return "CIPHER";
+}
+
 function formatMessage(content){
-    const parts=content.split("```");
+    const parts = content.split("```");
 
     return parts.map((p,i)=>{
         if(i%2===1){
@@ -262,25 +247,17 @@ function formatMessage(content){
 }
 
 function copyCode(btn){
-    const code=btn.parentElement.querySelector("pre").innerText;
+    const code = btn.parentElement.querySelector("pre").innerText;
     navigator.clipboard.writeText(code);
-    btn.innerText="COPIED";
-    setTimeout(()=>btn.innerText="COPY",1000);
-}
-
-function getModelLabel(m){
-    if(m==="programming") return "DOLPHIN";
-    if(m==="fast") return "GROQ";
-    return "CIPHER";
 }
 
 function render(){
-    const chat=document.getElementById("chat");
+    const chat = document.getElementById("chat");
     chat.innerHTML="";
 
     chats[currentChat].messages.forEach(m=>{
-        const div=document.createElement("div");
-        div.className=m.role==="user"?"user":"bot";
+        const div = document.createElement("div");
+        div.className = m.role==="user"?"user":"bot";
 
         if(m.role==="bot"){
             const tag=document.createElement("div");
@@ -310,7 +287,7 @@ async function send(){
     input.value="";
 
     try{
-        const res=await fetch("/chat",{
+        const res=await fetch(BASE_URL+"/chat",{
             method:"POST",
             headers:{
                 "Content-Type":"application/x-www-form-urlencoded",
@@ -328,7 +305,7 @@ async function send(){
         chats[currentChat].messages.push({
             role:"bot",
             content:data.response,
-            model:data.model || currentMode
+            model:data.model||currentMode
         });
 
     }catch{
