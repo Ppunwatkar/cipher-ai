@@ -123,6 +123,12 @@ body::before {
 <button onclick="submitAuth()" class="btn w-full mt-2">Submit</button>
 <button onclick="toggleAuth()" class="btn w-full mt-2">Switch</button>
 
+<hr>
+
+<button onclick="googleLogin()" class="btn w-full mt-2">
+Continue with Google
+</button>
+
 </div>
 </div>
 
@@ -133,7 +139,7 @@ let currentChat = null;
 let currentMode = "thinking";
 let authMode = "login";
 
-/* ================= TOKEN FIX ================= */
+/* ================= TOKEN HANDLER ================= */
 (function () {
     const params = new URLSearchParams(window.location.search);
     const token = params.get("token");
@@ -177,14 +183,18 @@ async function submitAuth(){
     if(data.success && data.token){
         localStorage.setItem("token", data.token);
         closeAuth();
-        alert("Login successful ✅");
+        alert("Login success ✅");
 
     } else if(data.success){
-        alert("Signup done. Please login.");
+        alert("Signup successful. Now login.");
 
     } else {
         alert(data.msg || "Error");
     }
+}
+
+function googleLogin(){
+    window.location.href = "/auth/google";
 }
 
 /* ================= CHAT ================= */
@@ -211,11 +221,6 @@ async function send(){
 
     const token = localStorage.getItem("token");
 
-    if(!token){
-        alert("Login first ⚠️");
-        return;
-    }
-
     chats[currentChat].messages.push({role:"user",content:text});
     render();
     msg.value="";
@@ -225,7 +230,7 @@ async function send(){
             method:"POST",
             headers:{
                 "Content-Type":"application/x-www-form-urlencoded",
-                "Authorization": "Bearer " + token
+                ...(token && { "Authorization": "Bearer " + token })
             },
             body:new URLSearchParams({
                 message:text,
@@ -238,7 +243,7 @@ async function send(){
 
         chats[currentChat].messages.push({
             role:"bot",
-            content:data.response
+            content:data.response || "⚠️ No response"
         });
 
     } catch(e){
