@@ -1,8 +1,30 @@
 import os
 import requests
-from fastapi import FastAPI, Form
+from datetime import datetime, timedelta
+
+from fastapi import FastAPI, Form, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
+
+from sqlalchemy import create_engine, Column, Integer, String
+from sqlalchemy.orm import sessionmaker, declarative_base, Session
+
+from passlib.context import CryptContext
+from jose import jwt, JWTError
+
+# =========================
+# CONFIG
+# =========================
+SECRET_KEY = "cipher_secret_key"
+ALGORITHM = "HS256"
+
+DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./cipher.db")
+
+engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False} if "sqlite" in DATABASE_URL else {})
+SessionLocal = sessionmaker(bind=engine)
+Base = declarative_base()
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 app = FastAPI()
 
@@ -18,6 +40,40 @@ app.add_middleware(
 )
 
 # =========================
+# DB MODEL
+# =========================
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True)
+    username = Column(String, unique=True)
+    password = Column(String)
+
+Base.metadata.create_all(bind=engine)
+
+# =========================
+# UTILS
+# =========================
+def hash_password(password):
+    return pwd_context.hash(password)
+
+def verify_password(password, hashed):
+    return pwd_context.verify(password, hashed)
+
+def create_token(data):
+    return jwt.encode(data, SECRET_KEY, algorithm=ALGORITHM)
+
+def get_current_user(token: str = Header(None)):
+    if not token:
+        return None
+
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload
+    except JWTError:
+        return None
+
+# =========================
 # ROOT
 # =========================
 @app.get("/")
@@ -25,44 +81,66 @@ def home():
     return FileResponse("index.html")
 
 # =========================
-# HEALTH
+# SIGNUP
 # =========================
-@app.get("/ping")
-def ping():
-    return {"status": "alive"}
+@app.post("/signup")
+def signup(username: str = Form(...), password: str = Form(...)):
+    db: Session = SessionLocal()
+
+    existing = db.query(User).filter(User.username == username).first()
+    if existing:
+        return {"msg": "User already exists"}
+
+    user = User(
+        username=username,
+        password=hash_password(password)
+    )
+
+    db.add(user)
+    db.commit()
+
+    return {"msg": "Signup successful"}
 
 # =========================
-# CHAT (AUTH BYPASSED)
+# LOGIN
+# =========================
+@app.post("/login")
+def login(username: str = Form(...), password: str = Form(...)):
+    db: Session = SessionLocal()
+
+    user = db.query(User).filter(User.username == username).first()
+
+    if not user or not verify_password(password, user.password):
+        return {"msg": "Invalid credentials"}
+
+    token = create_token({"user_id": user.id})
+
+    return {"token": token}
+
+# =========================
+# CHAT (PROTECTED)
 # =========================
 @app.post("/chat")
 def chat(
     message: str = Form(...),
     chat_id: str = Form(...),
-    mode: str = Form(...)
+    mode: str = Form(...),
+    user = Depends(get_current_user)
 ):
-    try:
-        print("🔥 CHAT:", message)
+    if not user:
+        return {"response": "❌ Unauthorized", "model": "error"}
 
+    try:
         api_key = os.environ.get("OPENROUTER_API_KEY")
 
         if not api_key:
-            return {"response": "❌ Missing API key", "model": "error"}
+            return {"response": "❌ Missing API key"}
 
-        # =========================
-        # MODEL SELECTION
-        # =========================
         model = "openai/gpt-3.5-turbo"
 
-        # =========================
-        # CIPHER PERSONALITY
-        # =========================
         system_prompt = """
 You are CIPHER AI — a cybersecurity assistant.
-
-- Be helpful and friendly
-- Keep answers practical
-- Give code when needed
-- Avoid unnecessary refusals
+Be helpful, friendly, and practical.
 """
 
         response = requests.post(
@@ -84,28 +162,16 @@ You are CIPHER AI — a cybersecurity assistant.
 
         data = response.json()
 
-        # =========================
-        # ERROR HANDLING
-        # =========================
         if "choices" not in data:
-            return {
-                "response": f"❌ API Error: {data}",
-                "model": mode
-            }
-
-        reply = data["choices"][0]["message"]["content"]
+            return {"response": str(data)}
 
         return {
-            "response": reply,
+            "response": data["choices"][0]["message"]["content"],
             "model": mode
         }
 
     except Exception as e:
-        print("❌ ERROR:", str(e))
         return JSONResponse(
             status_code=500,
-            content={
-                "response": "❌ Server error",
-                "model": "error"
-            }
+            content={"response": "❌ Server error"}
         )
