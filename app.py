@@ -40,11 +40,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# REQUIRED FOR GOOGLE AUTH
-app.add_middleware(
-    SessionMiddleware,
-    secret_key="super_secret_session_key"
-)
+app.add_middleware(SessionMiddleware, secret_key="super_secret")
 
 # =========================
 # DB MODEL
@@ -53,7 +49,7 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True)
-    username = Column(String, unique=True, index=True)
+    username = Column(String, unique=True)
     password = Column(String)
 
 Base.metadata.create_all(bind=engine)
@@ -75,7 +71,7 @@ def get_current_user(token: str = Header(None)):
         return None
     try:
         return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-    except JWTError:
+    except:
         return None
 
 # =========================
@@ -99,24 +95,21 @@ def home():
     return FileResponse("index.html")
 
 # =========================
-# SIGNUP
+# SIGNUP / LOGIN
 # =========================
 @app.post("/signup")
 def signup(username: str = Form(...), password: str = Form(...)):
     db: Session = SessionLocal()
 
     if db.query(User).filter(User.username == username).first():
-        return {"msg": "User already exists"}
+        return {"msg": "User exists"}
 
     user = User(username=username, password=hash_password(password))
     db.add(user)
     db.commit()
 
-    return {"msg": "Signup successful"}
+    return {"msg": "Signup success"}
 
-# =========================
-# LOGIN
-# =========================
 @app.post("/login")
 def login(username: str = Form(...), password: str = Form(...)):
     db: Session = SessionLocal()
@@ -124,85 +117,85 @@ def login(username: str = Form(...), password: str = Form(...)):
     user = db.query(User).filter(User.username == username).first()
 
     if not user or not verify_password(password, user.password):
-        return {"msg": "Invalid credentials"}
+        return {"msg": "Invalid"}
 
-    token = create_token({"user_id": user.id})
+    token = create_token({
+        "user_id": user.id,
+        "username": user.username
+    })
+
     return {"token": token}
 
 # =========================
-# GOOGLE LOGIN (FIXED HTTPS)
+# GOOGLE LOGIN
 # =========================
 @app.get("/auth/google")
 async def google_login(request: Request):
-    # FORCE HTTPS redirect to fix mismatch error
     redirect_uri = "https://cipher-ai-production.up.railway.app/auth/google/callback"
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 # =========================
-# GOOGLE CALLBACK
+# GOOGLE CALLBACK (FIXED)
 # =========================
 @app.get("/auth/google/callback")
 async def google_callback(request: Request):
     db: Session = SessionLocal()
 
-    token = await oauth.google.authorize_access_token(request)
-    user_info = token.get("userinfo")
+    try:
+        token = await oauth.google.authorize_access_token(request)
 
-    email = user_info["email"]
+        user_info = token.get("userinfo")
+        if not user_info:
+            user_info = await oauth.google.parse_id_token(request, token)
 
-    user = db.query(User).filter(User.username == email).first()
+        email = user_info.get("email")
 
-    if not user:
-        user = User(username=email, password="oauth")
-        db.add(user)
-        db.commit()
+        user = db.query(User).filter(User.username == email).first()
 
-    jwt_token = create_token({"user_id": user.id})
+        if not user:
+            user = User(username=email, password="oauth")
+            db.add(user)
+            db.commit()
 
-    return RedirectResponse(f"/?token={jwt_token}")
+        jwt_token = create_token({
+            "user_id": user.id,
+            "username": user.username
+        })
+
+        return RedirectResponse(f"/?token={jwt_token}")
+
+    except Exception as e:
+        print("GOOGLE ERROR:", e)
+        return JSONResponse(status_code=500, content={"error": "OAuth failed"})
 
 # =========================
 # CHAT (PROTECTED)
 # =========================
 @app.post("/chat")
-def chat(
-    message: str = Form(...),
-    chat_id: str = Form(...),
-    mode: str = Form(...),
-    user=Depends(get_current_user)
-):
+def chat(message: str = Form(...), chat_id: str = Form(...), mode: str = Form(...), user=Depends(get_current_user)):
+
     if not user:
-        return {"response": "❌ Please login first", "model": "error"}
+        return {"response": "❌ Unauthorized", "model": "error"}
 
-    try:
-        api_key = os.environ.get("OPENROUTER_API_KEY")
+    api_key = os.environ.get("OPENROUTER_API_KEY")
 
-        response = requests.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-                "HTTP-Referer": "https://cipher-ai-production.up.railway.app",
-                "X-Title": "CIPHER AI"
-            },
-            json={
-                "model": "openai/gpt-3.5-turbo",
-                "messages": [
-                    {"role": "system", "content": "You are CIPHER AI, a cybersecurity assistant."},
-                    {"role": "user", "content": message}
-                ]
-            }
-        )
+    response = requests.post(
+        "https://openrouter.ai/api/v1/chat/completions",
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        },
+        json={
+            "model": "openai/gpt-3.5-turbo",
+            "messages": [
+                {"role": "system", "content": "You are CIPHER AI."},
+                {"role": "user", "content": message}
+            ]
+        }
+    )
 
-        data = response.json()
+    data = response.json()
 
-        reply = data.get("choices", [{}])[0].get("message", {}).get("content", "⚠️ No response")
+    reply = data.get("choices", [{}])[0].get("message", {}).get("content", "⚠️ Error")
 
-        return {"response": reply, "model": mode}
-
-    except Exception as e:
-        print("ERROR:", e)
-        return JSONResponse(
-            status_code=500,
-            content={"response": "❌ Server error", "model": "error"}
-        )
+    return {"response": reply, "model": mode}
