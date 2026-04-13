@@ -1,290 +1,264 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>CIPHER AI</title>
+<meta charset="UTF-8">
+<title>CIPHER AI</title>
 
-    <style>
-        body {
-            background: #0b0f17;
-            color: white;
-            font-family: monospace;
-            margin: 0;
-            display: flex;
-        }
+<script src="https://cdn.tailwindcss.com"></script>
 
-        /* Sidebar */
-        #sidebar {
-            width: 250px;
-            border-right: 1px solid cyan;
-            padding: 10px;
-        }
+<style>
+body {
+    background:#04070d;
+    color:#e6edf3;
+    font-family: 'Inter', 'Courier New', monospace;
+    font-size:18px;
+    line-height:1.7;
+}
+body::before {
+    content:"";
+    position:fixed;
+    width:100%;
+    height:100%;
+    background-image:
+        linear-gradient(rgba(0,255,255,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,255,255,0.04) 1px, transparent 1px);
+    background-size: 50px 50px;
+    z-index:-1;
+}
+.sidebar { width:260px; background:#0b0f17; border-right:1px solid #1f2937; }
+.header { background:#0b0f17; border-bottom:1px solid #1f2937; }
+.badge { padding:8px 16px; font-size:13px; border:1px solid #00f2ff; cursor:pointer; }
 
-        .chat-item {
-            padding: 8px;
-            cursor: pointer;
-            border-bottom: 1px solid #222;
-        }
+#chat {
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+    max-width:900px;
+    margin:auto;
+    width:100%;
+}
 
-        /* Main */
-        #main {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
+.bot, .user {
+    padding:18px;
+    border-radius:10px;
+    font-size:16px;
+    animation: fadeIn 0.2s ease-in;
+    max-width:75%;
+}
 
-        #chat {
-            flex: 1;
-            overflow-y: auto;
-            padding: 10px;
-        }
+.bot {
+    background:#0d1117;
+    border-left:4px solid #00f2ff;
+    align-self:flex-start;
+}
 
-        .user {
-            text-align: right;
-            margin: 10px;
-        }
+.user {
+    background:#020617;
+    align-self:flex-end;
+}
 
-        .bot {
-            text-align: left;
-            margin: 10px;
-            border-left: 3px solid cyan;
-            padding-left: 10px;
-        }
+.model-tag {
+    font-size:12px;
+    color:#00f2ff;
+    margin-bottom:6px;
+}
 
-        .model-tag {
-            font-size: 10px;
-            color: cyan;
-            margin-bottom: 5px;
-        }
+/* Code UI */
+.code-block {
+    background:#020617;
+    border:1px solid #00f2ff;
+    padding:10px;
+    border-radius:6px;
+    margin-top:10px;
+    position:relative;
+    font-size:14px;
+    overflow-x:auto;
+}
 
-        .code-block {
-            background: #111;
-            padding: 10px;
-            margin-top: 5px;
-            position: relative;
-        }
+.copy-btn {
+    position:absolute;
+    top:6px;
+    right:6px;
+    background:#00f2ff;
+    color:#000;
+    font-size:11px;
+    padding:3px 8px;
+    border-radius:4px;
+    cursor:pointer;
+}
 
-        .copy-btn {
-            position: absolute;
-            right: 5px;
-            top: 5px;
-            font-size: 10px;
-            cursor: pointer;
-        }
+.input-box { background:#04070d; border:1px solid #00f2ff; box-shadow:0 0 12px rgba(0,255,255,0.2); font-size:16px; padding:14px; }
+.btn { border:1px solid #00f2ff; padding:14px; font-size:14px; }
+.chat-item { padding:8px; cursor:pointer; font-size:14px; }
 
-        #inputBox {
-            border-top: 1px solid cyan;
-            padding: 10px;
-        }
+@keyframes fadeIn { from {opacity:0; transform: translateY(6px);} to {opacity:1; transform: translateY(0);} }
 
-        textarea {
-            width: 100%;
-            height: 60px;
-            background: black;
-            color: white;
-        }
-
-        button {
-            width: 100%;
-            margin-top: 5px;
-        }
-
-        .badge {
-            margin-right: 5px;
-            cursor: pointer;
-        }
-
-        .active {
-            background: cyan;
-            color: black;
-        }
-    </style>
+@media (max-width: 768px) {
+    .sidebar { display:none; }
+    #chat { max-width:100%; padding:10px; padding-bottom:150px; }
+    .bot, .user { max-width:100%; font-size:14px; padding:12px; }
+    .input-container { position: fixed; bottom: 0; left: 0; width: 100%; padding: 10px; background:#04070d; border-top:1px solid #1f2937; }
+}
+</style>
 </head>
 
-<body>
+<body class="flex h-screen overflow-hidden">
 
-<!-- SIDEBAR -->
-<div id="sidebar">
-    <h3>CIPHER</h3>
-    <button onclick="createNewChat()">+ NEW CHAT</button>
-    <div id="chatList"></div>
+<div class="sidebar p-6 flex flex-col justify-between">
+<div>
+<h1 class="text-cyan-400 text-2xl font-bold">CIPHER</h1>
+<p class="text-sm text-gray-500 mb-6">CYBERSECURITY AI</p>
+
+<button onclick="createNewChat()" class="btn">+ NEW CHAT</button>
+<div id="chatList" class="mt-6 overflow-y-auto"></div>
 </div>
 
-<!-- MAIN -->
-<div id="main">
+<div class="flex flex-col gap-2 mt-6">
+<button class="btn">Login</button>
+<button class="btn">Sign Up</button>
+</div>
+</div>
 
-    <!-- MODE SWITCH -->
-    <div style="padding:10px">
-        <span class="badge active" data-mode="thinking">THINKING</span>
-        <span class="badge" data-mode="fast">FAST</span>
-        <span class="badge" data-mode="programming">PROGRAMMING</span>
-    </div>
+<div class="flex-1 flex flex-col">
 
-    <!-- CHAT -->
-    <div id="chat"></div>
+<div class="header p-4 flex justify-between">
+<span class="text-cyan-400 text-lg">RESEARCH TERMINAL</span>
 
-    <!-- INPUT -->
-    <div id="inputBox">
-        <textarea id="msg" placeholder="Ask something..."></textarea>
-        <button onclick="send()">SEND</button>
-    </div>
+<div class="flex gap-3">
+<span class="badge bg-cyan-400" data-mode="thinking">THINKING</span>
+<span class="badge" data-mode="fast">FAST</span>
+<span class="badge" data-mode="programming">PROGRAMMING</span>
+</div>
+</div>
+
+<div id="chat" class="flex-1 p-8 overflow-y-auto"></div>
+
+<div class="input-container p-6 flex flex-col gap-3 max-w-4xl mx-auto w-full">
+<textarea id="msg" class="input-box rounded-md" placeholder="Ask about exploits, recon, CTFs..." rows="2"></textarea>
+
+<div class="text-sm text-gray-500">
+Try: recon scan | sql injection | xss payload | whois example.com
+</div>
+
+<button onclick="send()" class="btn">SEND ▶</button>
+</div>
 
 </div>
 
-<!-- 🔥 YOUR SCRIPT (FIXED, NOT CHANGED LOGIC) -->
 <script>
 let chats = {};
 let currentChat = null;
 let currentMode = "thinking";
 
+// ✅ Railway-safe
 const BASE_URL = window.location.origin;
 
-document.addEventListener("DOMContentLoaded", async () => {
-    console.log("✅ UI LOADED");
-
-    try {
-        await loadChats();
-    } catch(e) {
-        console.log("No chats loaded", e);
-    }
-
-    if(Object.keys(chats).length === 0){
-        createNewChat();
-    } else {
-        currentChat = Object.keys(chats)[0];
-        render();
-    }
+document.addEventListener("DOMContentLoaded", () => {
 
     document.querySelectorAll(".badge").forEach(el=>{
         el.onclick = () => {
             currentMode = el.dataset.mode;
-            document.querySelectorAll(".badge").forEach(b=>b.classList.remove("active"));
-            el.classList.add("active");
+            document.querySelectorAll(".badge").forEach(b=>b.classList.remove("bg-cyan-400"));
+            el.classList.add("bg-cyan-400");
         }
     });
+
+    createNewChat();
 });
 
-function getModelLabel(model){
-    if(model==="programming") return "DOLPHIN";
-    if(model==="fast"||model==="thinking") return "GROQ";
-    return "CIPHER";
-}
-
-async function loadChats(){
-    try{
-        const res = await fetch(BASE_URL + "/chats", {
-            headers:{ token: localStorage.getItem("token") || "" }
-        });
-
-        if(!res.ok) return;
-
-        const data = await res.json();
-        if(!Array.isArray(data)) return;
-
-        data.forEach(c=>{
-            chats[c.id]={title:"Chat",messages:[]};
-        });
-
-        renderList();
-
-    }catch(e){
-        console.error(e);
-    }
-}
-
 function createNewChat(){
-    currentChat="chat_"+Date.now();
-    chats[currentChat]={title:"New Chat",messages:[]};
+    currentChat = "chat_" + Date.now();
+    chats[currentChat] = { title: "New Chat", messages: [] };
     renderList();
     render();
 }
 
 function renderList(){
-    const list=document.getElementById("chatList");
-    if(!list) return;
-
-    list.innerHTML="";
+    const list = document.getElementById("chatList");
+    list.innerHTML = "";
 
     Object.keys(chats).forEach(id=>{
-        const div=document.createElement("div");
-        div.className="chat-item";
-        div.innerText=chats[id].title;
-
-        div.onclick=()=> {
-            currentChat=id;
-            render();
-        };
-
+        const div = document.createElement("div");
+        div.className = "chat-item";
+        div.innerText = chats[id].title;
+        div.onclick = ()=>{ currentChat = id; render(); };
         list.appendChild(div);
     });
 }
 
+function getModelLabel(model){
+    if(model === "programming") return "DOLPHIN";
+    if(model === "fast" || model === "thinking") return "GROQ";
+    return "CIPHER";
+}
+
 function formatMessage(content){
-    if(!content) return "";
+    const parts = content.split("```");
 
-    const parts=content.split("```");
-
-    return parts.map((p,i)=>{
-        if(i%2===1){
-            return `<div class="code-block">
+    return parts.map((part, i)=>{
+        if(i % 2 === 1){
+            return `
+            <div class="code-block">
                 <button class="copy-btn" onclick="copyCode(this)">COPY</button>
-                <pre>${p}</pre>
+                <pre>${part}</pre>
             </div>`;
+        } else {
+            return `<div>${part}</div>`;
         }
-        return `<div>${p}</div>`;
     }).join("");
 }
 
 function copyCode(btn){
-    const code=btn.parentElement.querySelector("pre").innerText;
+    const code = btn.parentElement.querySelector("pre").innerText;
     navigator.clipboard.writeText(code);
-    btn.innerText="COPIED";
+    btn.innerText = "COPIED";
     setTimeout(()=>btn.innerText="COPY",1000);
 }
 
 function render(){
-    const chat=document.getElementById("chat");
-    if(!chat||!currentChat) return;
-
+    const chat = document.getElementById("chat");
     chat.innerHTML="";
 
     chats[currentChat].messages.forEach(m=>{
-        const div=document.createElement("div");
-        div.className=m.role==="user"?"user":"bot";
+        const div = document.createElement("div");
+        div.className = m.role==="user"?"user":"bot";
 
-        if(m.role==="bot"){
-            const tag=document.createElement("div");
-            tag.className="model-tag";
-            tag.innerText=getModelLabel(m.model);
+        if(m.role === "bot"){
+            const tag = document.createElement("div");
+            tag.className = "model-tag";
+            tag.innerText = getModelLabel(m.model);
             div.appendChild(tag);
         }
 
-        const text=document.createElement("div");
-        text.innerHTML=formatMessage(m.content);
+        const text = document.createElement("div");
+        text.innerHTML = formatMessage(m.content);
 
         div.appendChild(text);
         chat.appendChild(div);
     });
 
-    chat.scrollTop=chat.scrollHeight;
+    chat.scrollTop = chat.scrollHeight;
 }
 
 async function send(){
-    const input=document.getElementById("msg");
-    if(!input||!input.value.trim()) return;
+    const input = document.getElementById("msg");
+    if(!input.value.trim()) return;
 
-    const text=input.value;
+    const text = input.value;
 
-    chats[currentChat].messages.push({role:"user",content:text});
+    chats[currentChat].messages.push({
+        role:"user",
+        content:text
+    });
+
     render();
     input.value="";
 
-    try{
-        const res=await fetch(BASE_URL + "/chat",{
+    try {
+        const res = await fetch(BASE_URL + "/chat",{
             method:"POST",
             headers:{
-                "Content-Type":"application/x-www-form-urlencoded",
-                token:localStorage.getItem("token")||""
+                "Content-Type":"application/x-www-form-urlencoded"
             },
             body:new URLSearchParams({
                 message:text,
@@ -293,18 +267,18 @@ async function send(){
             })
         });
 
-        const data=await res.json();
+        const data = await res.json();
 
         chats[currentChat].messages.push({
             role:"bot",
-            content:data.response||"⚠️ No response",
-            model:data.model||"thinking"
+            content:data.response,
+            model:data.model
         });
 
-    }catch{
+    } catch(err){
         chats[currentChat].messages.push({
             role:"bot",
-            content:"❌ Backend error",
+            content:"❌ Backend not responding",
             model:"error"
         });
     }
