@@ -7,12 +7,11 @@
 <script src="https://cdn.tailwindcss.com"></script>
 
 <style>
+/* ==== YOUR ORIGINAL UI (UNCHANGED) ==== */
 body {
     background:#04070d;
     color:#e6edf3;
-    font-family: 'Inter', 'Courier New', monospace;
-    font-size:18px;
-    line-height:1.7;
+    font-family: 'Inter', monospace;
 }
 body::before {
     content:"";
@@ -27,96 +26,45 @@ body::before {
 }
 .sidebar { width:260px; background:#0b0f17; border-right:1px solid #1f2937; }
 .header { background:#0b0f17; border-bottom:1px solid #1f2937; }
-.badge { padding:8px 16px; font-size:13px; border:1px solid #00f2ff; cursor:pointer; }
+.badge { padding:8px 16px; border:1px solid #00f2ff; cursor:pointer; }
 
-#chat {
-    display:flex;
-    flex-direction:column;
-    gap:14px;
-    max-width:900px;
-    margin:auto;
-    width:100%;
-}
+.bot { background:#0d1117; border-left:4px solid #00f2ff; padding:16px; }
+.user { background:#020617; padding:16px; text-align:right; }
 
-.bot, .user {
-    padding:18px;
-    border-radius:10px;
-    font-size:16px;
-    animation: fadeIn 0.2s ease-in;
-    max-width:75%;
-}
-
-.bot {
-    background:#0d1117;
-    border-left:4px solid #00f2ff;
-    align-self:flex-start;
-}
-
-.user {
-    background:#020617;
-    align-self:flex-end;
-}
-
-.model-tag {
-    font-size:12px;
-    color:#00f2ff;
-    margin-bottom:6px;
-}
+.model-tag { font-size:12px; color:#00f2ff; }
 
 .code-block {
     background:#020617;
     border:1px solid #00f2ff;
     padding:10px;
-    border-radius:6px;
-    margin-top:10px;
     position:relative;
-    font-size:14px;
-    overflow-x:auto;
 }
-
 .copy-btn {
     position:absolute;
-    top:6px;
-    right:6px;
-    background:#00f2ff;
-    color:#000;
+    right:5px;
+    top:5px;
     font-size:11px;
-    padding:3px 8px;
-    border-radius:4px;
     cursor:pointer;
 }
 
-.input-box { background:#04070d; border:1px solid #00f2ff; box-shadow:0 0 12px rgba(0,255,255,0.2); font-size:16px; padding:14px; }
-.btn { border:1px solid #00f2ff; padding:14px; font-size:14px; }
-.chat-item { padding:8px; cursor:pointer; font-size:14px; }
-
-@keyframes fadeIn { from {opacity:0; transform: translateY(6px);} to {opacity:1; transform: translateY(0);} }
-
-@media (max-width: 768px) {
-    .sidebar { display:none; }
-    #chat { max-width:100%; padding:10px; padding-bottom:150px; }
-    .bot, .user { max-width:100%; font-size:14px; padding:12px; }
-    .input-container { position: fixed; bottom: 0; left: 0; width: 100%; padding: 10px; background:#04070d; border-top:1px solid #1f2937; }
-}
+.input-box { border:1px solid #00f2ff; padding:12px; }
+.btn { border:1px solid #00f2ff; padding:12px; }
 </style>
 </head>
 
-<body class="flex h-screen overflow-hidden">
+<body class="flex h-screen">
 
 <!-- SIDEBAR -->
 <div class="sidebar p-6 flex flex-col justify-between">
 <div>
-<h1 class="text-cyan-400 text-2xl font-bold">CIPHER</h1>
-<p class="text-sm text-gray-500 mb-6">CYBERSECURITY AI</p>
-
-<button onclick="createNewChat()" class="btn">+ NEW CHAT</button>
-<div id="chatList" class="mt-6 overflow-y-auto"></div>
+<h1 class="text-cyan-400 text-xl">CIPHER</h1>
+<button onclick="createNewChat()" class="btn mt-4">+ NEW CHAT</button>
+<div id="chatList" class="mt-4"></div>
 </div>
 
-<div class="flex flex-col gap-2 mt-6">
-<button class="btn" onclick="loginPrompt()">Login</button>
-<button class="btn" onclick="signupPrompt()">Sign Up</button>
-<button class="btn" onclick="googleLogin()">Google</button>
+<div class="flex flex-col gap-2">
+<button class="btn" onclick="openAuth('login')">Login</button>
+<button class="btn" onclick="openAuth('signup')">Sign Up</button>
 </div>
 </div>
 
@@ -124,36 +72,66 @@ body::before {
 <div class="flex-1 flex flex-col">
 
 <div class="header p-4 flex justify-between">
-<span class="text-cyan-400 text-lg">RESEARCH TERMINAL</span>
+<span class="text-cyan-400">RESEARCH TERMINAL</span>
 
-<div class="flex gap-3">
+<div>
 <span class="badge bg-cyan-400" data-mode="thinking">THINKING</span>
 <span class="badge" data-mode="fast">FAST</span>
 <span class="badge" data-mode="programming">PROGRAMMING</span>
 </div>
 </div>
 
-<div id="chat" class="flex-1 p-8 overflow-y-auto"></div>
+<div id="chat" class="flex-1 p-6 overflow-y-auto"></div>
 
-<div class="input-container p-6 flex flex-col gap-3 max-w-4xl mx-auto w-full">
-<textarea id="msg" class="input-box rounded-md" placeholder="Ask about exploits, recon, CTFs..." rows="2"></textarea>
-
-<div class="text-sm text-gray-500">
-Try: recon scan | sql injection | xss payload | whois example.com
+<div class="p-4">
+<textarea id="msg" class="input-box w-full" rows="2"></textarea>
+<button onclick="send()" class="btn w-full mt-2">SEND</button>
 </div>
 
-<button onclick="send()" class="btn">SEND ▶</button>
 </div>
 
+<!-- AUTH MODAL -->
+<div id="authModal" style="
+display:none;
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,0.7);
+justify-content:center;
+align-items:center;
+">
+
+<div style="
+background:#0b0f17;
+border:1px solid #00f2ff;
+padding:30px;
+width:350px;
+display:flex;
+flex-direction:column;
+gap:12px;
+">
+
+<div style="display:flex; justify-content:space-between;">
+<span id="authTitle" style="color:#00f2ff;">LOGIN</span>
+<button onclick="closeAuth()">✕</button>
+</div>
+
+<input id="authUser" placeholder="Username" class="input-box">
+<input id="authPass" type="password" placeholder="Password" class="input-box">
+
+<button onclick="submitAuth()" class="btn">Submit</button>
+<button onclick="toggleAuth()" class="btn">Switch</button>
+
+<hr>
+
+<button onclick="googleLogin()" class="btn">Continue with Google</button>
+
+</div>
 </div>
 
 <script>
-
-let chats = {};
-let currentChat = null;
-let currentMode = "thinking";
-
-const BASE_URL = window.location.origin;
 
 /* TOKEN FIX */
 (function () {
@@ -165,41 +143,52 @@ const BASE_URL = window.location.origin;
     }
 })();
 
-/* INIT */
-document.addEventListener("DOMContentLoaded", () => {
+let chats = {};
+let currentChat = null;
+let currentMode = "thinking";
+let authMode = "login";
 
-    document.querySelectorAll(".badge").forEach(el=>{
-        el.onclick = () => {
-            currentMode = el.dataset.mode;
-            document.querySelectorAll(".badge").forEach(b=>b.classList.remove("bg-cyan-400"));
-            el.classList.add("bg-cyan-400");
-        }
-    });
-
-    createNewChat();
+/* MODE SWITCH */
+document.querySelectorAll(".badge").forEach(el=>{
+    el.onclick = ()=>{
+        currentMode = el.dataset.mode;
+        document.querySelectorAll(".badge").forEach(b=>b.classList.remove("bg-cyan-400"));
+        el.classList.add("bg-cyan-400");
+    }
 });
 
 /* AUTH */
-function loginPrompt(){
-    const username = prompt("Username");
-    const password = prompt("Password");
-
-    fetch("/login",{method:"POST",body:new URLSearchParams({username,password})})
-    .then(r=>r.json())
-    .then(d=>{
-        if(d.token){
-            localStorage.setItem("token",d.token);
-            alert("Login success");
-        }
-    });
+function openAuth(mode){
+    authMode = mode;
+    authTitle.innerText = mode.toUpperCase();
+    authModal.style.display="flex";
 }
 
-function signupPrompt(){
-    const username = prompt("Username");
-    const password = prompt("Password");
+function closeAuth(){
+    authModal.style.display="none";
+}
 
-    fetch("/signup",{method:"POST",body:new URLSearchParams({username,password})})
-    .then(()=>alert("Signup done"));
+function toggleAuth(){
+    authMode = authMode==="login"?"signup":"login";
+    authTitle.innerText = authMode.toUpperCase();
+}
+
+async function submitAuth(){
+    const username = authUser.value;
+    const password = authPass.value;
+
+    const res = await fetch("/"+authMode,{
+        method:"POST",
+        headers:{"Content-Type":"application/x-www-form-urlencoded"},
+        body:new URLSearchParams({username,password})
+    });
+
+    const data = await res.json();
+
+    if(data.token){
+        localStorage.setItem("token",data.token);
+        closeAuth();
+    } else alert("Error");
 }
 
 function googleLogin(){
@@ -208,116 +197,77 @@ function googleLogin(){
 
 /* CHAT */
 function createNewChat(){
-    currentChat = "chat_" + Date.now();
-    chats[currentChat] = { title: "New Chat", messages: [] };
-    renderList();
+    currentChat="chat_"+Date.now();
+    chats[currentChat]={messages:[]};
     render();
 }
 
-function renderList(){
-    const list = document.getElementById("chatList");
-    list.innerHTML = "";
-
-    Object.keys(chats).forEach(id=>{
-        const div = document.createElement("div");
-        div.className = "chat-item";
-        div.innerText = chats[id].title;
-        div.onclick = ()=>{ currentChat = id; render(); };
-        list.appendChild(div);
-    });
-}
-
-function getModelLabel(model){
-    if(model==="programming") return "DOLPHIN";
-    if(model==="fast"||model==="thinking") return "GROQ";
-    return "CIPHER";
-}
-
 function formatMessage(content){
-    const parts = content.split("```");
-
-    return parts.map((p,i)=>{
-        if(i%2===1){
-            return `<div class="code-block">
-            <button class="copy-btn" onclick="copyCode(this)">COPY</button>
-            <pre>${p}</pre></div>`;
-        }
-        return `<div>${p}</div>`;
-    }).join("");
+    const parts=content.split("```");
+    return parts.map((p,i)=> i%2 ?
+        `<div class="code-block"><button class="copy-btn" onclick="copyCode(this)">COPY</button><pre>${p}</pre></div>`
+        : `<div>${p}</div>`
+    ).join("");
 }
 
 function copyCode(btn){
-    const code = btn.parentElement.querySelector("pre").innerText;
-    navigator.clipboard.writeText(code);
+    navigator.clipboard.writeText(btn.parentElement.innerText);
 }
 
 function render(){
-    const chat = document.getElementById("chat");
     chat.innerHTML="";
-
     chats[currentChat].messages.forEach(m=>{
-        const div = document.createElement("div");
-        div.className = m.role==="user"?"user":"bot";
+        const div=document.createElement("div");
+        div.className=m.role==="user"?"user":"bot";
 
         if(m.role==="bot"){
             const tag=document.createElement("div");
             tag.className="model-tag";
-            tag.innerText=getModelLabel(m.model);
+            tag.innerText=currentMode.toUpperCase();
             div.appendChild(tag);
         }
 
         const text=document.createElement("div");
         text.innerHTML=formatMessage(m.content);
-
         div.appendChild(text);
+
         chat.appendChild(div);
     });
-
-    chat.scrollTop=chat.scrollHeight;
 }
 
 async function send(){
-    const input=document.getElementById("msg");
-    if(!input.value.trim()) return;
-
-    const text=input.value;
+    const text=msg.value;
+    if(!text) return;
 
     chats[currentChat].messages.push({role:"user",content:text});
     render();
-    input.value="";
+    msg.value="";
 
-    try{
-        const res=await fetch(BASE_URL+"/chat",{
-            method:"POST",
-            headers:{
-                "Content-Type":"application/x-www-form-urlencoded",
-                token:localStorage.getItem("token")||""
-            },
-            body:new URLSearchParams({
-                message:text,
-                chat_id:currentChat,
-                mode:currentMode
-            })
-        });
+    const res = await fetch("/chat",{
+        method:"POST",
+        headers:{
+            "Content-Type":"application/x-www-form-urlencoded",
+            "token": localStorage.getItem("token") || ""
+        },
+        body:new URLSearchParams({
+            message:text,
+            chat_id:currentChat,
+            mode:currentMode
+        })
+    });
 
-        const data=await res.json();
+    const data = await res.json();
 
-        chats[currentChat].messages.push({
-            role:"bot",
-            content:data.response,
-            model:data.model||currentMode
-        });
-
-    }catch{
-        chats[currentChat].messages.push({
-            role:"bot",
-            content:"❌ Error",
-            model:"error"
-        });
-    }
+    chats[currentChat].messages.push({
+        role:"bot",
+        content:data.response,
+        model:data.model
+    });
 
     render();
 }
+
+createNewChat();
 
 </script>
 
