@@ -32,7 +32,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ================= DB =================
+# ================= DATABASE =================
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True)
@@ -41,7 +41,7 @@ class User(Base):
 
 Base.metadata.create_all(bind=engine)
 
-# ================= AUTH =================
+# ================= AUTH UTILS =================
 def hash_password(p):
     return pwd_context.hash(p)
 
@@ -65,21 +65,31 @@ def get_current_user(authorization: str = Header(None)):
 def home():
     return FileResponse("index.html")
 
+# ================= SIGNUP =================
 @app.post("/signup")
 def signup(username: str = Form(...), password: str = Form(...)):
     db = SessionLocal()
     try:
-        if db.query(User).filter(User.username == username).first():
-            return {"success": False, "msg": "User exists"}
+        existing = db.query(User).filter(User.username == username).first()
+        if existing:
+            return {"success": False, "msg": "User already exists"}
 
-        user = User(username=username, password=hash_password(password))
+        user = User(
+            username=username,
+            password=hash_password(password)
+        )
         db.add(user)
         db.commit()
 
-        return {"success": True, "msg": "Signup success"}
+        return {"success": True, "msg": "Signup successful"}
+
+    except Exception as e:
+        return {"success": False, "msg": str(e)}
+
     finally:
         db.close()
 
+# ================= LOGIN =================
 @app.post("/login")
 def login(username: str = Form(...), password: str = Form(...)):
     db = SessionLocal()
@@ -95,22 +105,95 @@ def login(username: str = Form(...), password: str = Form(...)):
         })
 
         return {"success": True, "token": token}
+
+    except Exception as e:
+        return {"success": False, "msg": str(e)}
+
+    finally:
+        db.close()
+
+# ================= GOOGLE LOGIN =================
+@app.get("/auth/google")
+def google_login():
+    client_id = os.environ.get("GOOGLE_CLIENT_ID")
+    redirect_uri = os.environ.get("APP_URL") + "/auth/google/callback"
+
+    url = (
+        "https://accounts.google.com/o/oauth2/v2/auth"
+        f"?client_id={client_id}"
+        f"&redirect_uri={redirect_uri}"
+        "&response_type=code"
+        "&scope=openid email profile"
+    )
+
+    return RedirectResponse(url)
+
+@app.get("/auth/google/callback")
+def google_callback(code: str):
+    db = SessionLocal()
+    try:
+        client_id = os.environ.get("GOOGLE_CLIENT_ID")
+        client_secret = os.environ.get("GOOGLE_CLIENT_SECRET")
+        redirect_uri = os.environ.get("APP_URL") + "/auth/google/callback"
+
+        token_res = requests.post(
+            "https://oauth2.googleapis.com/token",
+            data={
+                "code": code,
+                "client_id": client_id,
+                "client_secret": client_secret,
+                "redirect_uri": redirect_uri,
+                "grant_type": "authorization_code"
+            }
+        )
+
+        access_token = token_res.json().get("access_token")
+
+        user_res = requests.get(
+            "https://www.googleapis.com/oauth2/v2/userinfo",
+            headers={"Authorization": f"Bearer {access_token}"}
+        )
+
+        email = user_res.json().get("email")
+
+        user = db.query(User).filter(User.username == email).first()
+
+        if not user:
+            user = User(username=email, password="oauth")
+            db.add(user)
+            db.commit()
+
+        jwt_token = create_token({
+            "user_id": user.id,
+            "username": user.username
+        })
+
+        return RedirectResponse(f"/?token={jwt_token}")
+
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
     finally:
         db.close()
 
 # ================= CHAT =================
 @app.post("/chat")
-def chat(message: str = Form(...), chat_id: str = Form(...), mode: str = Form(...), authorization: str = Header(None)):
-
+def chat(
+    message: str = Form(...),
+    chat_id: str = Form(...),
+    mode: str = Form(...),
+    authorization: str = Header(None)
+):
     user = get_current_user(authorization)
 
+    # ✅ Guest allowed
     if not user:
-        return {"response": "❌ Unauthorized", "model": "error"}
+        user = {"username": "guest"}
 
     api_key = os.environ.get("OPENROUTER_API_KEY")
 
     try:
-        res = requests.post(
+        response = requests.post(
             "https://openrouter.ai/api/v1/chat/completions",
             headers={
                 "Authorization": f"Bearer {api_key}",
@@ -119,17 +202,23 @@ def chat(message: str = Form(...), chat_id: str = Form(...), mode: str = Form(..
             json={
                 "model": "openai/gpt-3.5-turbo",
                 "messages": [
-                    {"role": "system", "content": "You are CIPHER AI."},
+                    {"role": "system", "content": "You are CIPHER AI, a cybersecurity assistant."},
                     {"role": "user", "content": message}
                 ]
             }
         )
 
-        data = res.json()
+        data = response.json()
 
-        reply = data.get("choices", [{}])[0].get("message", {}).get("content", "⚠️ API Error")
+        reply = data.get("choices", [{}])[0].get("message", {}).get("content")
+
+        if not reply:
+            return {"response": "⚠️ Model error", "model": mode}
 
         return {"response": reply, "model": mode}
 
     except Exception as e:
-        return JSONResponse(status_code=500, content={"response": str(e)})
+        return JSONResponse(
+            status_code=500,
+            content={"response": f"❌ Server error: {str(e)}"}
+        )
