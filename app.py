@@ -11,7 +11,6 @@ from passlib.context import CryptContext
 from jose import jwt, JWTError
 
 from authlib.integrations.starlette_client import OAuth
-from starlette.middleware.sessions import SessionMiddleware
 
 # =========================
 # CONFIG
@@ -30,15 +29,8 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 app = FastAPI()
 
 # =========================
-# MIDDLEWARE (FIXED)
+# CORS
 # =========================
-app.add_middleware(
-    SessionMiddleware,
-    secret_key="super_secret",
-    same_site="lax",   # 🔥 FIXED (important)
-    https_only=False   # 🔥 FIXED (Railway compatibility)
-)
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -76,11 +68,11 @@ def get_current_user(token: str = Header(None)):
         return None
     try:
         return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-    except JWTError:
+    except:
         return None
 
 # =========================
-# GOOGLE AUTH
+# GOOGLE AUTH (STATELESS)
 # =========================
 oauth = OAuth()
 
@@ -135,29 +127,55 @@ def login(username: str = Form(...), password: str = Form(...)):
     return {"token": token}
 
 # =========================
-# GOOGLE LOGIN
+# GOOGLE LOGIN (MANUAL URL)
 # =========================
 @app.get("/auth/google")
-async def google_login(request: Request):
+def google_login():
+    client_id = os.environ.get("GOOGLE_CLIENT_ID")
     redirect_uri = "https://cipher-ai-production.up.railway.app/auth/google/callback"
-    return await oauth.google.authorize_redirect(request, redirect_uri)
+
+    url = f"https://accounts.google.com/o/oauth2/v2/auth?client_id={client_id}&redirect_uri={redirect_uri}&response_type=code&scope=openid email profile"
+
+    return RedirectResponse(url)
 
 # =========================
-# GOOGLE CALLBACK (FINAL)
+# GOOGLE CALLBACK (NO STATE)
 # =========================
 @app.get("/auth/google/callback")
-async def google_callback(request: Request):
+def google_callback(code: str):
     db: Session = SessionLocal()
 
     try:
-        token = await oauth.google.authorize_access_token(request)
+        client_id = os.environ.get("GOOGLE_CLIENT_ID")
+        client_secret = os.environ.get("GOOGLE_CLIENT_SECRET")
 
-        user_info = await oauth.google.parse_id_token(request, token)
+        # 🔥 Exchange code for token
+        token_res = requests.post(
+            "https://oauth2.googleapis.com/token",
+            data={
+                "code": code,
+                "client_id": client_id,
+                "client_secret": client_secret,
+                "redirect_uri": "https://cipher-ai-production.up.railway.app/auth/google/callback",
+                "grant_type": "authorization_code"
+            }
+        )
 
+        token_data = token_res.json()
+
+        access_token = token_data.get("access_token")
+
+        # 🔥 Get user info
+        user_res = requests.get(
+            "https://www.googleapis.com/oauth2/v2/userinfo",
+            headers={"Authorization": f"Bearer {access_token}"}
+        )
+
+        user_info = user_res.json()
         email = user_info.get("email")
 
         if not email:
-            return JSONResponse(status_code=400, content={"error": "No email"})
+            return JSONResponse({"error": "No email"})
 
         user = db.query(User).filter(User.username == email).first()
 
@@ -174,8 +192,8 @@ async def google_callback(request: Request):
         return RedirectResponse(f"/?token={jwt_token}")
 
     except Exception as e:
-        print("GOOGLE ERROR:", str(e))
-        return JSONResponse(status_code=500, content={"error": str(e)})
+        print("GOOGLE ERROR:", e)
+        return JSONResponse({"error": str(e)})
 
 # =========================
 # CHAT
@@ -188,7 +206,7 @@ def chat(message: str = Form(...), chat_id: str = Form(...), mode: str = Form(..
 
     api_key = os.environ.get("OPENROUTER_API_KEY")
 
-    response = requests.post(
+    res = requests.post(
         "https://openrouter.ai/api/v1/chat/completions",
         headers={
             "Authorization": f"Bearer {api_key}",
@@ -203,7 +221,7 @@ def chat(message: str = Form(...), chat_id: str = Form(...), mode: str = Form(..
         }
     )
 
-    data = response.json()
+    data = res.json()
     reply = data.get("choices", [{}])[0].get("message", {}).get("content", "⚠️ Error")
 
     return {"response": reply, "model": mode}
