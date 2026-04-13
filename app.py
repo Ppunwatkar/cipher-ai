@@ -1,20 +1,16 @@
 import os
 import requests
-from fastapi import FastAPI, Form, Depends, Header, Request
+from fastapi import FastAPI, Form, Header
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, RedirectResponse
 
 from sqlalchemy import create_engine, Column, Integer, String
-from sqlalchemy.orm import sessionmaker, declarative_base, Session
+from sqlalchemy.orm import sessionmaker, declarative_base
 
 from passlib.context import CryptContext
-from jose import jwt, JWTError
+from jose import jwt
 
-from authlib.integrations.starlette_client import OAuth
-
-# =========================
-# CONFIG
-# =========================
+# ================= CONFIG =================
 SECRET_KEY = "cipher_secret"
 ALGORITHM = "HS256"
 
@@ -28,9 +24,6 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 app = FastAPI()
 
-# =========================
-# CORS
-# =========================
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -39,21 +32,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# =========================
-# DB MODEL
-# =========================
+# ================= DB =================
 class User(Base):
     __tablename__ = "users"
-
     id = Column(Integer, primary_key=True)
     username = Column(String, unique=True)
     password = Column(String)
 
 Base.metadata.create_all(bind=engine)
 
-# =========================
-# AUTH UTILS
-# =========================
+# ================= AUTH =================
 def hash_password(p):
     return pwd_context.hash(p)
 
@@ -63,40 +51,23 @@ def verify_password(p, h):
 def create_token(data):
     return jwt.encode(data, SECRET_KEY, algorithm=ALGORITHM)
 
-def get_current_user(token: str = Header(None)):
-    if not token:
+def get_current_user(authorization: str = Header(None)):
+    if not authorization:
         return None
     try:
+        token = authorization.replace("Bearer ", "")
         return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
     except:
         return None
 
-# =========================
-# GOOGLE AUTH (STATELESS)
-# =========================
-oauth = OAuth()
-
-oauth.register(
-    name="google",
-    client_id=os.environ.get("GOOGLE_CLIENT_ID"),
-    client_secret=os.environ.get("GOOGLE_CLIENT_SECRET"),
-    server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
-    client_kwargs={"scope": "openid email profile"},
-)
-
-# =========================
-# ROOT
-# =========================
+# ================= ROUTES =================
 @app.get("/")
 def home():
     return FileResponse("index.html")
 
-# =========================
-# SIGNUP
-# =========================
 @app.post("/signup")
 def signup(username: str = Form(...), password: str = Form(...)):
-    db: Session = SessionLocal()
+    db = SessionLocal()
 
     if db.query(User).filter(User.username == username).first():
         return {"msg": "User exists"}
@@ -107,12 +78,9 @@ def signup(username: str = Form(...), password: str = Form(...)):
 
     return {"msg": "Signup success"}
 
-# =========================
-# LOGIN
-# =========================
 @app.post("/login")
 def login(username: str = Form(...), password: str = Form(...)):
-    db: Session = SessionLocal()
+    db = SessionLocal()
 
     user = db.query(User).filter(User.username == username).first()
 
@@ -126,9 +94,7 @@ def login(username: str = Form(...), password: str = Form(...)):
 
     return {"token": token}
 
-# =========================
-# GOOGLE LOGIN (MANUAL URL)
-# =========================
+# ================= GOOGLE AUTH =================
 @app.get("/auth/google")
 def google_login():
     client_id = os.environ.get("GOOGLE_CLIENT_ID")
@@ -138,68 +104,52 @@ def google_login():
 
     return RedirectResponse(url)
 
-# =========================
-# GOOGLE CALLBACK (NO STATE)
-# =========================
 @app.get("/auth/google/callback")
 def google_callback(code: str):
-    db: Session = SessionLocal()
+    db = SessionLocal()
 
-    try:
-        client_id = os.environ.get("GOOGLE_CLIENT_ID")
-        client_secret = os.environ.get("GOOGLE_CLIENT_SECRET")
+    client_id = os.environ.get("GOOGLE_CLIENT_ID")
+    client_secret = os.environ.get("GOOGLE_CLIENT_SECRET")
 
-        # 🔥 Exchange code for token
-        token_res = requests.post(
-            "https://oauth2.googleapis.com/token",
-            data={
-                "code": code,
-                "client_id": client_id,
-                "client_secret": client_secret,
-                "redirect_uri": "https://cipher-ai-production.up.railway.app/auth/google/callback",
-                "grant_type": "authorization_code"
-            }
-        )
+    token_res = requests.post(
+        "https://oauth2.googleapis.com/token",
+        data={
+            "code": code,
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "redirect_uri": "https://cipher-ai-production.up.railway.app/auth/google/callback",
+            "grant_type": "authorization_code"
+        }
+    )
 
-        token_data = token_res.json()
+    access_token = token_res.json().get("access_token")
 
-        access_token = token_data.get("access_token")
+    user_res = requests.get(
+        "https://www.googleapis.com/oauth2/v2/userinfo",
+        headers={"Authorization": f"Bearer {access_token}"}
+    )
 
-        # 🔥 Get user info
-        user_res = requests.get(
-            "https://www.googleapis.com/oauth2/v2/userinfo",
-            headers={"Authorization": f"Bearer {access_token}"}
-        )
+    email = user_res.json().get("email")
 
-        user_info = user_res.json()
-        email = user_info.get("email")
+    user = db.query(User).filter(User.username == email).first()
 
-        if not email:
-            return JSONResponse({"error": "No email"})
+    if not user:
+        user = User(username=email, password="oauth")
+        db.add(user)
+        db.commit()
 
-        user = db.query(User).filter(User.username == email).first()
+    jwt_token = create_token({
+        "user_id": user.id,
+        "username": user.username
+    })
 
-        if not user:
-            user = User(username=email, password="oauth")
-            db.add(user)
-            db.commit()
+    return RedirectResponse(f"/?token={jwt_token}")
 
-        jwt_token = create_token({
-            "user_id": user.id,
-            "username": user.username
-        })
-
-        return RedirectResponse(f"/?token={jwt_token}")
-
-    except Exception as e:
-        print("GOOGLE ERROR:", e)
-        return JSONResponse({"error": str(e)})
-
-# =========================
-# CHAT
-# =========================
+# ================= CHAT =================
 @app.post("/chat")
-def chat(message: str = Form(...), chat_id: str = Form(...), mode: str = Form(...), user=Depends(get_current_user)):
+def chat(message: str = Form(...), chat_id: str = Form(...), mode: str = Form(...), authorization: str = Header(None)):
+
+    user = get_current_user(authorization)
 
     if not user:
         return {"response": "❌ Unauthorized", "model": "error"}
@@ -222,6 +172,7 @@ def chat(message: str = Form(...), chat_id: str = Form(...), mode: str = Form(..
     )
 
     data = res.json()
+
     reply = data.get("choices", [{}])[0].get("message", {}).get("content", "⚠️ Error")
 
     return {"response": reply, "model": mode}
