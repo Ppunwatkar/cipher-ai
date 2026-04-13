@@ -1,7 +1,5 @@
 import os
 import requests
-from datetime import datetime, timedelta
-
 from fastapi import FastAPI, Form, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
@@ -15,12 +13,12 @@ from jose import jwt, JWTError
 # =========================
 # CONFIG
 # =========================
-SECRET_KEY = "cipher_secret_key"
+SECRET_KEY = "cipher_secret"
 ALGORITHM = "HS256"
 
-DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./cipher.db")
+DATABASE_URL = "sqlite:///./cipher.db"
 
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False} if "sqlite" in DATABASE_URL else {})
+engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
 
@@ -40,7 +38,7 @@ app.add_middleware(
 )
 
 # =========================
-# DB MODEL
+# MODEL
 # =========================
 class User(Base):
     __tablename__ = "users"
@@ -54,11 +52,11 @@ Base.metadata.create_all(bind=engine)
 # =========================
 # UTILS
 # =========================
-def hash_password(password):
-    return pwd_context.hash(password)
+def hash_password(p):
+    return pwd_context.hash(p)
 
-def verify_password(password, hashed):
-    return pwd_context.verify(password, hashed)
+def verify_password(p, h):
+    return pwd_context.verify(p, h)
 
 def create_token(data):
     return jwt.encode(data, SECRET_KEY, algorithm=ALGORITHM)
@@ -66,10 +64,8 @@ def create_token(data):
 def get_current_user(token: str = Header(None)):
     if not token:
         return None
-
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        return payload
+        return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
     except JWTError:
         return None
 
@@ -87,15 +83,10 @@ def home():
 def signup(username: str = Form(...), password: str = Form(...)):
     db: Session = SessionLocal()
 
-    existing = db.query(User).filter(User.username == username).first()
-    if existing:
+    if db.query(User).filter(User.username == username).first():
         return {"msg": "User already exists"}
 
-    user = User(
-        username=username,
-        password=hash_password(password)
-    )
-
+    user = User(username=username, password=hash_password(password))
     db.add(user)
     db.commit()
 
@@ -128,20 +119,10 @@ def chat(
     user = Depends(get_current_user)
 ):
     if not user:
-        return {"response": "❌ Unauthorized", "model": "error"}
+        return {"response": "❌ Please login first", "model": "error"}
 
     try:
         api_key = os.environ.get("OPENROUTER_API_KEY")
-
-        if not api_key:
-            return {"response": "❌ Missing API key"}
-
-        model = "openai/gpt-3.5-turbo"
-
-        system_prompt = """
-You are CIPHER AI — a cybersecurity assistant.
-Be helpful, friendly, and practical.
-"""
 
         response = requests.post(
             "https://openrouter.ai/api/v1/chat/completions",
@@ -152,9 +133,9 @@ Be helpful, friendly, and practical.
                 "X-Title": "CIPHER AI"
             },
             json={
-                "model": model,
+                "model": "openai/gpt-3.5-turbo",
                 "messages": [
-                    {"role": "system", "content": system_prompt},
+                    {"role": "system", "content": "You are CIPHER AI, a cybersecurity assistant."},
                     {"role": "user", "content": message}
                 ]
             }
@@ -162,16 +143,9 @@ Be helpful, friendly, and practical.
 
         data = response.json()
 
-        if "choices" not in data:
-            return {"response": str(data)}
+        reply = data.get("choices", [{}])[0].get("message", {}).get("content", "⚠️ No response")
 
-        return {
-            "response": data["choices"][0]["message"]["content"],
-            "model": mode
-        }
+        return {"response": reply, "model": mode}
 
     except Exception as e:
-        return JSONResponse(
-            status_code=500,
-            content={"response": "❌ Server error"}
-        )
+        return JSONResponse(status_code=500, content={"response": "❌ Server error"})
