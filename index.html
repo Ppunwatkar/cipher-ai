@@ -1,147 +1,341 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>CIPHER AI</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: monospace;
+    background: #020617;
+    color: #0ff;
+}
+
+.container {
+    display: flex;
+    height: 100vh;
+}
+
+.sidebar {
+    width: 250px;
+    border-right: 1px solid #0ff;
+    padding: 10px;
+}
+
+.chat-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.chat {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.input-area {
+    border-top: 1px solid #0ff;
+    padding: 10px;
+}
+
+input, button {
+    width: 100%;
+    padding: 10px;
+    background: transparent;
+    border: 1px solid #0ff;
+    color: #0ff;
+}
+
+.user {
+    text-align: right;
+    margin: 10px;
+}
+
+.bot {
+    text-align: left;
+    margin: 10px;
+}
+
+.model-tag {
+    font-size: 12px;
+    color: cyan;
+    margin-bottom: 5px;
+}
+
+.code-block {
+    background: #000;
+    border: 1px solid cyan;
+    padding: 10px;
+    position: relative;
+}
+
+.copy-btn {
+    position: absolute;
+    right: 5px;
+    top: 5px;
+    cursor: pointer;
+    font-size: 10px;
+}
+
+.topbar {
+    display: flex;
+    gap: 10px;
+    padding: 10px;
+}
+
+.badge {
+    border: 1px solid cyan;
+    padding: 5px;
+    cursor: pointer;
+}
+
+.active {
+    background: cyan;
+    color: black;
+}
+
+/* AUTH POPUP */
+.auth-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border: 1px solid cyan;
+    padding: 20px;
+    background: #020617;
+    display: none;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+    <h3>CIPHER</h3>
+    <button onclick="createNewChat()">+ NEW CHAT</button>
+    <div id="chatList"></div>
+</div>
+
+<!-- CHAT AREA -->
+<div class="chat-area">
+
+    <div class="topbar">
+        <div class="badge active" data-mode="thinking">THINKING</div>
+        <div class="badge" data-mode="fast">FAST</div>
+        <div class="badge" data-mode="programming">PROGRAMMING</div>
+
+        <button onclick="openAuth()">LOGIN</button>
+        <button onclick="googleLogin()">GOOGLE</button>
+    </div>
+
+    <div id="chat" class="chat"></div>
+
+    <div class="input-area">
+        <input id="msg" placeholder="Ask something...">
+        <button onclick="send()">SEND</button>
+    </div>
+
+</div>
+
+</div>
+
+<!-- AUTH MODAL -->
+<div id="authModal" class="auth-modal">
+    <h3 id="authTitle">Login</h3>
+
+    <input id="username" placeholder="Username">
+    <input id="password" type="password" placeholder="Password">
+
+    <button onclick="submitAuth()">Submit</button>
+    <button onclick="toggleAuth()">Switch Mode</button>
+    <button onclick="closeAuth()">X</button>
+</div>
+
 <script>
+
 let chats = {};
 let currentChat = null;
 let currentMode = "thinking";
+let authMode = "login";
 
-let token = localStorage.getItem("token");
+/* =========================
+   TOKEN FIX (WHITE SCREEN FIX)
+========================= */
+const params = new URLSearchParams(window.location.search);
+const token = params.get("token");
 
-// =====================
-// USER NAME DISPLAY
-// =====================
-function getUser(){
-    try{
-        const data = JSON.parse(atob(token.split('.')[1]));
-        return data.username;
-    }catch{
-        return "Guest";
-    }
+if (token) {
+    localStorage.setItem("token", token);
+    window.location.href = "/";
 }
 
+/* =========================
+   INIT
+========================= */
 document.addEventListener("DOMContentLoaded", () => {
-
-    const urlParams = new URLSearchParams(window.location.search);
-    const newToken = urlParams.get("token");
-
-    if(newToken){
-        localStorage.setItem("token", newToken);
-        window.location.href="/";
-    }
-
-    document.getElementById("userName").innerText = getUser();
 
     createNewChat();
 
-    document.querySelectorAll(".badge").forEach(el=>{
-        el.onclick = ()=>{
+    document.querySelectorAll(".badge").forEach(el => {
+        el.onclick = () => {
             currentMode = el.dataset.mode;
-            document.querySelectorAll(".badge").forEach(b=>b.classList.remove("bg-cyan-400"));
-            el.classList.add("bg-cyan-400");
+            document.querySelectorAll(".badge").forEach(b=>b.classList.remove("active"));
+            el.classList.add("active");
         }
     });
+
 });
 
-// =====================
-// CHAT FUNCTIONS
-// =====================
+/* =========================
+   AUTH
+========================= */
+function openAuth(){
+    document.getElementById("authModal").style.display="block";
+}
+
+function closeAuth(){
+    document.getElementById("authModal").style.display="none";
+}
+
+function toggleAuth(){
+    authMode = authMode==="login"?"signup":"login";
+    document.getElementById("authTitle").innerText = authMode;
+}
+
+async function submitAuth(){
+    const u = username.value;
+    const p = password.value;
+
+    const res = await fetch("/"+authMode,{
+        method:"POST",
+        body:new URLSearchParams({username:u,password:p})
+    });
+
+    const data = await res.json();
+
+    if(data.token){
+        localStorage.setItem("token",data.token);
+        closeAuth();
+    } else {
+        alert(JSON.stringify(data));
+    }
+}
+
+function googleLogin(){
+    window.location.href="/auth/google";
+}
+
+/* =========================
+   CHAT SYSTEM
+========================= */
 function createNewChat(){
-    currentChat = "chat_" + Date.now();
-    chats[currentChat] = {title:"New Chat", messages:[], pinned:false};
-    renderList();
+    currentChat="chat_"+Date.now();
+    chats[currentChat]={messages:[]};
     render();
 }
 
-function renderList(){
-    const list = document.getElementById("chatList");
-    list.innerHTML = "";
+function formatMessage(content){
+    const parts = content.split("```");
 
-    Object.keys(chats)
-    .sort((a,b)=>chats[b].pinned - chats[a].pinned)
-    .forEach(id=>{
-        const div = document.createElement("div");
-        div.className="chat-item";
-        div.innerText = chats[id].title;
-
-        div.onclick = ()=>{
-            currentChat=id;
-            render();
-        };
-
-        list.appendChild(div);
-    });
+    return parts.map((p,i)=>{
+        if(i%2===1){
+            return `<div class="code-block">
+            <button class="copy-btn" onclick="copyCode(this)">COPY</button>
+            <pre>${p}</pre></div>`;
+        }
+        return `<div>${p}</div>`;
+    }).join("");
 }
 
-function send(){
-    const input = document.getElementById("msg");
-    if(!input.value.trim()) return;
+function copyCode(btn){
+    const code = btn.parentElement.querySelector("pre").innerText;
+    navigator.clipboard.writeText(code);
+    btn.innerText="COPIED";
+    setTimeout(()=>btn.innerText="COPY",1000);
+}
 
-    const text = input.value;
+function getModelLabel(m){
+    if(m==="programming") return "DOLPHIN";
+    if(m==="fast") return "GROQ";
+    return "CIPHER";
+}
+
+function render(){
+    const chatDiv=document.getElementById("chat");
+    chatDiv.innerHTML="";
+
+    chats[currentChat].messages.forEach(m=>{
+        const div=document.createElement("div");
+        div.className=m.role==="user"?"user":"bot";
+
+        if(m.role==="bot"){
+            const tag=document.createElement("div");
+            tag.className="model-tag";
+            tag.innerText=getModelLabel(m.model);
+            div.appendChild(tag);
+        }
+
+        const text=document.createElement("div");
+        text.innerHTML=formatMessage(m.content);
+
+        div.appendChild(text);
+        chatDiv.appendChild(div);
+    });
+
+    chatDiv.scrollTop=chatDiv.scrollHeight;
+}
+
+async function send(){
+    const input=document.getElementById("msg");
+    const text=input.value;
+
+    if(!text) return;
 
     chats[currentChat].messages.push({role:"user",content:text});
-    
-    if(chats[currentChat].title==="New Chat"){
-        chats[currentChat].title = text.substring(0,25);
-    }
-
     render();
+
     input.value="";
 
-    fetch("/chat",{
-        method:"POST",
-        headers:{
-            "Content-Type":"application/x-www-form-urlencoded",
-            token:localStorage.getItem("token")
-        },
-        body:new URLSearchParams({
-            message:text,
-            chat_id:currentChat,
-            mode:currentMode
-        })
-    })
-    .then(res=>res.json())
-    .then(data=>{
+    try{
+        const res = await fetch("/chat",{
+            method:"POST",
+            headers:{
+                "Content-Type":"application/x-www-form-urlencoded",
+                token:localStorage.getItem("token") || ""
+            },
+            body:new URLSearchParams({
+                message:text,
+                chat_id:currentChat,
+                mode:currentMode
+            })
+        });
+
+        const data = await res.json();
+
         chats[currentChat].messages.push({
             role:"bot",
             content:data.response,
             model:data.model
         });
-        render();
-    });
+
+    }catch{
+        chats[currentChat].messages.push({
+            role:"bot",
+            content:"❌ Error",
+            model:"error"
+        });
+    }
+
+    render();
 }
 
-// =====================
-// SEARCH
-// =====================
-function searchChat(val){
-    document.querySelectorAll(".chat-item").forEach(item=>{
-        item.style.display = item.innerText.toLowerCase().includes(val.toLowerCase()) ? "block":"none";
-    });
-}
-
-// =====================
-// RENDER
-// =====================
-function render(){
-    const chat=document.getElementById("chat");
-    chat.innerHTML="";
-
-    chats[currentChat].messages.forEach(m=>{
-        const div=document.createElement("div");
-        div.className = m.role==="user"?"user":"bot";
-
-        if(m.role==="bot"){
-            const tag=document.createElement("div");
-            tag.className="model-tag";
-            tag.innerText = m.model==="programming"?"DOLPHIN":"GROQ";
-            div.appendChild(tag);
-        }
-
-        const text=document.createElement("div");
-        text.innerText=m.content;
-
-        div.appendChild(text);
-        chat.appendChild(div);
-    });
-
-    chat.scrollTop = chat.scrollHeight;
-}
 </script>
+
+</body>
+</html>
