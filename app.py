@@ -35,24 +35,23 @@ def ping():
 # CHAT (AUTH BYPASSED)
 # =========================
 @app.post("/chat")
-def chat(message: str = Form(...), chat_id: str = Form(...), mode: str = Form(...)):
+def chat(
+    message: str = Form(...),
+    chat_id: str = Form(...),
+    mode: str = Form(...)
+):
     try:
         print("🔥 CHAT:", message)
 
         api_key = os.environ.get("OPENROUTER_API_KEY")
 
         if not api_key:
-            return {"response": "❌ Missing API key"}
+            return {"response": "❌ Missing API key", "model": "error"}
 
         # =========================
         # MODEL SELECTION
         # =========================
-        if mode == "programming":
-            model = "openai/gpt-3.5-turbo"
-        elif mode == "fast":
-            model = "openai/gpt-3.5-turbo"
-        else:
-            model = "openai/gpt-3.5-turbo"
+        model = "openai/gpt-3.5-turbo"
 
         # =========================
         # CIPHER PERSONALITY
@@ -85,8 +84,14 @@ You are CIPHER AI — a cybersecurity assistant.
 
         data = response.json()
 
+        # =========================
+        # ERROR HANDLING
+        # =========================
         if "choices" not in data:
-            return {"response": f"❌ API Error: {data}", "model": mode}
+            return {
+                "response": f"❌ API Error: {data}",
+                "model": mode
+            }
 
         reply = data["choices"][0]["message"]["content"]
 
@@ -99,5 +104,8 @@ You are CIPHER AI — a cybersecurity assistant.
         print("❌ ERROR:", str(e))
         return JSONResponse(
             status_code=500,
-            content={"response": "❌ Server error", "model": "error"}
+            content={
+                "response": "❌ Server error",
+                "model": "error"
+            }
         )
