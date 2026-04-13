@@ -2,7 +2,7 @@ import os
 import requests
 from fastapi import FastAPI, Form, Header
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse, RedirectResponse, JSONResponse
 
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import sessionmaker, declarative_base
@@ -16,7 +16,7 @@ ALGORITHM = "HS256"
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
-engine = create_engine(DATABASE_URL)
+engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
 
@@ -68,82 +68,35 @@ def home():
 @app.post("/signup")
 def signup(username: str = Form(...), password: str = Form(...)):
     db = SessionLocal()
+    try:
+        if db.query(User).filter(User.username == username).first():
+            return {"success": False, "msg": "User exists"}
 
-    if db.query(User).filter(User.username == username).first():
-        return {"msg": "User exists"}
+        user = User(username=username, password=hash_password(password))
+        db.add(user)
+        db.commit()
 
-    user = User(username=username, password=hash_password(password))
-    db.add(user)
-    db.commit()
-
-    return {"msg": "Signup success"}
+        return {"success": True, "msg": "Signup success"}
+    finally:
+        db.close()
 
 @app.post("/login")
 def login(username: str = Form(...), password: str = Form(...)):
     db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.username == username).first()
 
-    user = db.query(User).filter(User.username == username).first()
+        if not user or not verify_password(password, user.password):
+            return {"success": False, "msg": "Invalid credentials"}
 
-    if not user or not verify_password(password, user.password):
-        return {"msg": "Invalid credentials"}
+        token = create_token({
+            "user_id": user.id,
+            "username": user.username
+        })
 
-    token = create_token({
-        "user_id": user.id,
-        "username": user.username
-    })
-
-    return {"token": token}
-
-# ================= GOOGLE AUTH =================
-@app.get("/auth/google")
-def google_login():
-    client_id = os.environ.get("GOOGLE_CLIENT_ID")
-    redirect_uri = "https://cipher-ai-production.up.railway.app/auth/google/callback"
-
-    url = f"https://accounts.google.com/o/oauth2/v2/auth?client_id={client_id}&redirect_uri={redirect_uri}&response_type=code&scope=openid email profile"
-
-    return RedirectResponse(url)
-
-@app.get("/auth/google/callback")
-def google_callback(code: str):
-    db = SessionLocal()
-
-    client_id = os.environ.get("GOOGLE_CLIENT_ID")
-    client_secret = os.environ.get("GOOGLE_CLIENT_SECRET")
-
-    token_res = requests.post(
-        "https://oauth2.googleapis.com/token",
-        data={
-            "code": code,
-            "client_id": client_id,
-            "client_secret": client_secret,
-            "redirect_uri": "https://cipher-ai-production.up.railway.app/auth/google/callback",
-            "grant_type": "authorization_code"
-        }
-    )
-
-    access_token = token_res.json().get("access_token")
-
-    user_res = requests.get(
-        "https://www.googleapis.com/oauth2/v2/userinfo",
-        headers={"Authorization": f"Bearer {access_token}"}
-    )
-
-    email = user_res.json().get("email")
-
-    user = db.query(User).filter(User.username == email).first()
-
-    if not user:
-        user = User(username=email, password="oauth")
-        db.add(user)
-        db.commit()
-
-    jwt_token = create_token({
-        "user_id": user.id,
-        "username": user.username
-    })
-
-    return RedirectResponse(f"/?token={jwt_token}")
+        return {"success": True, "token": token}
+    finally:
+        db.close()
 
 # ================= CHAT =================
 @app.post("/chat")
@@ -156,23 +109,27 @@ def chat(message: str = Form(...), chat_id: str = Form(...), mode: str = Form(..
 
     api_key = os.environ.get("OPENROUTER_API_KEY")
 
-    res = requests.post(
-        "https://openrouter.ai/api/v1/chat/completions",
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        },
-        json={
-            "model": "openai/gpt-3.5-turbo",
-            "messages": [
-                {"role": "system", "content": "You are CIPHER AI."},
-                {"role": "user", "content": message}
-            ]
-        }
-    )
+    try:
+        res = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": "openai/gpt-3.5-turbo",
+                "messages": [
+                    {"role": "system", "content": "You are CIPHER AI."},
+                    {"role": "user", "content": message}
+                ]
+            }
+        )
 
-    data = res.json()
+        data = res.json()
 
-    reply = data.get("choices", [{}])[0].get("message", {}).get("content", "⚠️ Error")
+        reply = data.get("choices", [{}])[0].get("message", {}).get("content", "⚠️ API Error")
 
-    return {"response": reply, "model": mode}
+        return {"response": reply, "model": mode}
+
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"response": str(e)})
