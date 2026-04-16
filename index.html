@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,110 +8,175 @@
 <script src="https://cdn.tailwindcss.com"></script>
 
 <style>
-body {
-    background:#04070d;
-    color:#e6edf3;
-    font-family: monospace;
+:root{
+    --glass-bg: rgba(15, 23, 42, 0.6);
+    --border-glass: rgba(255,255,255,0.08);
+    --primary: #00f2ff;
 }
 
+body {
+    margin:0;
+    background: radial-gradient(circle at top, #0a0f1f, #020617);
+    color:#e6edf3;
+    font-family: 'Inter', monospace;
+}
+
+/* GRID BACKGROUND */
 body::before {
     content:"";
     position:fixed;
     width:100%;
     height:100%;
     background-image:
-        linear-gradient(rgba(0,255,255,0.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0,255,255,0.04) 1px, transparent 1px);
-    background-size:50px 50px;
+        linear-gradient(rgba(0,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,255,255,0.03) 1px, transparent 1px);
+    background-size:40px 40px;
     z-index:-1;
 }
 
-.sidebar { width:260px; background:#0b0f17; border-right:1px solid #1f2937; }
-.header { background:#0b0f17; border-bottom:1px solid #1f2937; }
-
-.badge { padding:8px 16px; border:1px solid #00f2ff; cursor:pointer; }
-
-.input-box {
-    background:#020617;
-    border:1px solid #00f2ff;
-    padding:12px;
-    color:white;
-    width:100%;
+/* GLASS PANEL */
+.glass {
+    background: var(--glass-bg);
+    backdrop-filter: blur(14px);
+    border:1px solid var(--border-glass);
+    border-radius:16px;
 }
 
+/* SIDEBAR */
+.sidebar {
+    width:260px;
+}
+
+/* BUTTON */
 .btn {
-    border:1px solid #00f2ff;
-    padding:12px;
-    color:#00f2ff;
-    cursor:pointer;
+    border:1px solid var(--primary);
+    padding:10px;
+    border-radius:10px;
+    color:var(--primary);
+    transition:0.3s;
 }
 
 .btn:hover {
-    background:#00f2ff;
+    background:var(--primary);
     color:black;
+    box-shadow:0 0 15px var(--primary);
 }
 
-.bot { background:#0d1117; border-left:3px solid #00f2ff; padding:10px; }
-.user { text-align:right; padding:10px; }
+/* INPUT */
+.input-box {
+    background: rgba(2,6,23,0.7);
+    border:1px solid var(--primary);
+    padding:10px;
+    border-radius:10px;
+    width:100%;
+    resize:none;
+}
 
+/* CHAT */
+.bot {
+    background: rgba(13,17,23,0.6);
+    border-left:3px solid var(--primary);
+    padding:10px;
+    border-radius:10px;
+    margin-bottom:10px;
+}
+
+.user {
+    text-align:right;
+    padding:10px;
+}
+
+/* BADGE */
+.badge {
+    padding:6px 14px;
+    border-radius:999px;
+    border:1px solid var(--primary);
+    cursor:pointer;
+    transition:0.3s;
+}
+
+/* MODAL */
 #authModal {
     display:none;
     position:fixed;
     width:100%;
     height:100%;
-    background:rgba(0,0,0,0.8);
+    background:rgba(0,0,0,0.7);
+    backdrop-filter: blur(6px);
     justify-content:center;
     align-items:center;
 }
 
 .modal-box {
-    background:#0b0f17;
-    border:1px solid #00f2ff;
-    padding:20px;
     width:300px;
+    padding:20px;
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+    .sidebar {
+        display:none;
+    }
+
+    .mobile-nav {
+        display:flex;
+    }
 }
 </style>
 </head>
 
-<body class="flex h-screen">
+<body class="flex flex-col h-screen">
 
-<!-- SIDEBAR -->
-<div class="sidebar p-4 flex flex-col justify-between">
-<div>
-<h1 class="text-cyan-400">CIPHER</h1>
-<button onclick="createNewChat()" class="btn mt-2">+ NEW CHAT</button>
+<!-- MOBILE NAV -->
+<div class="mobile-nav hidden p-3 glass justify-between items-center">
+    <span class="text-cyan-400">CIPHER</span>
+    <button onclick="createNewChat()" class="btn">+</button>
 </div>
 
-<div>
-<button class="btn w-full" onclick="openAuth('login')">Login</button>
-<button class="btn w-full mt-2" onclick="openAuth('signup')">Sign Up</button>
-</div>
-</div>
+<div class="flex flex-1 overflow-hidden">
 
-<!-- MAIN -->
-<div class="flex-1 flex flex-col">
+    <!-- SIDEBAR -->
+    <div class="sidebar glass p-4 flex flex-col justify-between hidden md:flex">
+        <div>
+            <h1 class="text-cyan-400 text-xl">CIPHER</h1>
+            <button onclick="createNewChat()" class="btn mt-3 w-full">+ NEW CHAT</button>
+        </div>
 
-<div class="header p-4 flex justify-between">
-<span>RESEARCH TERMINAL</span>
-<div>
-<span class="badge bg-cyan-400" data-mode="thinking">THINKING</span>
-<span class="badge" data-mode="fast">FAST</span>
-<span class="badge" data-mode="programming">PROGRAMMING</span>
-</div>
-</div>
+        <div>
+            <button class="btn w-full" onclick="openAuth('login')">Login</button>
+            <button class="btn w-full mt-2" onclick="openAuth('signup')">Sign Up</button>
+        </div>
+    </div>
 
-<div id="chat" class="flex-1 overflow-y-auto p-4"></div>
+    <!-- MAIN -->
+    <div class="flex-1 flex flex-col p-3 gap-3">
 
-<div class="p-4">
-<textarea id="msg" class="input-box"></textarea>
-<button onclick="send()" class="btn w-full mt-2">SEND</button>
-</div>
+        <!-- HEADER -->
+        <div class="glass p-4 flex justify-between items-center">
+            <span>AI SECURITY TERMINAL</span>
 
+            <div class="flex gap-2">
+                <span class="badge" data-mode="thinking">THINKING</span>
+                <span class="badge" data-mode="fast">FAST</span>
+                <span class="badge" data-mode="programming">CODE</span>
+            </div>
+        </div>
+
+        <!-- CHAT -->
+        <div id="chat" class="flex-1 glass p-4 overflow-y-auto"></div>
+
+        <!-- INPUT -->
+        <div class="glass p-3 flex gap-2">
+            <textarea id="msg" class="input-box flex-1" placeholder="Ask something..."></textarea>
+            <button onclick="send()" class="btn px-6">➤</button>
+        </div>
+
+    </div>
 </div>
 
 <!-- AUTH MODAL -->
 <div id="authModal">
-<div class="modal-box">
+<div class="modal-box glass">
 
 <div class="flex justify-between">
 <span id="authTitle">LOGIN</span>
@@ -123,9 +189,9 @@ body::before {
 <button onclick="submitAuth()" class="btn w-full mt-2">Submit</button>
 <button onclick="toggleAuth()" class="btn w-full mt-2">Switch</button>
 
-<hr>
+<hr class="my-3">
 
-<button onclick="googleLogin()" class="btn w-full mt-2">
+<button onclick="googleLogin()" class="btn w-full">
 Continue with Google
 </button>
 
@@ -133,13 +199,12 @@ Continue with Google
 </div>
 
 <script>
-
 let chats = {};
 let currentChat = null;
 let currentMode = "thinking";
 let authMode = "login";
 
-/* ================= TOKEN HANDLER ================= */
+/* TOKEN HANDLER */
 (function () {
     const params = new URLSearchParams(window.location.search);
     const token = params.get("token");
@@ -150,7 +215,7 @@ let authMode = "login";
     }
 })();
 
-/* ================= AUTH ================= */
+/* AUTH */
 function openAuth(mode){
     authMode = mode;
     authTitle.innerText = mode.toUpperCase();
@@ -184,10 +249,8 @@ async function submitAuth(){
         localStorage.setItem("token", data.token);
         closeAuth();
         alert("Login success ✅");
-
     } else if(data.success){
         alert("Signup successful. Now login.");
-
     } else {
         alert(data.msg || "Error");
     }
@@ -197,7 +260,7 @@ function googleLogin(){
     window.location.href = "/auth/google";
 }
 
-/* ================= CHAT ================= */
+/* CHAT */
 function createNewChat(){
     currentChat = "chat_" + Date.now();
     chats[currentChat] = {messages:[]};
@@ -213,6 +276,8 @@ function render(){
         div.innerText = m.content;
         chat.appendChild(div);
     });
+
+    chat.scrollTop = chat.scrollHeight;
 }
 
 async function send(){
@@ -256,10 +321,19 @@ async function send(){
     render();
 }
 
-/* ================= INIT ================= */
-createNewChat();
+/* MODE SWITCH */
+document.querySelectorAll('.badge').forEach(b=>{
+  b.onclick = ()=>{
+    currentMode = b.dataset.mode;
+    document.querySelectorAll('.badge').forEach(x=>x.style.background="transparent");
+    b.style.background="#00f2ff33";
+  }
+});
 
+/* INIT */
+createNewChat();
 </script>
 
 </body>
 </html>
+```
