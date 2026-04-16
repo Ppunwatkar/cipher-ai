@@ -17,39 +17,20 @@ from jose import jwt
 SECRET_KEY = "cipher_secret"
 ALGORITHM = "HS256"
 
+# ================= DATABASE (FIXED) =================
 DATABASE_URL = os.environ.get("DATABASE_URL")
+
+if not DATABASE_URL:
+    print("⚠️ DATABASE_URL not found → using SQLite fallback")
+    DATABASE_URL = "sqlite:///./local.db"
 
 engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
 
+# ================= AUTH =================
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-app = FastAPI()
-
-# ================= STATIC + TEMPLATES =================
-app.mount("/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="templates")
-
-# ================= CORS =================
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# ================= DATABASE =================
-class User(Base):
-    __tablename__ = "users"
-    id = Column(Integer, primary_key=True)
-    username = Column(String, unique=True)
-    password = Column(String)
-
-Base.metadata.create_all(bind=engine)
-
-# ================= AUTH =================
 def hash_password(p):
     return pwd_context.hash(p)
 
@@ -68,10 +49,42 @@ def get_current_user(authorization: str = Header(None)):
     except:
         return None
 
-# ================= HOME =================
+# ================= APP =================
+app = FastAPI()
+
+# STATIC + TEMPLATES
+app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
+
+# CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ================= DATABASE MODEL =================
+class User(Base):
+    __tablename__ = "users"
+    id = Column(Integer, primary_key=True)
+    username = Column(String, unique=True)
+    password = Column(String)
+
+Base.metadata.create_all(bind=engine)
+
+# ================= ROUTES =================
+
+# HOME (FIXED)
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
+
+# DEBUG ROUTE
+@app.get("/test")
+def test():
+    return {"status": "working"}
 
 # ================= SIGNUP =================
 @app.post("/signup")
