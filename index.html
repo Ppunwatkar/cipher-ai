@@ -9,37 +9,49 @@
 
 <style>
 :root{
-    --glass-bg: rgba(15, 23, 42, 0.6);
-    --border-glass: rgba(255,255,255,0.08);
-    --primary: #00f2ff;
+    --cyan:#00f2ff;
+    --purple:#8b5cf6;
+    --blue:#3b82f6;
 }
 
+/* BASE */
 body {
     margin:0;
-    background: radial-gradient(circle at top, #0a0f1f, #020617);
     color:#e6edf3;
-    font-family: 'Inter', monospace;
+    font-family:'Inter', monospace;
+    background: radial-gradient(circle at 20% 20%, #0f172a, #020617 70%);
+    overflow:hidden;
 }
 
-/* GRID BACKGROUND */
+/* CYBER GRID + NOISE */
 body::before {
     content:"";
     position:fixed;
     width:100%;
     height:100%;
-    background-image:
-        linear-gradient(rgba(0,255,255,0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0,255,255,0.03) 1px, transparent 1px);
-    background-size:40px 40px;
+    background:
+        linear-gradient(rgba(0,255,255,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(139,92,246,0.04) 1px, transparent 1px);
+    background-size:60px 60px;
+    z-index:-2;
+}
+
+body::after{
+    content:"";
+    position:fixed;
+    width:100%;
+    height:100%;
+    background: radial-gradient(circle at 80% 20%, rgba(139,92,246,0.15), transparent 40%);
     z-index:-1;
 }
 
-/* GLASS PANEL */
+/* GLASS */
 .glass {
-    background: var(--glass-bg);
-    backdrop-filter: blur(14px);
-    border:1px solid var(--border-glass);
-    border-radius:16px;
+    background: rgba(15,23,42,0.55);
+    backdrop-filter: blur(18px);
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:18px;
+    box-shadow: 0 0 40px rgba(0,0,0,0.4);
 }
 
 /* SIDEBAR */
@@ -49,50 +61,63 @@ body::before {
 
 /* BUTTON */
 .btn {
-    border:1px solid var(--primary);
+    border:1px solid var(--cyan);
     padding:10px;
-    border-radius:10px;
-    color:var(--primary);
+    border-radius:12px;
+    color:var(--cyan);
     transition:0.3s;
 }
 
 .btn:hover {
-    background:var(--primary);
+    background:linear-gradient(45deg,var(--cyan),var(--purple));
     color:black;
-    box-shadow:0 0 15px var(--primary);
+    box-shadow:0 0 20px var(--cyan);
 }
 
 /* INPUT */
 .input-box {
-    background: rgba(2,6,23,0.7);
-    border:1px solid var(--primary);
-    padding:10px;
-    border-radius:10px;
+    background: rgba(2,6,23,0.8);
+    border:1px solid rgba(255,255,255,0.1);
+    padding:12px;
+    border-radius:12px;
     width:100%;
-    resize:none;
+    color:white;
 }
 
 /* CHAT */
 .bot {
-    background: rgba(13,17,23,0.6);
-    border-left:3px solid var(--primary);
-    padding:10px;
-    border-radius:10px;
+    background: linear-gradient(135deg, rgba(0,242,255,0.1), rgba(139,92,246,0.1));
+    border-left:3px solid var(--cyan);
+    padding:12px;
+    border-radius:12px;
     margin-bottom:10px;
+    animation:fadeIn 0.3s ease;
 }
 
 .user {
     text-align:right;
-    padding:10px;
+    padding:12px;
+    color:#93c5fd;
+    animation:fadeIn 0.3s ease;
 }
 
-/* BADGE */
+/* BADGES */
 .badge {
     padding:6px 14px;
     border-radius:999px;
-    border:1px solid var(--primary);
+    border:1px solid rgba(255,255,255,0.2);
     cursor:pointer;
     transition:0.3s;
+}
+
+.badge:hover {
+    background:rgba(255,255,255,0.1);
+}
+
+/* ANIMATION */
+@keyframes fadeIn {
+    from {opacity:0; transform:translateY(10px);}
+    to {opacity:1; transform:translateY(0);}
 }
 
 /* MODAL */
@@ -101,26 +126,16 @@ body::before {
     position:fixed;
     width:100%;
     height:100%;
-    background:rgba(0,0,0,0.7);
-    backdrop-filter: blur(6px);
+    background:rgba(0,0,0,0.6);
+    backdrop-filter: blur(10px);
     justify-content:center;
     align-items:center;
 }
 
-.modal-box {
-    width:300px;
-    padding:20px;
-}
-
 /* RESPONSIVE */
 @media (max-width: 768px) {
-    .sidebar {
-        display:none;
-    }
-
-    .mobile-nav {
-        display:flex;
-    }
+    .sidebar {display:none;}
+    .mobile-nav {display:flex;}
 }
 </style>
 </head>
@@ -129,7 +144,7 @@ body::before {
 
 <!-- MOBILE NAV -->
 <div class="mobile-nav hidden p-3 glass justify-between items-center">
-    <span class="text-cyan-400">CIPHER</span>
+    <span class="text-cyan-400 font-bold">CIPHER</span>
     <button onclick="createNewChat()" class="btn">+</button>
 </div>
 
@@ -138,8 +153,10 @@ body::before {
     <!-- SIDEBAR -->
     <div class="sidebar glass p-4 flex flex-col justify-between hidden md:flex">
         <div>
-            <h1 class="text-cyan-400 text-xl">CIPHER</h1>
-            <button onclick="createNewChat()" class="btn mt-3 w-full">+ NEW CHAT</button>
+            <h1 class="text-cyan-400 text-xl font-bold">CIPHER</h1>
+            <p class="text-xs opacity-60">AI Cyber Assistant</p>
+
+            <button onclick="createNewChat()" class="btn mt-4 w-full">+ NEW CHAT</button>
         </div>
 
         <div>
@@ -153,10 +170,12 @@ body::before {
 
         <!-- HEADER -->
         <div class="glass p-4 flex justify-between items-center">
-            <span>AI SECURITY TERMINAL</span>
+            <span class="font-semibold tracking-wide">
+                ⚡ AI SECURITY CORE
+            </span>
 
             <div class="flex gap-2">
-                <span class="badge" data-mode="thinking">THINKING</span>
+                <span class="badge" data-mode="thinking">THINK</span>
                 <span class="badge" data-mode="fast">FAST</span>
                 <span class="badge" data-mode="programming">CODE</span>
             </div>
@@ -167,7 +186,7 @@ body::before {
 
         <!-- INPUT -->
         <div class="glass p-3 flex gap-2">
-            <textarea id="msg" class="input-box flex-1" placeholder="Ask something..."></textarea>
+            <textarea id="msg" class="input-box flex-1" placeholder="Ask about security, exploits, tools..."></textarea>
             <button onclick="send()" class="btn px-6">➤</button>
         </div>
 
@@ -176,17 +195,17 @@ body::before {
 
 <!-- AUTH MODAL -->
 <div id="authModal">
-<div class="modal-box glass">
+<div class="glass p-6 w-80">
 
 <div class="flex justify-between">
 <span id="authTitle">LOGIN</span>
 <button onclick="closeAuth()">✕</button>
 </div>
 
-<input id="authUser" class="input-box mt-2" placeholder="Username">
+<input id="authUser" class="input-box mt-3" placeholder="Username">
 <input id="authPass" type="password" class="input-box mt-2" placeholder="Password">
 
-<button onclick="submitAuth()" class="btn w-full mt-2">Submit</button>
+<button onclick="submitAuth()" class="btn w-full mt-3">Submit</button>
 <button onclick="toggleAuth()" class="btn w-full mt-2">Switch</button>
 
 <hr class="my-3">
@@ -204,27 +223,22 @@ let currentChat = null;
 let currentMode = "thinking";
 let authMode = "login";
 
-/* TOKEN HANDLER */
 (function () {
     const params = new URLSearchParams(window.location.search);
     const token = params.get("token");
-
     if (token) {
         localStorage.setItem("token", token);
         window.history.replaceState({}, document.title, "/");
     }
 })();
 
-/* AUTH */
 function openAuth(mode){
     authMode = mode;
     authTitle.innerText = mode.toUpperCase();
     authModal.style.display="flex";
 }
 
-function closeAuth(){
-    authModal.style.display="none";
-}
+function closeAuth(){ authModal.style.display="none"; }
 
 function toggleAuth(){
     authMode = authMode === "login" ? "signup" : "login";
@@ -232,15 +246,10 @@ function toggleAuth(){
 }
 
 async function submitAuth(){
-    const username = authUser.value;
-    const password = authPass.value;
-
     const res = await fetch("/" + authMode,{
         method:"POST",
-        headers:{
-            "Content-Type":"application/x-www-form-urlencoded"
-        },
-        body:new URLSearchParams({username,password})
+        headers:{"Content-Type":"application/x-www-form-urlencoded"},
+        body:new URLSearchParams({username:authUser.value,password:authPass.value})
     });
 
     const data = await res.json();
@@ -250,17 +259,12 @@ async function submitAuth(){
         closeAuth();
         alert("Login success ✅");
     } else if(data.success){
-        alert("Signup successful. Now login.");
-    } else {
-        alert(data.msg || "Error");
-    }
+        alert("Signup successful");
+    } else alert("Error");
 }
 
-function googleLogin(){
-    window.location.href = "/auth/google";
-}
+function googleLogin(){ window.location.href="/auth/google"; }
 
-/* CHAT */
 function createNewChat(){
     currentChat = "chat_" + Date.now();
     chats[currentChat] = {messages:[]};
@@ -268,15 +272,13 @@ function createNewChat(){
 }
 
 function render(){
-    chat.innerHTML = "";
-
+    chat.innerHTML="";
     chats[currentChat].messages.forEach(m=>{
-        const div = document.createElement("div");
-        div.className = m.role === "user" ? "user" : "bot";
-        div.innerText = m.content;
+        const div=document.createElement("div");
+        div.className = m.role==="user"?"user":"bot";
+        div.innerText=m.content;
         chat.appendChild(div);
     });
-
     chat.scrollTop = chat.scrollHeight;
 }
 
@@ -295,7 +297,7 @@ async function send(){
             method:"POST",
             headers:{
                 "Content-Type":"application/x-www-form-urlencoded",
-                ...(token && { "Authorization": "Bearer " + token })
+                ...(token && {"Authorization":"Bearer "+token})
             },
             body:new URLSearchParams({
                 message:text,
@@ -311,7 +313,7 @@ async function send(){
             content:data.response || "⚠️ No response"
         });
 
-    } catch(e){
+    }catch{
         chats[currentChat].messages.push({
             role:"bot",
             content:"❌ Server error"
@@ -321,16 +323,14 @@ async function send(){
     render();
 }
 
-/* MODE SWITCH */
 document.querySelectorAll('.badge').forEach(b=>{
-  b.onclick = ()=>{
-    currentMode = b.dataset.mode;
-    document.querySelectorAll('.badge').forEach(x=>x.style.background="transparent");
-    b.style.background="#00f2ff33";
-  }
+    b.onclick=()=>{
+        currentMode=b.dataset.mode;
+        document.querySelectorAll('.badge').forEach(x=>x.style.background="transparent");
+        b.style.background="linear-gradient(45deg,#00f2ff,#8b5cf6)";
+    }
 });
 
-/* INIT */
 createNewChat();
 </script>
 
