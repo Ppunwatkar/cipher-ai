@@ -1,16 +1,24 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <title>CIPHER AI</title>
 
+<!-- FAVICON -->
+<link rel="icon" href="{{ url_for('static', filename='logo.png') }}">
+
 <script src="https://cdn.tailwindcss.com"></script>
+
+<!-- MARKDOWN + CODE -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 
 <style>
 :root{
     --primary:#8b5cf6;
     --accent:#6366f1;
-    --bg:#020617;
 }
 
 /* BASE */
@@ -22,10 +30,9 @@ body {
         radial-gradient(circle at 20% 20%, rgba(139,92,246,0.15), transparent 40%),
         radial-gradient(circle at 80% 10%, rgba(99,102,241,0.12), transparent 40%),
         #020617;
-    overflow:hidden;
 }
 
-/* GRID TEXTURE */
+/* GRID */
 body::before {
     content:"";
     position:fixed;
@@ -48,8 +55,11 @@ body::before {
 }
 
 /* SIDEBAR */
-.sidebar {
-    width:260px;
+.sidebar { width:260px; }
+
+/* LOGO GLOW */
+.logo {
+    filter: drop-shadow(0 0 8px rgba(139,92,246,0.5));
 }
 
 /* BUTTON */
@@ -58,13 +68,12 @@ body::before {
     padding:10px;
     border-radius:12px;
     color:var(--primary);
-    transition:0.25s ease;
+    transition:0.25s;
 }
-
 .btn:hover {
     background:linear-gradient(45deg,var(--primary),var(--accent));
     color:white;
-    box-shadow:0 0 12px rgba(139,92,246,0.35);
+    box-shadow:0 0 10px rgba(139,92,246,0.3);
 }
 
 /* INPUT */
@@ -84,14 +93,12 @@ body::before {
     padding:12px;
     border-radius:12px;
     margin-bottom:10px;
-    animation:fadeIn 0.3s ease;
 }
 
 .user {
     text-align:right;
     padding:12px;
     color:#c4b5fd;
-    animation:fadeIn 0.3s ease;
 }
 
 /* BADGE */
@@ -100,25 +107,31 @@ body::before {
     border-radius:999px;
     border:1px solid rgba(255,255,255,0.12);
     cursor:pointer;
-    transition:0.2s;
 }
-
 .badge.active {
     background: rgba(139,92,246,0.2);
     border-color: var(--primary);
 }
 
-/* HEADER */
-.header-title {
-    letter-spacing:1px;
-    font-weight:600;
-    color:#ddd6fe;
+/* CODE BLOCK */
+pre {
+    background: rgba(2,6,23,0.9);
+    padding:16px;
+    border-radius:12px;
+    overflow:auto;
+    border:1px solid rgba(255,255,255,0.08);
+    margin-top:10px;
 }
-
-/* ANIMATION */
-@keyframes fadeIn {
-    from {opacity:0; transform:translateY(8px);}
-    to {opacity:1; transform:translateY(0);}
+.copy-btn {
+    position:absolute;
+    top:8px;
+    right:8px;
+    background:rgba(139,92,246,0.2);
+    border:1px solid rgba(255,255,255,0.2);
+    padding:4px 10px;
+    font-size:12px;
+    border-radius:8px;
+    cursor:pointer;
 }
 
 /* MODAL */
@@ -143,75 +156,42 @@ body::before {
 
 <body class="flex flex-col h-screen">
 
-<!-- MOBILE NAV -->
-<div class="mobile-nav hidden p-3 glass justify-between items-center">
-    <span class="text-purple-300 font-bold">CIPHER</span>
-    <button onclick="createNewChat()" class="btn">+</button>
-</div>
-
 <div class="flex flex-1 overflow-hidden">
 
-    <!-- SIDEBAR -->
-    <div class="sidebar glass p-4 flex flex-col justify-between hidden md:flex">
-        <div>
-            <h1 class="text-purple-300 text-xl font-bold">CIPHER</h1>
-            <p class="text-xs opacity-60">AI Cyber Assistant</p>
-
-            <button onclick="createNewChat()" class="btn mt-4 w-full">+ NEW CHAT</button>
+<!-- SIDEBAR -->
+<div class="sidebar glass p-4 flex flex-col justify-between hidden md:flex">
+    <div>
+        <!-- LOGO + NAME -->
+        <div class="flex items-center gap-3">
+            <img src="{{ url_for('static', filename='logo.png') }}" 
+                 class="w-10 h-10 logo rounded-lg">
+            <span class="text-purple-300 text-lg font-bold">CIPHER</span>
         </div>
 
-        <div>
-            <button class="btn w-full" onclick="openAuth('login')">Login</button>
-            <button class="btn w-full mt-2" onclick="openAuth('signup')">Sign Up</button>
-        </div>
-    </div>
+        <p class="text-xs opacity-60 mt-1">AI Cyber Assistant</p>
 
-    <!-- MAIN -->
-    <div class="flex-1 flex flex-col p-3 gap-3">
-
-        <!-- HEADER -->
-        <div class="glass p-4 flex justify-between items-center">
-            <span class="header-title">⚡ AI SECURITY CORE</span>
-
-            <div class="flex gap-2">
-                <span class="badge active" data-mode="thinking">THINK</span>
-                <span class="badge" data-mode="fast">FAST</span>
-                <span class="badge" data-mode="programming">CODE</span>
-            </div>
-        </div>
-
-        <!-- CHAT -->
-        <div id="chat" class="flex-1 glass p-4 overflow-y-auto"></div>
-
-        <!-- INPUT -->
-        <div class="glass p-3 flex gap-2">
-            <textarea id="msg" class="input-box flex-1" placeholder="Ask about cybersecurity, tools, exploits..."></textarea>
-            <button onclick="send()" class="btn px-6">➤</button>
-        </div>
-
+        <button onclick="createNewChat()" class="btn mt-4 w-full">+ NEW CHAT</button>
     </div>
 </div>
 
-<!-- AUTH MODAL -->
-<div id="authModal">
-<div class="glass p-6 w-80">
+<!-- MAIN -->
+<div class="flex-1 flex flex-col p-3 gap-3">
 
-<div class="flex justify-between">
-<span id="authTitle">LOGIN</span>
-<button onclick="closeAuth()">✕</button>
+<div class="glass p-4 flex justify-between">
+    <span>⚡ AI SECURITY CORE</span>
+    <div class="flex gap-2">
+        <span class="badge active" data-mode="thinking">THINK</span>
+        <span class="badge" data-mode="fast">FAST</span>
+        <span class="badge" data-mode="programming">CODE</span>
+    </div>
 </div>
 
-<input id="authUser" class="input-box mt-3" placeholder="Username">
-<input id="authPass" type="password" class="input-box mt-2" placeholder="Password">
+<div id="chat" class="flex-1 glass p-4 overflow-y-auto"></div>
 
-<button onclick="submitAuth()" class="btn w-full mt-3">Submit</button>
-<button onclick="toggleAuth()" class="btn w-full mt-2">Switch</button>
-
-<hr class="my-3">
-
-<button onclick="googleLogin()" class="btn w-full">
-Continue with Google
-</button>
+<div class="glass p-3 flex gap-2">
+    <textarea id="msg" class="input-box flex-1"></textarea>
+    <button onclick="send()" class="btn px-6">➤</button>
+</div>
 
 </div>
 </div>
@@ -220,56 +200,7 @@ Continue with Google
 let chats = {};
 let currentChat = null;
 let currentMode = "thinking";
-let authMode = "login";
 
-/* TOKEN */
-(function () {
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get("token");
-    if (token) {
-        localStorage.setItem("token", token);
-        window.history.replaceState({}, document.title, "/");
-    }
-})();
-
-/* AUTH */
-function openAuth(mode){
-    authMode = mode;
-    authTitle.innerText = mode.toUpperCase();
-    authModal.style.display="flex";
-}
-
-function closeAuth(){ authModal.style.display="none"; }
-
-function toggleAuth(){
-    authMode = authMode === "login" ? "signup" : "login";
-    authTitle.innerText = authMode.toUpperCase();
-}
-
-async function submitAuth(){
-    const res = await fetch("/" + authMode,{
-        method:"POST",
-        headers:{"Content-Type":"application/x-www-form-urlencoded"},
-        body:new URLSearchParams({
-            username:authUser.value,
-            password:authPass.value
-        })
-    });
-
-    const data = await res.json();
-
-    if(data.success && data.token){
-        localStorage.setItem("token", data.token);
-        closeAuth();
-        alert("Login success ✅");
-    } else if(data.success){
-        alert("Signup successful");
-    } else alert("Error");
-}
-
-function googleLogin(){ window.location.href="/auth/google"; }
-
-/* CHAT */
 function createNewChat(){
     currentChat = "chat_" + Date.now();
     chats[currentChat] = {messages:[]};
@@ -278,12 +209,33 @@ function createNewChat(){
 
 function render(){
     chat.innerHTML="";
+
     chats[currentChat].messages.forEach(m=>{
         const div=document.createElement("div");
         div.className = m.role==="user"?"user":"bot";
-        div.innerText=m.content;
+
+        div.innerHTML = marked.parse(m.content);
+
+        div.querySelectorAll('pre code').forEach(block => {
+            hljs.highlightElement(block);
+
+            const btn=document.createElement("button");
+            btn.innerText="Copy";
+            btn.className="copy-btn";
+
+            btn.onclick=()=>{
+                navigator.clipboard.writeText(block.innerText);
+                btn.innerText="Copied!";
+                setTimeout(()=>btn.innerText="Copy",1500);
+            };
+
+            block.parentElement.style.position="relative";
+            block.parentElement.appendChild(btn);
+        });
+
         chat.appendChild(div);
     });
+
     chat.scrollTop = chat.scrollHeight;
 }
 
@@ -291,44 +243,30 @@ async function send(){
     const text = msg.value;
     if(!text) return;
 
-    const token = localStorage.getItem("token");
-
     chats[currentChat].messages.push({role:"user",content:text});
     render();
     msg.value="";
 
-    try{
-        const res = await fetch("/chat",{
-            method:"POST",
-            headers:{
-                "Content-Type":"application/x-www-form-urlencoded",
-                ...(token && {"Authorization":"Bearer "+token})
-            },
-            body:new URLSearchParams({
-                message:text,
-                chat_id:currentChat,
-                mode:currentMode
-            })
-        });
+    const res = await fetch("/chat",{
+        method:"POST",
+        headers:{"Content-Type":"application/x-www-form-urlencoded"},
+        body:new URLSearchParams({
+            message:text,
+            chat_id:currentChat,
+            mode:currentMode
+        })
+    });
 
-        const data = await res.json();
+    const data = await res.json();
 
-        chats[currentChat].messages.push({
-            role:"bot",
-            content:data.response || "⚠️ No response"
-        });
-
-    }catch{
-        chats[currentChat].messages.push({
-            role:"bot",
-            content:"❌ Server error"
-        });
-    }
+    chats[currentChat].messages.push({
+        role:"bot",
+        content:data.response || "⚠️ No response"
+    });
 
     render();
 }
 
-/* MODE SWITCH */
 document.querySelectorAll('.badge').forEach(b=>{
     b.onclick=()=>{
         currentMode=b.dataset.mode;
@@ -342,3 +280,4 @@ createNewChat();
 
 </body>
 </html>
+```
