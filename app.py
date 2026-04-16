@@ -20,7 +20,11 @@ ALGORITHM = "HS256"
 # ================= DATABASE (FIXED) =================
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
-if not DATABASE_URL:
+if DATABASE_URL:
+    # Fix Railway postgres URL
+    if DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://")
+else:
     print("⚠️ DATABASE_URL not found → using SQLite fallback")
     DATABASE_URL = "sqlite:///./local.db"
 
@@ -52,11 +56,20 @@ def get_current_user(authorization: str = Header(None)):
 # ================= APP =================
 app = FastAPI()
 
-# STATIC + TEMPLATES
-app.mount("/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="templates")
+# ================= SAFE STATIC =================
+if os.path.exists("static"):
+    app.mount("/static", StaticFiles(directory="static"), name="static")
+else:
+    print("⚠️ static folder not found")
 
-# CORS
+# ================= SAFE TEMPLATES =================
+if os.path.exists("templates"):
+    templates = Jinja2Templates(directory="templates")
+else:
+    templates = None
+    print("⚠️ templates folder not found")
+
+# ================= CORS =================
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -76,15 +89,17 @@ Base.metadata.create_all(bind=engine)
 
 # ================= ROUTES =================
 
-# HOME (FIXED)
+# 🔥 HEALTH CHECK (CRITICAL FOR DEBUG)
+@app.get("/health")
+def health():
+    return {"status": "alive"}
+
+# HOME
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
-
-# DEBUG ROUTE
-@app.get("/test")
-def test():
-    return {"status": "working"}
+    if templates:
+        return templates.TemplateResponse("index.html", {"request": request})
+    return HTMLResponse("<h1>⚠️ Templates not found</h1>")
 
 # ================= SIGNUP =================
 @app.post("/signup")
