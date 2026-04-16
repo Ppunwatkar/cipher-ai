@@ -9,3 +9,4 @@ authlib
 httpx
 itsdangerous
 psycopg2
+jinja2
