@@ -1,4 +1,4 @@
-
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,49 +9,43 @@
 
 <style>
 :root{
-    --cyan:#00f2ff;
-    --purple:#8b5cf6;
-    --blue:#3b82f6;
+    --primary:#8b5cf6;
+    --accent:#6366f1;
+    --bg:#020617;
 }
 
 /* BASE */
 body {
     margin:0;
-    color:#e6edf3;
+    color:#e5e7eb;
     font-family:'Inter', monospace;
-    background: radial-gradient(circle at 20% 20%, #0f172a, #020617 70%);
+    background:
+        radial-gradient(circle at 20% 20%, rgba(139,92,246,0.15), transparent 40%),
+        radial-gradient(circle at 80% 10%, rgba(99,102,241,0.12), transparent 40%),
+        #020617;
     overflow:hidden;
 }
 
-/* CYBER GRID + NOISE */
+/* GRID TEXTURE */
 body::before {
     content:"";
     position:fixed;
     width:100%;
     height:100%;
     background:
-        linear-gradient(rgba(0,255,255,0.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(139,92,246,0.04) 1px, transparent 1px);
+        linear-gradient(rgba(139,92,246,0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(99,102,241,0.05) 1px, transparent 1px);
     background-size:60px 60px;
-    z-index:-2;
-}
-
-body::after{
-    content:"";
-    position:fixed;
-    width:100%;
-    height:100%;
-    background: radial-gradient(circle at 80% 20%, rgba(139,92,246,0.15), transparent 40%);
     z-index:-1;
 }
 
 /* GLASS */
 .glass {
-    background: rgba(15,23,42,0.55);
-    backdrop-filter: blur(18px);
+    background: rgba(15,23,42,0.6);
+    backdrop-filter: blur(16px);
     border:1px solid rgba(255,255,255,0.08);
     border-radius:18px;
-    box-shadow: 0 0 40px rgba(0,0,0,0.4);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.4);
 }
 
 /* SIDEBAR */
@@ -61,23 +55,23 @@ body::after{
 
 /* BUTTON */
 .btn {
-    border:1px solid var(--cyan);
+    border:1px solid var(--primary);
     padding:10px;
     border-radius:12px;
-    color:var(--cyan);
-    transition:0.3s;
+    color:var(--primary);
+    transition:0.25s ease;
 }
 
 .btn:hover {
-    background:linear-gradient(45deg,var(--cyan),var(--purple));
-    color:black;
-    box-shadow:0 0 20px var(--cyan);
+    background:linear-gradient(45deg,var(--primary),var(--accent));
+    color:white;
+    box-shadow:0 0 12px rgba(139,92,246,0.35);
 }
 
 /* INPUT */
 .input-box {
     background: rgba(2,6,23,0.8);
-    border:1px solid rgba(255,255,255,0.1);
+    border:1px solid rgba(255,255,255,0.08);
     padding:12px;
     border-radius:12px;
     width:100%;
@@ -86,8 +80,8 @@ body::after{
 
 /* CHAT */
 .bot {
-    background: linear-gradient(135deg, rgba(0,242,255,0.1), rgba(139,92,246,0.1));
-    border-left:3px solid var(--cyan);
+    background: linear-gradient(135deg, rgba(139,92,246,0.12), rgba(99,102,241,0.08));
+    border-left:3px solid var(--primary);
     padding:12px;
     border-radius:12px;
     margin-bottom:10px;
@@ -97,26 +91,34 @@ body::after{
 .user {
     text-align:right;
     padding:12px;
-    color:#93c5fd;
+    color:#c4b5fd;
     animation:fadeIn 0.3s ease;
 }
 
-/* BADGES */
+/* BADGE */
 .badge {
     padding:6px 14px;
     border-radius:999px;
-    border:1px solid rgba(255,255,255,0.2);
+    border:1px solid rgba(255,255,255,0.12);
     cursor:pointer;
-    transition:0.3s;
+    transition:0.2s;
 }
 
-.badge:hover {
-    background:rgba(255,255,255,0.1);
+.badge.active {
+    background: rgba(139,92,246,0.2);
+    border-color: var(--primary);
+}
+
+/* HEADER */
+.header-title {
+    letter-spacing:1px;
+    font-weight:600;
+    color:#ddd6fe;
 }
 
 /* ANIMATION */
 @keyframes fadeIn {
-    from {opacity:0; transform:translateY(10px);}
+    from {opacity:0; transform:translateY(8px);}
     to {opacity:1; transform:translateY(0);}
 }
 
@@ -133,9 +135,9 @@ body::after{
 }
 
 /* RESPONSIVE */
-@media (max-width: 768px) {
-    .sidebar {display:none;}
-    .mobile-nav {display:flex;}
+@media (max-width:768px){
+    .sidebar{display:none;}
+    .mobile-nav{display:flex;}
 }
 </style>
 </head>
@@ -144,7 +146,7 @@ body::after{
 
 <!-- MOBILE NAV -->
 <div class="mobile-nav hidden p-3 glass justify-between items-center">
-    <span class="text-cyan-400 font-bold">CIPHER</span>
+    <span class="text-purple-300 font-bold">CIPHER</span>
     <button onclick="createNewChat()" class="btn">+</button>
 </div>
 
@@ -153,7 +155,7 @@ body::after{
     <!-- SIDEBAR -->
     <div class="sidebar glass p-4 flex flex-col justify-between hidden md:flex">
         <div>
-            <h1 class="text-cyan-400 text-xl font-bold">CIPHER</h1>
+            <h1 class="text-purple-300 text-xl font-bold">CIPHER</h1>
             <p class="text-xs opacity-60">AI Cyber Assistant</p>
 
             <button onclick="createNewChat()" class="btn mt-4 w-full">+ NEW CHAT</button>
@@ -170,12 +172,10 @@ body::after{
 
         <!-- HEADER -->
         <div class="glass p-4 flex justify-between items-center">
-            <span class="font-semibold tracking-wide">
-                ⚡ AI SECURITY CORE
-            </span>
+            <span class="header-title">⚡ AI SECURITY CORE</span>
 
             <div class="flex gap-2">
-                <span class="badge" data-mode="thinking">THINK</span>
+                <span class="badge active" data-mode="thinking">THINK</span>
                 <span class="badge" data-mode="fast">FAST</span>
                 <span class="badge" data-mode="programming">CODE</span>
             </div>
@@ -186,7 +186,7 @@ body::after{
 
         <!-- INPUT -->
         <div class="glass p-3 flex gap-2">
-            <textarea id="msg" class="input-box flex-1" placeholder="Ask about security, exploits, tools..."></textarea>
+            <textarea id="msg" class="input-box flex-1" placeholder="Ask about cybersecurity, tools, exploits..."></textarea>
             <button onclick="send()" class="btn px-6">➤</button>
         </div>
 
@@ -223,6 +223,7 @@ let currentChat = null;
 let currentMode = "thinking";
 let authMode = "login";
 
+/* TOKEN */
 (function () {
     const params = new URLSearchParams(window.location.search);
     const token = params.get("token");
@@ -232,6 +233,7 @@ let authMode = "login";
     }
 })();
 
+/* AUTH */
 function openAuth(mode){
     authMode = mode;
     authTitle.innerText = mode.toUpperCase();
@@ -249,7 +251,10 @@ async function submitAuth(){
     const res = await fetch("/" + authMode,{
         method:"POST",
         headers:{"Content-Type":"application/x-www-form-urlencoded"},
-        body:new URLSearchParams({username:authUser.value,password:authPass.value})
+        body:new URLSearchParams({
+            username:authUser.value,
+            password:authPass.value
+        })
     });
 
     const data = await res.json();
@@ -265,6 +270,7 @@ async function submitAuth(){
 
 function googleLogin(){ window.location.href="/auth/google"; }
 
+/* CHAT */
 function createNewChat(){
     currentChat = "chat_" + Date.now();
     chats[currentChat] = {messages:[]};
@@ -323,11 +329,12 @@ async function send(){
     render();
 }
 
+/* MODE SWITCH */
 document.querySelectorAll('.badge').forEach(b=>{
     b.onclick=()=>{
         currentMode=b.dataset.mode;
-        document.querySelectorAll('.badge').forEach(x=>x.style.background="transparent");
-        b.style.background="linear-gradient(45deg,#00f2ff,#8b5cf6)";
+        document.querySelectorAll('.badge').forEach(x=>x.classList.remove("active"));
+        b.classList.add("active");
     }
 });
 
