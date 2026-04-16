@@ -2,7 +2,10 @@ import os
 import requests
 from fastapi import FastAPI, Form, Header
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, RedirectResponse, JSONResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from starlette.requests import Request
 
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import sessionmaker, declarative_base
@@ -24,6 +27,11 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 app = FastAPI()
 
+# ================= STATIC + TEMPLATES =================
+app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
+
+# ================= CORS =================
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -41,7 +49,7 @@ class User(Base):
 
 Base.metadata.create_all(bind=engine)
 
-# ================= AUTH UTILS =================
+# ================= AUTH =================
 def hash_password(p):
     return pwd_context.hash(p)
 
@@ -60,10 +68,10 @@ def get_current_user(authorization: str = Header(None)):
     except:
         return None
 
-# ================= ROUTES =================
-@app.get("/")
-def home():
-    return FileResponse("index.html")
+# ================= HOME =================
+@app.get("/", response_class=HTMLResponse)
+def home(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
 
 # ================= SIGNUP =================
 @app.post("/signup")
@@ -74,10 +82,7 @@ def signup(username: str = Form(...), password: str = Form(...)):
         if existing:
             return {"success": False, "msg": "User already exists"}
 
-        user = User(
-            username=username,
-            password=hash_password(password)
-        )
+        user = User(username=username, password=hash_password(password))
         db.add(user)
         db.commit()
 
@@ -105,9 +110,6 @@ def login(username: str = Form(...), password: str = Form(...)):
         })
 
         return {"success": True, "token": token}
-
-    except Exception as e:
-        return {"success": False, "msg": str(e)}
 
     finally:
         db.close()
@@ -170,9 +172,6 @@ def google_callback(code: str):
 
         return RedirectResponse(f"/?token={jwt_token}")
 
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
-
     finally:
         db.close()
 
@@ -185,8 +184,6 @@ def chat(
     authorization: str = Header(None)
 ):
     user = get_current_user(authorization)
-
-    # ✅ Guest allowed
     if not user:
         user = {"username": "guest"}
 
@@ -209,13 +206,12 @@ def chat(
         )
 
         data = response.json()
-
         reply = data.get("choices", [{}])[0].get("message", {}).get("content")
 
         if not reply:
-            return {"response": "⚠️ Model error", "model": mode}
+            return {"response": "⚠️ Model error"}
 
-        return {"response": reply, "model": mode}
+        return {"response": reply}
 
     except Exception as e:
         return JSONResponse(
