@@ -1,5 +1,5 @@
 fastapi
-uvicorn
+uvicorn[standard]
 requests
 python-multipart
 sqlalchemy
@@ -8,7 +8,6 @@ python-jose
 authlib
 httpx
 itsdangerous
-psycopg2
-jinja2
 psycopg2-binary
+jinja2
 python-dotenv
