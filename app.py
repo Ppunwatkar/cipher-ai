@@ -6,6 +6,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from sqlalchemy import create_engine, Column, Integer, String, Text
 from sqlalchemy.orm import sessionmaker, declarative_base
 from passlib.context import CryptContext
+from pathlib import Path
 from jose import jwt
 
 # ================= CONFIG =================
