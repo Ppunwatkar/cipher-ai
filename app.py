@@ -79,15 +79,23 @@ app.add_middleware(
 def health():
     return {"status": "alive"}
 
+# ================= DB CHECK =================
+@app.get("/db-check")
+def db_check():
+    try:
+        db = SessionLocal()
+        db.execute("SELECT 1")
+        return {"status": "DB connected"}
+    except Exception as e:
+        return {"error": str(e)}
+
 # ================= HOME =================
 @app.get("/", response_class=HTMLResponse)
 def home():
     try:
         base_dir = Path(__file__).parent
         file_path = base_dir / "templates" / "index.html"
-
         return HTMLResponse(file_path.read_text(encoding="utf-8"))
-
     except Exception as e:
         return HTMLResponse(f"<h1>UI Error: {str(e)}</h1>")
 
@@ -105,6 +113,7 @@ def signup(username: str = Form(...), password: str = Form(...)):
 
         return {"success": True}
     except Exception as e:
+        db.rollback()
         return {"success": False, "msg": str(e)}
     finally:
         db.close()
@@ -137,54 +146,63 @@ def chat(
     authorization: str = Header(None)
 ):
     db = SessionLocal()
-    user = get_user(authorization)
 
     try:
-        # SAVE USER MESSAGE
-        db.add(Message(chat_id=chat_id, role="user", content=message))
+        # ================= SAVE USER MESSAGE =================
+        user_msg = Message(chat_id=chat_id, role="user", content=message)
+        db.add(user_msg)
         db.commit()
 
-        # ================= MODEL =================
+        # ================= MODEL CALL =================
         api_key = os.environ.get("OPENROUTER_API_KEY")
 
         if not api_key:
-            return {"response": "⚠️ API key missing"}
+            reply = "⚠️ OPENROUTER_API_KEY missing"
+        else:
+            try:
+                response = requests.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {api_key}",
+                        "Content-Type": "application/json"
+                    },
+                    json={
+                        "model": "openai/gpt-3.5-turbo",
+                        "messages": [
+                            {"role": "system", "content": "You are a cybersecurity assistant."},
+                            {"role": "user", "content": message}
+                        ]
+                    },
+                    timeout=15
+                )
 
-        response = requests.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json"
-            },
-            json={
-                "model": "openai/gpt-3.5-turbo",
-                "messages": [
-                    {"role": "system", "content": "You are a cybersecurity assistant."},
-                    {"role": "user", "content": message}
-                ]
-            }
-        )
+                print("MODEL STATUS:", response.status_code)
+                print("MODEL RAW:", response.text)
 
-        print("STATUS:", response.status_code)
-        print("RESPONSE:", response.text)
+                if response.status_code != 200:
+                    reply = f"⚠️ Model HTTP {response.status_code}"
+                else:
+                    data = response.json()
+                    reply = data.get("choices", [{}])[0].get("message", {}).get("content")
 
-        data = response.json()
+                    if not reply:
+                        reply = "⚠️ Empty model response"
 
-        reply = data.get("choices", [{}])[0].get("message", {}).get("content")
+            except Exception as model_err:
+                reply = f"⚠️ Model failed: {str(model_err)}"
 
-        if not reply:
-            reply = "⚠️ Model error"
-
-        # SAVE BOT MESSAGE
-        db.add(Message(chat_id=chat_id, role="assistant", content=reply))
+        # ================= SAVE BOT MESSAGE =================
+        bot_msg = Message(chat_id=chat_id, role="assistant", content=reply)
+        db.add(bot_msg)
         db.commit()
 
         return {"response": reply}
 
     except Exception as e:
+        db.rollback()
         return JSONResponse(
             status_code=500,
-            content={"response": f"❌ Error: {str(e)}"}
+            content={"response": f"❌ Backend error: {str(e)}"}
         )
 
     finally:
