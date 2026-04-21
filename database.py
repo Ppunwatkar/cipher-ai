@@ -1,21 +1,16 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Text
-from database import Base
+import os
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, declarative_base
 
-class User(Base):
-    __tablename__ = "users"
-    id = Column(Integer, primary_key=True, index=True)
-    email = Column(String, unique=True)
-    password = Column(String)
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-class Chat(Base):
-    __tablename__ = "chats"
-    id = Column(String, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    title = Column(String)
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL not set")
 
-class Message(Base):
-    __tablename__ = "messages"
-    id = Column(Integer, primary_key=True, index=True)
-    chat_id = Column(String, ForeignKey("chats.id"))
-    role = Column(String)
-    content = Column(Text)
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+
+SessionLocal = sessionmaker(bind=engine)
+Base = declarative_base()
