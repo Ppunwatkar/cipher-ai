@@ -82,8 +82,11 @@ def health():
 @app.get("/", response_class=HTMLResponse)
 def home():
     try:
-        with open("index.html", "r", encoding="utf-8") as f:
-            return HTMLResponse(f.read())
+        base_dir = Path(__file__).parent
+        file_path = base_dir / "templates" / "index.html"
+
+        return HTMLResponse(file_path.read_text(encoding="utf-8"))
+
     except Exception as e:
         return HTMLResponse(f"<h1>UI Error: {str(e)}</h1>")
 
