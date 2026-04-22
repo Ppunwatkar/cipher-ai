@@ -1,151 +1,49 @@
-<!-- templates/index.html -->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>CIPHER AI</title>
+<!-- PATCH ONLY : replace USER CARD + MENU + AUTH MODAL + JS -->
 
-<script src="https://cdn.tailwindcss.com"></script>
-
-<style>
-body{
-    margin:0;
-    background:linear-gradient(135deg,#020617,#07113b,#020617);
-    color:white;
-    overflow:hidden;
-    font-family:Consolas, monospace;
-}
-
-/* scrollbar */
-.scrollbar::-webkit-scrollbar{width:5px}
-.scrollbar::-webkit-scrollbar-thumb{
-    background:#7c3aed;
-    border-radius:10px;
-}
-
-/* glass */
-.glass{
-    background:rgba(10,15,40,.68);
-    backdrop-filter:blur(16px);
-}
-
-/* chat cards */
-.msgbox{
-    background:rgba(80,60,180,.16);
-    border-left:2px solid #8b5cf6;
-    border-radius:18px;
-    padding:16px;
-}
-
-/* input */
-.inputbox{
-    background:#030712;
-    border:1px solid rgba(255,255,255,.08);
-    color:white;
-}
-.inputbox:focus{
-    border-color:#8b5cf6;
-    outline:none;
-}
-
-/* buttons */
-.copyBtn{
-    font-size:11px;
-    padding:5px 10px;
-    border-radius:10px;
-    border:1px solid rgba(255,255,255,.08);
-    background:rgba(255,255,255,.04);
-}
-
-/* code blocks */
-pre{
-    background:#020617;
-    border:1px solid rgba(255,255,255,.05);
-    border-radius:14px;
-    padding:14px;
-    margin-top:10px;
-    overflow:auto;
-    font-size:14px;
-    line-height:1.6;
-    white-space:pre-wrap;
-}
-code{
-    color:#c4b5fd;
-}
-
-.aiText{
-    font-size:15px;
-    line-height:1.8;
-    color:#f8fafc;
-}
-
-/* loading */
-.typingDots span{
-    animation:blink 1.1s infinite;
-}
-.typingDots span:nth-child(2){animation-delay:.2s}
-.typingDots span:nth-child(3){animation-delay:.4s}
-
-@keyframes blink{
-0%,80%,100%{opacity:.2}
-40%{opacity:1}
-}
-</style>
-</head>
-
-<body>
-
-<div class="h-screen flex gap-3 p-3">
-
-<!-- ================= SIDEBAR ================= -->
-<div class="w-[310px] glass rounded-3xl border border-white/10 p-4 flex flex-col">
-
-<!-- logo -->
-<div class="flex items-center gap-3 mb-4">
-<img src="/static/logo.png" class="w-11 h-11 rounded-xl">
-<div>
-<div class="text-3xl text-violet-300 tracking-widest">CIPHER</div>
-<div class="text-xs text-white/55">AI Cyber Assistant</div>
-</div>
-</div>
-
-<!-- new chat -->
-<button onclick="newChat()"
-class="w-full rounded-2xl border border-violet-500 py-3 mb-4 hover:bg-violet-500/10">
-+ NEW CHAT
-</button>
-
-<!-- history -->
-<div id="historyBox"
-class="flex-1 overflow-y-auto scrollbar space-y-2 pr-1"></div>
-
-<!-- user -->
-<div class="mt-4 relative">
+<!-- ================= USER CARD ================= -->
+<div class="mt-3 relative">
 
 <div onclick="toggleMenu()"
-class="bg-[#0b1238] rounded-3xl border border-white/10 p-4 cursor-pointer">
+class="bg-[#0b1238] rounded-2xl border border-white/10 px-4 py-3 cursor-pointer hover:border-violet-500 transition">
 
 <div class="flex items-center gap-3">
 
 <div id="avatar"
-class="w-12 h-12 rounded-full bg-slate-600 flex items-center justify-center font-bold">
+class="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center text-sm font-bold">
 GU
 </div>
 
 <div class="flex-1 min-w-0">
-<div id="username" class="truncate">Guest User</div>
-<div class="text-xs text-white/45">Member</div>
+<div id="username" class="truncate text-[14px]">Guest User</div>
+<div id="memberType" class="text-[11px] text-white/45">Guest</div>
 </div>
 
-<div>›</div>
+<div class="text-sm">›</div>
 
 </div>
 </div>
 
-<!-- dropdown -->
+<!-- MENU -->
 <div id="menu"
-class="hidden absolute bottom-20 left-0 w-72 bg-[#1c1c1c] rounded-3xl border border-white/10 p-3 z-50">
+class="hidden absolute bottom-16 left-0 w-64 bg-[#161616] rounded-2xl border border-white/10 p-2 z-50 shadow-2xl">
+
+<!-- guest menu -->
+<div id="guestMenu">
+
+<button onclick="openAuth('login')"
+class="w-full text-left px-3 py-2 rounded-xl hover:bg-white/10">
+Login
+</button>
+
+<button onclick="openAuth('signup')"
+class="w-full text-left px-3 py-2 rounded-xl hover:bg-white/10">
+Sign Up
+</button>
+
+</div>
+
+<!-- user menu -->
+<div id="userMenu" class="hidden">
 
 <button onclick="openProfile()"
 class="w-full text-left px-3 py-2 rounded-xl hover:bg-white/10">
@@ -163,339 +61,218 @@ Logout
 </button>
 
 </div>
+
 </div>
 </div>
 
-<!-- ================= MAIN ================= -->
-<div class="flex-1 flex flex-col gap-3">
 
-<!-- top -->
-<div class="glass rounded-3xl border border-white/10 px-8 py-5 flex justify-between items-center">
 
-<div class="text-violet-300 tracking-widest text-lg">
-⚡ AI SECURITY CORE
-</div>
+<!-- ================= LOGIN / SIGNUP MODAL ================= -->
+<div id="authModal"
+class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center">
 
-<div class="flex gap-2">
+<div class="w-[420px] max-w-[94%] rounded-2xl glass border border-white/10 p-7 relative">
 
-<button id="thinkingBtn"
-onclick="setMode('thinking')"
-class="modeBtn px-6 py-3 rounded-full border border-white/10">
-THINK
+<button onclick="closeAuth()"
+class="absolute right-4 top-3 text-2xl text-white/60 hover:text-white">
+✕
 </button>
 
-<button id="fastBtn"
-onclick="setMode('fast')"
-class="modeBtn px-6 py-3 rounded-full border border-violet-500 bg-violet-500/20">
-FAST
-</button>
-
-<button id="codeBtn"
-onclick="setMode('code')"
-class="modeBtn px-6 py-3 rounded-full border border-white/10">
-CODE
-</button>
-
-</div>
+<div class="text-4xl text-violet-300 tracking-widest mb-2">
+CIPHER
 </div>
 
-<!-- chat -->
-<div id="chatBox"
-class="flex-1 glass rounded-3xl border border-white/10 p-6 overflow-y-auto scrollbar space-y-5"></div>
+<div class="text-sm text-white/55 mb-6">
+Secure AI Access
+</div>
 
-<!-- input -->
-<div class="glass rounded-3xl border border-white/10 p-3 flex gap-3 items-end">
+<input id="authEmail"
+placeholder="Email"
+class="inputbox w-full rounded-xl px-4 py-3 mb-3 text-sm">
 
-<textarea id="prompt"
-rows="2"
-placeholder="Ask anything..."
-class="inputbox flex-1 rounded-2xl resize-none px-5 py-4 text-lg placeholder-white/30"></textarea>
+<div class="relative mb-4">
 
-<button onclick="sendMsg()"
-class="w-24 h-20 rounded-2xl bg-violet-500 hover:bg-violet-600 text-xl">
-➤
+<input id="authPass"
+type="password"
+placeholder="Password"
+class="inputbox w-full rounded-xl px-4 py-3 pr-12 text-sm">
+
+<button onclick="togglePassword()"
+class="absolute right-3 top-3 text-sm text-white/60">
+👁
 </button>
 
 </div>
 
+<button id="authBtn"
+onclick="submitAuth()"
+class="w-full rounded-xl bg-violet-500 hover:bg-violet-600 py-3 text-sm mb-4">
+Login
+</button>
+
+<div class="text-center text-sm">
+
+<span id="switchText">Don't have an account?</span>
+
+<button onclick="switchAuthMode()"
+class="text-violet-300 ml-1">
+Sign Up
+</button>
+
+</div>
+
+<div id="authMsg" class="text-red-300 text-sm mt-4"></div>
+
 </div>
 </div>
+
+
 
 <script>
-let mode="fast";
-let currentChatId=null;
-let loaderId=null;
+/* ================= GLOBAL ================= */
+let loggedIn=false;
+let authMode="login";
+
+/* ================= MENU ================= */
+function toggleMenu(){
+document.getElementById("menu").classList.toggle("hidden");
+}
+
+/* ================= AUTH OPEN ================= */
+function openAuth(mode="login"){
+
+authMode=mode;
+
+document.getElementById("menu").classList.add("hidden");
+document.getElementById("authModal").classList.remove("hidden");
+
+updateAuthUI();
+}
+
+function closeAuth(){
+document.getElementById("authModal").classList.add("hidden");
+document.getElementById("authMsg").innerText="";
+}
+
+/* ================= SWITCH ================= */
+function switchAuthMode(){
+
+authMode = authMode==="login" ? "signup" : "login";
+updateAuthUI();
+}
+
+function updateAuthUI(){
+
+if(authMode==="login"){
+
+document.getElementById("authBtn").innerText="Login";
+document.getElementById("switchText").innerText="Don't have an account?";
+document.querySelector("#switchText + button").innerText="Sign Up";
+
+}else{
+
+document.getElementById("authBtn").innerText="Sign Up";
+document.getElementById("switchText").innerText="Already have account?";
+document.querySelector("#switchText + button").innerText="Login";
+}
+}
+
+/* ================= SUBMIT ================= */
+async function submitAuth(){
+
+let email=document.getElementById("authEmail").value.trim();
+let password=document.getElementById("authPass").value.trim();
+
+if(!email || !password){
+document.getElementById("authMsg").innerText="Fill all fields.";
+return;
+}
+
+let endpoint = authMode==="login" ? "/login" : "/signup";
+
+let res=await fetch(endpoint,{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({email,password})
+});
+
+let data=await res.json();
+
+if(data.ok){
+
+closeAuth();
+await loadUser();
+await loadHistory();
+
+}else{
+document.getElementById("authMsg").innerText=data.msg || "Failed.";
+}
+}
+
+/* ================= PASSWORD ================= */
+function togglePassword(){
+
+let p=document.getElementById("authPass");
+p.type = p.type==="password" ? "text" : "password";
+}
+
+/* ================= LOAD USER ================= */
+async function loadUser(){
+
+try{
+
+let res=await fetch("/me");
+let data=await res.json();
+
+if(data.logged_in){
+
+loggedIn=true;
+
+let email=data.email || "";
+let name=email.split("@")[0];
+
+document.getElementById("username").innerText=name;
+document.getElementById("memberType").innerText="Member";
+
+let initials=name.substring(0,2).toUpperCase();
+document.getElementById("avatar").innerText=initials;
+
+document.getElementById("guestMenu").classList.add("hidden");
+document.getElementById("userMenu").classList.remove("hidden");
+
+}else{
+
+loggedIn=false;
+
+document.getElementById("username").innerText="Guest User";
+document.getElementById("memberType").innerText="Guest";
+document.getElementById("avatar").innerText="GU";
+
+document.getElementById("guestMenu").classList.remove("hidden");
+document.getElementById("userMenu").classList.add("hidden");
+}
+
+}catch(e){}
+}
+
+/* ================= LOGOUT ================= */
+async function logoutUser(){
+
+await fetch("/logout");
+
+loggedIn=false;
+
+document.getElementById("menu").classList.add("hidden");
+
+document.getElementById("chatBox").innerHTML="";
+document.getElementById("historyBox").innerHTML="";
+
+await loadUser();
+}
 
 /* ================= START ================= */
 window.onload=async()=>{
 await loadUser();
 await loadHistory();
 }
-
-/* ================= MODE ================= */
-function setMode(m){
-mode=m;
-
-document.querySelectorAll(".modeBtn").forEach(btn=>{
-btn.classList.remove("bg-violet-500/20","border-violet-500");
-btn.classList.add("border-white/10");
-});
-
-document.getElementById(m+"Btn").classList.add("bg-violet-500/20","border-violet-500");
-}
-
-/* ================= SEND ================= */
-async function sendMsg(){
-
-let prompt=document.getElementById("prompt").value.trim();
-if(!prompt)return;
-
-appendUser(prompt);
-document.getElementById("prompt").value="";
-
-showLoader();
-
-try{
-let res=await fetch("/chat",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({
-message:prompt,
-mode:mode,
-chat_id:currentChatId
-})
-});
-
-let data=await res.json();
-
-hideLoader();
-
-if(data.ok){
-currentChatId=data.chat_id;
-appendAI(data.label || "AI MODEL", data.response || "No response");
-await loadHistory();
-}else{
-appendAI("SYSTEM",data.msg || "Failed");
-}
-}catch(e){
-hideLoader();
-appendAI("SYSTEM","Server error.");
-}
-}
-
-/* ================= USER MESSAGE ================= */
-function appendUser(txt){
-
-document.getElementById("chatBox").innerHTML+=`
-<div class="text-right">
-<div class="inline-block max-w-[78%] bg-[#0d153f] px-4 py-3 rounded-2xl text-left">
-${escapeHtml(txt)}
-</div>
-</div>`;
-
-scrollBottom();
-}
-
-/* ================= AI MESSAGE ================= */
-function appendAI(label,txt){
-
-txt=formatReply(txt);
-
-document.getElementById("chatBox").innerHTML+=`
-<div class="msgbox">
-
-<div class="flex justify-between items-center mb-3">
-<div class="text-[11px] text-white/55 tracking-wider">${label}</div>
-
-<button onclick="copyText(this)"
-data-copy="${encodeURIComponent(stripHtml(txt))}"
-class="copyBtn">
-Copy
-</button>
-</div>
-
-<div class="aiText">${txt}</div>
-
-</div>`;
-
-scrollBottom();
-}
-
-/* ================= LOADER ================= */
-function showLoader(){
-
-loaderId="loader_"+Date.now();
-
-document.getElementById("chatBox").innerHTML+=`
-<div id="${loaderId}" class="msgbox">
-
-<div class="text-[11px] text-white/55 tracking-wider mb-3">
-AI MODEL
-</div>
-
-<div class="typingDots text-2xl text-violet-300">
-<span>.</span><span>.</span><span>.</span>
-</div>
-
-</div>`;
-
-scrollBottom();
-}
-
-function hideLoader(){
-let el=document.getElementById(loaderId);
-if(el)el.remove();
-}
-
-/* ================= FORMAT REPLY ================= */
-function formatReply(text){
-
-text=escapeHtml(text);
-
-if(text.includes("```")){
-
-text=text.replace(/```(\w+)?\n?([\s\S]*?)```/g,function(match,lang,code){
-
-lang = lang ? lang.toUpperCase() : "CODE";
-
-return `
-<div class="mt-3">
-
-<div class="flex justify-between items-center mb-2 px-1">
-<div class="text-[11px] text-violet-300">${lang}</div>
-
-<button onclick="copyCode(this)"
-data-code="${encodeURIComponent(code)}"
-class="copyBtn">
-Copy Code
-</button>
-</div>
-
-<pre><code>${code}</code></pre>
-
-</div>`;
-});
-}
-
-text=text.replace(/\n/g,"<br>");
-return text;
-}
-
-/* ================= COPY ================= */
-function copyCode(btn){
-let txt=decodeURIComponent(btn.dataset.code);
-navigator.clipboard.writeText(txt);
-btn.innerText="Copied!";
-setTimeout(()=>btn.innerText="Copy Code",1200);
-}
-
-function copyText(btn){
-let txt=decodeURIComponent(btn.dataset.copy);
-navigator.clipboard.writeText(txt);
-btn.innerText="Copied!";
-setTimeout(()=>btn.innerText="Copy",1200);
-}
-
-/* ================= HELPERS ================= */
-function stripHtml(html){
-let div=document.createElement("div");
-div.innerHTML=html;
-return div.innerText;
-}
-
-function escapeHtml(text){
-return text
-.replace(/&/g,"&amp;")
-.replace(/</g,"&lt;")
-.replace(/>/g,"&gt;");
-}
-
-function scrollBottom(){
-let box=document.getElementById("chatBox");
-box.scrollTop=box.scrollHeight;
-}
-
-/* ================= CHAT HISTORY ================= */
-function newChat(){
-currentChatId=null;
-document.getElementById("chatBox").innerHTML="";
-}
-
-async function loadHistory(){
-
-try{
-let res=await fetch("/history");
-let data=await res.json();
-
-let html="";
-
-(data.items || []).forEach(c=>{
-html+=`
-<div onclick="loadChat('${c.id}')"
-class="p-4 rounded-2xl border border-white/10 hover:border-violet-500 cursor-pointer">
-${c.title}
-</div>`;
-});
-
-document.getElementById("historyBox").innerHTML=html;
-}catch(e){}
-}
-
-async function loadChat(id){
-
-currentChatId=id;
-
-let res=await fetch("/chat/"+id);
-let data=await res.json();
-
-document.getElementById("chatBox").innerHTML="";
-
-(data.items || []).forEach(m=>{
-if(m.role==="user"){
-appendUser(m.content);
-}else{
-appendAI("AI MODEL",m.content);
-}
-});
-}
-
-/* ================= USER ================= */
-async function loadUser(){
-
-try{
-let res=await fetch("/me");
-let data=await res.json();
-
-if(data.logged_in){
-
-let email=data.email || "guest";
-let name=email.split("@")[0];
-
-document.getElementById("username").innerText=name;
-
-let initials=name.substring(0,2).toUpperCase();
-document.getElementById("avatar").innerText=initials;
-}
-}catch(e){}
-}
-
-function toggleMenu(){
-document.getElementById("menu").classList.toggle("hidden");
-}
-
-function openProfile(){
-alert("Profile Coming Soon");
-}
-
-function openSettings(){
-alert("Settings Coming Soon");
-}
-
-async function logoutUser(){
-await fetch("/logout");
-location.reload();
-}
 </script>
-
-</body>
-</html>
