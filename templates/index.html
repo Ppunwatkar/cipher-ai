@@ -6,7 +6,6 @@
 <title>CIPHER AI</title>
 
 <link rel="icon" href="/static/logo.png">
-
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
@@ -45,7 +44,6 @@ body{
     border-radius:999px;
     border:1px solid rgba(255,255,255,.08);
     cursor:pointer;
-    transition:.2s;
 }
 
 .active{
@@ -76,28 +74,37 @@ body{
     margin-bottom:8px;
 }
 
+/* FIXED INPUTS */
 input, textarea{
     background:#020617;
     border:1px solid rgba(139,92,246,.25);
     color:white;
     border-radius:16px;
-    padding:14px 16px;
     width:100%;
     outline:none;
-    font-size:17px;
+    font-size:16px;
     transition:.2s;
+    line-height:1.4;
+    padding:14px 18px;
+    box-sizing:border-box;
+    vertical-align:middle;
+}
+
+input{
+    height:50px;
+}
+
+textarea{
+    resize:none;
+    min-height:62px;
+    max-height:220px;
+    padding-top:16px;
 }
 
 input:focus,
 textarea:focus{
     border-color:#8b5cf6;
     box-shadow:0 0 0 3px rgba(139,92,246,.12);
-}
-
-textarea{
-    resize:none;
-    min-height:70px;
-    max-height:220px;
 }
 
 input::placeholder,
@@ -117,17 +124,17 @@ textarea::placeholder{
 }
 
 .auth-box{
-    width:340px;
-    padding:26px;
+    width:380px;
+    padding:30px;
     position:relative;
 }
 
 .close-btn{
     position:absolute;
-    right:14px;
     top:12px;
+    right:16px;
     cursor:pointer;
-    font-size:20px;
+    font-size:24px;
     opacity:.7;
 }
 
@@ -150,107 +157,108 @@ textarea::placeholder{
 
 <body>
 
-<!-- LOGIN POPUP -->
+<!-- AUTH -->
 <div id="authModal">
 
-    <div class="glass auth-box">
+<div class="glass auth-box">
 
-        <div class="close-btn" onclick="closeModal()">✕</div>
+<div class="close-btn" onclick="closeModal()">✕</div>
 
-        <h1 class="text-2xl mb-2 text-purple-300">CIPHER</h1>
-        <p class="opacity-70 text-sm mb-5">Secure AI Access</p>
+<h1 class="text-2xl text-purple-300 mb-2">CIPHER</h1>
+<p class="opacity-70 mb-5">Secure AI Access</p>
 
-        <div id="signupFields" style="display:none;">
-            <input id="name" placeholder="Full Name" class="mb-3">
-        </div>
+<div id="signupFields" style="display:none;">
+<input id="name" placeholder="Full Name" class="mb-3">
+</div>
 
-        <input id="email" placeholder="Email" class="mb-3">
-        <input id="password" type="password" placeholder="Password" class="mb-4">
+<input id="email" placeholder="Email" class="mb-3">
+<input id="password" type="password" placeholder="Password" class="mb-4">
 
-        <button onclick="submitAuth()" class="btn w-full mb-3" id="authBtn">
-            Login
-        </button>
+<button onclick="submitAuth()" class="btn w-full mb-4" id="authBtn">
+Login
+</button>
 
-        <div class="text-center">
-            <span id="switchText" class="link" onclick="toggleAuth()">
-                Create account
-            </span>
-        </div>
+<div class="text-center">
+<span class="link" onclick="toggleAuth()" id="switchText">
+Create account
+</span>
+</div>
 
-        <p id="authMsg" class="text-red-300 text-sm mt-4"></p>
+<p id="authMsg" class="text-red-300 text-sm mt-4"></p>
 
-    </div>
-
+</div>
 </div>
 
 <!-- APP -->
 <div class="flex h-screen p-4 gap-4">
 
-    <!-- SIDEBAR -->
-    <div class="glass w-[290px] p-5 flex flex-col justify-between">
+<!-- SIDEBAR -->
+<div class="glass w-[290px] p-5 flex flex-col justify-between">
 
-        <div>
-            <div class="flex items-center gap-3">
-                <img src="/static/logo.png" class="w-11 h-11 rounded-xl">
-                <div>
-                    <div class="text-xl text-purple-300">CIPHER</div>
-                    <div class="text-xs opacity-60">AI Cyber Assistant</div>
-                </div>
-            </div>
+<div>
+<div class="flex items-center gap-3">
+<img src="/static/logo.png" class="w-11 h-11 rounded-xl">
 
-            <button onclick="newChat()" class="btn w-full mt-6">
-                + NEW CHAT
-            </button>
+<div>
+<div class="text-xl text-purple-300">CIPHER</div>
+<div class="text-xs opacity-60">AI Cyber Assistant</div>
+</div>
+</div>
 
-            <div id="history" class="mt-5 space-y-2"></div>
-        </div>
+<button onclick="newChat()" class="btn w-full mt-6">
++ NEW CHAT
+</button>
 
-        <div>
-            <div class="text-sm opacity-80 mb-2" id="username">Guest Mode</div>
+<div id="history" class="mt-5 space-y-2"></div>
+</div>
 
-            <button onclick="showModal()" class="btn w-full">
-                Login
-            </button>
-        </div>
+<div>
+<div class="text-sm opacity-80 mb-2" id="username">
+Guest Mode
+</div>
 
-    </div>
+<button onclick="showModal()" class="btn w-full">
+Login
+</button>
+</div>
 
-    <!-- MAIN -->
-    <div class="flex-1 flex flex-col gap-4">
+</div>
 
-        <!-- TOP -->
-        <div class="glass p-5 flex justify-between items-center">
+<!-- MAIN -->
+<div class="flex-1 flex flex-col gap-4">
 
-            <div>⚡ AI SECURITY CORE</div>
+<!-- TOP -->
+<div class="glass p-5 flex justify-between items-center">
 
-            <div class="flex gap-2">
-                <div class="mode active" data-mode="thinking">THINK</div>
-                <div class="mode" data-mode="fast">FAST</div>
-                <div class="mode" data-mode="code">CODE</div>
-            </div>
+<div>⚡ AI SECURITY CORE</div>
 
-        </div>
+<div class="flex gap-2">
+<div class="mode active" data-mode="thinking">THINK</div>
+<div class="mode" data-mode="fast">FAST</div>
+<div class="mode" data-mode="code">CODE</div>
+</div>
 
-        <!-- CHAT -->
-        <div id="chat" class="glass flex-1 p-5 overflow-y-auto"></div>
+</div>
 
-        <!-- INPUT -->
-        <div class="glass p-3 flex gap-3 items-end">
+<!-- CHAT -->
+<div id="chat" class="glass flex-1 p-5 overflow-y-auto"></div>
 
-            <textarea
-                id="prompt"
-                rows="2"
-                placeholder="Ask anything..."
-                class="flex-1"></textarea>
+<!-- INPUT -->
+<div class="glass p-3 flex gap-3 items-end">
 
-            <button onclick="sendMsg()" class="btn px-7 py-4 text-lg">
-                ➤
-            </button>
+<textarea
+id="prompt"
+rows="2"
+placeholder="Ask anything..."
+class="flex-1"></textarea>
 
-        </div>
+<button onclick="sendMsg()" class="btn px-7 py-4 text-lg">
+➤
+</button>
 
-    </div>
+</div>
 
+</div>
 </div>
 
 <script>
@@ -277,23 +285,23 @@ window.onload = async ()=>{
     autoGrow();
 };
 
-/* AUTO GROW */
+/* AUTOGROW */
 function autoGrow(){
-    let box = document.getElementById("prompt");
+    const t = document.getElementById("prompt");
 
-    box.addEventListener("input", function(){
+    t.addEventListener("input", function(){
         this.style.height="auto";
         this.style.height=this.scrollHeight+"px";
     });
 }
 
 /* MODAL */
-function closeModal(){
-    document.getElementById("authModal").style.display="none";
-}
-
 function showModal(){
     document.getElementById("authModal").style.display="flex";
+}
+
+function closeModal(){
+    document.getElementById("authModal").style.display="none";
 }
 
 /* LOGIN CHECK */
@@ -305,7 +313,10 @@ async function checkLogin(){
     if(data.logged_in){
         loggedIn = true;
         closeModal();
-        document.getElementById("username").innerText = "👤 " + data.name;
+
+        document.getElementById("username").innerText =
+        "👤 " + data.name;
+
         loadHistory();
     }else{
         loggedIn = false;
@@ -318,27 +329,36 @@ function toggleAuth(){
     isSignup = !isSignup;
 
     document.getElementById("signupFields").style.display =
-        isSignup ? "block" : "none";
+    isSignup ? "block" : "none";
 
     document.getElementById("authBtn").innerText =
-        isSignup ? "Sign Up" : "Login";
+    isSignup ? "Sign Up" : "Login";
 
     document.getElementById("switchText").innerText =
-        isSignup ? "Already have account? Login" : "Create account";
+    isSignup ?
+    "Already have account? Login" :
+    "Create account";
+
+    document.getElementById("authMsg").innerText="";
 }
 
 /* AUTH */
 async function submitAuth(){
 
-    let email = emailEl("email");
-    let password = emailEl("password");
-    let name = emailEl("name");
+    let body = {
+        name:val("name"),
+        email:val("email"),
+        password:val("password")
+    };
 
     let url = isSignup ? "/signup" : "/login";
 
-    let body = isSignup ?
-        {name,email,password} :
-        {email,password};
+    if(!isSignup){
+        body = {
+            email:val("email"),
+            password:val("password")
+        };
+    }
 
     let res = await fetch(url,{
         method:"POST",
@@ -351,14 +371,22 @@ async function submitAuth(){
     let data = await res.json();
 
     if(data.ok){
-        checkLogin();
+
+        loggedIn = true;
+
+        closeModal();
+
+        setTimeout(()=>{
+            location.reload();
+        },300);
+
     }else{
         document.getElementById("authMsg").innerText =
         data.msg || "Failed.";
     }
 }
 
-function emailEl(id){
+function val(id){
     return document.getElementById(id).value.trim();
 }
 
@@ -379,40 +407,38 @@ async function sendMsg(){
     let box = document.getElementById("chat");
 
     box.innerHTML += `
-        <div class="user">${msg}</div>
+    <div class="user">${msg}</div>
     `;
 
     prompt.value="";
-    prompt.style.height="70px";
-
-    let body = {
-        message:msg,
-        mode:currentMode,
-        chat_id:currentChat
-    };
+    prompt.style.height="62px";
 
     let res = await fetch("/chat",{
         method:"POST",
         headers:{
             "Content-Type":"application/json"
         },
-        body:JSON.stringify(body)
+        body:JSON.stringify({
+            message:msg,
+            mode:currentMode,
+            chat_id:currentChat
+        })
     });
 
     let data = await res.json();
 
     box.innerHTML += `
-        <div class="bot">
-            <div class="small">${data.label || "AI MODEL"}</div>
-            ${marked.parse(data.response || "No response")}
-        </div>
+    <div class="bot">
+        <div class="small">${data.label || "AI MODEL"}</div>
+        ${marked.parse(data.response || "No response")}
+    </div>
     `;
 
     box.scrollTop = box.scrollHeight;
 
-    if(loggedIn) loadHistory();
-
-    if(!loggedIn){
+    if(loggedIn){
+        loadHistory();
+    }else{
         setTimeout(()=>showModal(),1200);
     }
 }
@@ -431,7 +457,7 @@ async function loadHistory(){
         side.innerHTML += `
         <div onclick="openChat('${chat.id}')"
         class="glass p-3 cursor-pointer text-sm hover:border-purple-400">
-            ${chat.title}
+        ${chat.title}
         </div>
         `;
     });
@@ -452,13 +478,13 @@ async function openChat(id){
 
         if(msg.role=="user"){
             box.innerHTML += `
-                <div class="user">${msg.content}</div>
+            <div class="user">${msg.content}</div>
             `;
         }else{
             box.innerHTML += `
-                <div class="bot">
-                    ${marked.parse(msg.content)}
-                </div>
+            <div class="bot">
+            ${marked.parse(msg.content)}
+            </div>
             `;
         }
     });
