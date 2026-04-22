@@ -1,5 +1,9 @@
+# =========================
+# app.py (UPDATED)
+# =========================
+
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
@@ -10,6 +14,7 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 from groq import Groq
 import requests
 import os
+import time
 
 # ==================================================
 # CONFIG
@@ -39,25 +44,25 @@ SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
 
 # ==================================================
-# IMPORTANT:
-# YOUR REAL users TABLE HAS:
-# id | username | password
-# So we map EXACTLY to that schema
+# TABLE MAP (matches your real DB)
+# users = id | username | password
+# chats = id | title | user_id
+# messages = id | chat_id | role | content | user_id
 # ==================================================
 
 class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True)
-    username = Column(String(200))
-    password = Column(String(200))
+    username = Column(String(255))
+    password = Column(String(255))
 
 
 class Chat(Base):
     __tablename__ = "chats"
 
-    id = Column(String(200), primary_key=True)
-    title = Column(String(300))
+    id = Column(String(255), primary_key=True)
+    title = Column(String(255))
     user_id = Column(Integer)
 
 
@@ -65,11 +70,10 @@ class Message(Base):
     __tablename__ = "messages"
 
     id = Column(Integer, primary_key=True)
-    chat_id = Column(String(200))
-    role = Column(String(30))
+    chat_id = Column(String(255))
+    role = Column(String(50))
     content = Column(Text)
     user_id = Column(Integer)
-
 
 # ==================================================
 # AI CLIENTS
@@ -139,17 +143,16 @@ async def home(request: Request):
 
 @app.post("/signup")
 async def signup(request: Request):
-
     try:
         data = await request.json()
 
+        email = data["email"].strip().lower()
+        password = data["password"].strip()
+
         db = SessionLocal()
 
-        username = data["email"]   # use email as username
-        password = data["password"]
-
         old = db.query(User).filter(
-            User.username == username
+            User.username == email
         ).first()
 
         if old:
@@ -157,7 +160,7 @@ async def signup(request: Request):
             return {"ok": False, "msg": "Account already exists"}
 
         user = User(
-            username=username,
+            username=email,
             password=password
         )
 
@@ -166,7 +169,7 @@ async def signup(request: Request):
         db.refresh(user)
 
         request.session["user_id"] = user.id
-        request.session["name"] = username
+        request.session["name"] = user.username
 
         db.close()
 
@@ -178,15 +181,17 @@ async def signup(request: Request):
 
 @app.post("/login")
 async def login(request: Request):
-
     try:
         data = await request.json()
+
+        email = data["email"].strip().lower()
+        password = data["password"].strip()
 
         db = SessionLocal()
 
         user = db.query(User).filter(
-            User.username == data["email"],
-            User.password == data["password"]
+            User.username == email,
+            User.password == password
         ).first()
 
         if not user:
@@ -206,7 +211,6 @@ async def login(request: Request):
 
 @app.get("/me")
 async def me(request: Request):
-
     uid = current_user(request)
 
     if uid:
@@ -230,64 +234,75 @@ async def logout(request: Request):
 @app.post("/chat")
 async def chat(request: Request):
 
-    data = await request.json()
+    try:
+        data = await request.json()
 
-    prompt = data["message"]
-    mode = data["mode"]
-    chat_id = data["chat_id"]
+        prompt = data["message"]
+        mode = data["mode"]
+        chat_id = data["chat_id"]
 
-    uid = current_user(request)
+        uid = current_user(request)
 
-    # MODELS
-    if mode == "thinking":
-        answer = ask_openrouter(prompt, "openai/gpt-4o-mini")
-        label = "🧠 THINK • GPT"
+        # ---------- MODELS ----------
 
-    elif mode == "code":
-        answer = ask_openrouter(prompt, "anthropic/claude-3-haiku")
-        label = "💻 CODE • CLAUDE"
+        if mode == "thinking":
+            answer = ask_openrouter(prompt, "openai/gpt-4o-mini")
+            label = "🧠 THINK • GPT"
 
-    else:
-        answer = ask_groq(prompt)
-        label = "⚡ FAST • GROQ"
+        elif mode == "code":
+            answer = ask_openrouter(prompt, "anthropic/claude-3-haiku")
+            label = "💻 CODE • CLAUDE"
 
-    # SAVE ONLY LOGIN USERS
-    if uid:
+        else:
+            answer = ask_groq(prompt)
+            label = "⚡ FAST • GROQ"
 
-        db = SessionLocal()
+        # ---------- SAVE IF LOGGED IN ----------
 
-        exists = db.query(Chat).filter(
-            Chat.id == chat_id
-        ).first()
+        if uid:
 
-        if not exists:
-            db.add(Chat(
-                id=chat_id,
-                title=prompt[:40],
+            db = SessionLocal()
+
+            exists = db.query(Chat).filter(
+                Chat.id == chat_id
+            ).first()
+
+            if not exists:
+                db.add(Chat(
+                    id=chat_id,
+                    title=prompt[:40],
+                    user_id=uid
+                ))
+
+            db.add(Message(
+                chat_id=chat_id,
+                role="user",
+                content=prompt,
                 user_id=uid
             ))
 
-        db.add(Message(
-            chat_id=chat_id,
-            role="user",
-            content=prompt,
-            user_id=uid
-        ))
+            db.add(Message(
+                chat_id=chat_id,
+                role="assistant",
+                content=answer,
+                user_id=uid
+            ))
 
-        db.add(Message(
-            chat_id=chat_id,
-            role="assistant",
-            content=answer,
-            user_id=uid
-        ))
+            db.commit()
+            db.close()
 
-        db.commit()
-        db.close()
+        return {
+            "ok": True,
+            "response": answer,
+            "label": label
+        }
 
-    return {
-        "response": answer,
-        "label": label
-    }
+    except Exception as e:
+        return {
+            "ok": False,
+            "response": str(e),
+            "label": "SYSTEM"
+        }
 
 # ==================================================
 # HISTORY
@@ -299,26 +314,29 @@ async def history(request: Request):
     uid = current_user(request)
 
     if not uid:
-        return []
+        return {"items": []}
 
     db = SessionLocal()
 
     chats = db.query(Chat).filter(
         Chat.user_id == uid
-    ).all()
+    ).order_by(Chat.id.desc()).all()
 
     result = []
 
     for c in chats:
         result.append({
             "id": c.id,
-            "title": c.title
+            "title": c.title if c.title else "New Chat"
         })
 
     db.close()
 
-    return result
+    return {"items": result}
 
+# ==================================================
+# LOAD CHAT
+# ==================================================
 
 @app.get("/chat/{chat_id}")
 async def get_chat(chat_id: str, request: Request):
@@ -326,14 +344,14 @@ async def get_chat(chat_id: str, request: Request):
     uid = current_user(request)
 
     if not uid:
-        return []
+        return {"items": []}
 
     db = SessionLocal()
 
     msgs = db.query(Message).filter(
         Message.chat_id == chat_id,
         Message.user_id == uid
-    ).all()
+    ).order_by(Message.id.asc()).all()
 
     result = []
 
@@ -345,4 +363,12 @@ async def get_chat(chat_id: str, request: Request):
 
     db.close()
 
-    return result
+    return {"items": result}
+
+# ==================================================
+# HEALTH
+# ==================================================
+
+@app.get("/ping")
+async def ping():
+    return {"status": "ok"}
