@@ -53,72 +53,63 @@ body{
     background:rgba(139,92,246,.18);
 }
 
-/* CHAT BUBBLES */
 .bot{
     background:rgba(99,102,241,.13);
     border-left:3px solid #8b5cf6;
-    padding:18px;
-    border-radius:16px;
-    margin-bottom:16px;
-    font-size:20px;
+    padding:16px;
+    border-radius:14px;
+    margin-bottom:14px;
+    font-size:17px;
     line-height:1.7;
 }
 
 .user{
     text-align:right;
     color:#ddd6fe;
-    margin:14px 0;
-    font-size:20px;
+    margin:12px 0;
+    font-size:17px;
 }
 
 .small{
-    font-size:13px;
+    font-size:12px;
     opacity:.65;
     margin-bottom:8px;
 }
 
-/* PREMIUM INPUT */
 input, textarea{
-    background:linear-gradient(145deg,#020617,#0b1120);
+    background:#020617;
     border:1px solid rgba(139,92,246,.25);
     color:white;
-    border-radius:18px;
-    padding:18px 20px;
+    border-radius:16px;
+    padding:14px 16px;
     width:100%;
     outline:none;
-    font-size:20px;
-    line-height:1.5;
-    transition:.25s ease;
-    box-shadow:
-        inset 0 0 0 1px rgba(255,255,255,.02),
-        0 0 18px rgba(139,92,246,.05);
+    font-size:17px;
+    transition:.2s;
 }
 
 input:focus,
 textarea:focus{
     border-color:#8b5cf6;
-    box-shadow:
-        0 0 0 3px rgba(139,92,246,.12),
-        0 0 25px rgba(139,92,246,.18);
+    box-shadow:0 0 0 3px rgba(139,92,246,.12);
+}
+
+textarea{
+    resize:none;
+    min-height:70px;
+    max-height:220px;
 }
 
 input::placeholder,
 textarea::placeholder{
     color:rgba(255,255,255,.35);
-    font-size:20px;
 }
 
-textarea{
-    resize:none;
-    min-height:78px;
-    max-height:220px;
-}
-
-/* LOGIN MODAL */
+/* AUTH MODAL */
 #authModal{
     position:fixed;
     inset:0;
-    background:rgba(0,0,0,.65);
+    background:rgba(0,0,0,.45);
     display:flex;
     justify-content:center;
     align-items:center;
@@ -126,14 +117,29 @@ textarea{
 }
 
 .auth-box{
-    width:420px;
-    padding:34px;
+    width:340px;
+    padding:26px;
+    position:relative;
+}
+
+.close-btn{
+    position:absolute;
+    right:14px;
+    top:12px;
+    cursor:pointer;
+    font-size:20px;
+    opacity:.7;
+}
+
+.close-btn:hover{
+    opacity:1;
+    color:#c4b5fd;
 }
 
 .link{
     color:#a78bfa;
     cursor:pointer;
-    font-size:16px;
+    font-size:14px;
 }
 
 .link:hover{
@@ -144,13 +150,15 @@ textarea{
 
 <body>
 
-<!-- LOGIN / SIGNUP MODAL -->
+<!-- LOGIN POPUP -->
 <div id="authModal">
 
     <div class="glass auth-box">
 
-        <h1 class="text-3xl mb-2 text-purple-300">CIPHER</h1>
-        <p class="opacity-70 text-sm mb-6">Secure AI Access</p>
+        <div class="close-btn" onclick="closeModal()">✕</div>
+
+        <h1 class="text-2xl mb-2 text-purple-300">CIPHER</h1>
+        <p class="opacity-70 text-sm mb-5">Secure AI Access</p>
 
         <div id="signupFields" style="display:none;">
             <input id="name" placeholder="Full Name" class="mb-3">
@@ -159,7 +167,7 @@ textarea{
         <input id="email" placeholder="Email" class="mb-3">
         <input id="password" type="password" placeholder="Password" class="mb-4">
 
-        <button onclick="submitAuth()" class="btn w-full mb-3 text-lg" id="authBtn">
+        <button onclick="submitAuth()" class="btn w-full mb-3" id="authBtn">
             Login
         </button>
 
@@ -198,10 +206,10 @@ textarea{
         </div>
 
         <div>
-            <div class="text-sm opacity-80 mb-2" id="username">Guest</div>
+            <div class="text-sm opacity-80 mb-2" id="username">Guest Mode</div>
 
-            <button onclick="logout()" class="btn w-full">
-                Logout
+            <button onclick="showModal()" class="btn w-full">
+                Login
             </button>
         </div>
 
@@ -227,15 +235,15 @@ textarea{
         <div id="chat" class="glass flex-1 p-5 overflow-y-auto"></div>
 
         <!-- INPUT -->
-        <div class="glass p-4 flex gap-4 items-end">
+        <div class="glass p-3 flex gap-3 items-end">
 
             <textarea
                 id="prompt"
-                rows="3"
+                rows="2"
                 placeholder="Ask anything..."
                 class="flex-1"></textarea>
 
-            <button onclick="sendMsg()" class="btn px-8 py-5 text-xl font-bold rounded-2xl">
+            <button onclick="sendMsg()" class="btn px-7 py-4 text-lg">
                 ➤
             </button>
 
@@ -249,21 +257,11 @@ textarea{
 let isSignup = false;
 let currentMode = "thinking";
 let currentChat = "chat_" + Date.now();
-
-/* AUTO GROW */
-const observe = setInterval(()=>{
-    let box = document.getElementById("prompt");
-    if(box){
-        clearInterval(observe);
-        box.addEventListener("input", function(){
-            this.style.height = "auto";
-            this.style.height = this.scrollHeight + "px";
-        });
-    }
-},100);
+let loggedIn = false;
 
 /* LOAD */
 window.onload = async ()=>{
+
     await checkLogin();
 
     document.querySelectorAll(".mode").forEach(btn=>{
@@ -275,17 +273,42 @@ window.onload = async ()=>{
             currentMode = btn.dataset.mode;
         };
     });
+
+    autoGrow();
 };
 
-/* CHECK LOGIN */
+/* AUTO GROW */
+function autoGrow(){
+    let box = document.getElementById("prompt");
+
+    box.addEventListener("input", function(){
+        this.style.height="auto";
+        this.style.height=this.scrollHeight+"px";
+    });
+}
+
+/* MODAL */
+function closeModal(){
+    document.getElementById("authModal").style.display="none";
+}
+
+function showModal(){
+    document.getElementById("authModal").style.display="flex";
+}
+
+/* LOGIN CHECK */
 async function checkLogin(){
+
     let res = await fetch("/me");
     let data = await res.json();
 
     if(data.logged_in){
-        document.getElementById("authModal").style.display="none";
-        document.getElementById("username").innerText="👤 " + data.name;
+        loggedIn = true;
+        closeModal();
+        document.getElementById("username").innerText = "👤 " + data.name;
         loadHistory();
+    }else{
+        loggedIn = false;
     }
 }
 
@@ -302,16 +325,14 @@ function toggleAuth(){
 
     document.getElementById("switchText").innerText =
         isSignup ? "Already have account? Login" : "Create account";
-
-    document.getElementById("authMsg").innerText="";
 }
 
-/* LOGIN / SIGNUP */
+/* AUTH */
 async function submitAuth(){
 
-    let email = document.getElementById("email").value.trim();
-    let password = document.getElementById("password").value.trim();
-    let name = document.getElementById("name").value.trim();
+    let email = emailEl("email");
+    let password = emailEl("password");
+    let name = emailEl("name");
 
     let url = isSignup ? "/signup" : "/login";
 
@@ -337,9 +358,8 @@ async function submitAuth(){
     }
 }
 
-/* LOGOUT */
-function logout(){
-    window.location="/logout";
+function emailEl(id){
+    return document.getElementById(id).value.trim();
 }
 
 /* NEW CHAT */
@@ -356,39 +376,45 @@ async function sendMsg(){
 
     if(!msg) return;
 
-    let chat = document.getElementById("chat");
+    let box = document.getElementById("chat");
 
-    chat.innerHTML += `
+    box.innerHTML += `
         <div class="user">${msg}</div>
     `;
 
     prompt.value="";
-    prompt.style.height="78px";
+    prompt.style.height="70px";
+
+    let body = {
+        message:msg,
+        mode:currentMode,
+        chat_id:currentChat
+    };
 
     let res = await fetch("/chat",{
         method:"POST",
         headers:{
             "Content-Type":"application/json"
         },
-        body:JSON.stringify({
-            message:msg,
-            mode:currentMode,
-            chat_id:currentChat
-        })
+        body:JSON.stringify(body)
     });
 
     let data = await res.json();
 
-    chat.innerHTML += `
+    box.innerHTML += `
         <div class="bot">
             <div class="small">${data.label || "AI MODEL"}</div>
             ${marked.parse(data.response || "No response")}
         </div>
     `;
 
-    chat.scrollTop = chat.scrollHeight;
+    box.scrollTop = box.scrollHeight;
 
-    loadHistory();
+    if(loggedIn) loadHistory();
+
+    if(!loggedIn){
+        setTimeout(()=>showModal(),1200);
+    }
 }
 
 /* HISTORY */
@@ -397,16 +423,16 @@ async function loadHistory(){
     let res = await fetch("/history");
     let data = await res.json();
 
-    let box = document.getElementById("history");
-    box.innerHTML="";
+    let side = document.getElementById("history");
+    side.innerHTML="";
 
     data.forEach(chat=>{
 
-        box.innerHTML += `
-            <div onclick="openChat('${chat.id}')"
-            class="glass p-3 cursor-pointer text-sm hover:border-purple-400">
-                ${chat.title}
-            </div>
+        side.innerHTML += `
+        <div onclick="openChat('${chat.id}')"
+        class="glass p-3 cursor-pointer text-sm hover:border-purple-400">
+            ${chat.title}
+        </div>
         `;
     });
 }
@@ -424,7 +450,7 @@ async function openChat(id){
 
     data.forEach(msg=>{
 
-        if(msg.role==="user"){
+        if(msg.role=="user"){
             box.innerHTML += `
                 <div class="user">${msg.content}</div>
             `;
