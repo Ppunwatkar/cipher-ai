@@ -1,6 +1,5 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 
 from sqlalchemy import create_engine, Column, Integer, String, Text, text
@@ -44,11 +43,10 @@ class Message(Base):
 Base.metadata.create_all(bind=engine)
 
 # =========================
-# FASTAPI INIT
+# APP INIT
 # =========================
 app = FastAPI()
 
-templates = Jinja2Templates(directory="templates")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # =========================
@@ -58,7 +56,7 @@ try:
     from groq import Groq
     client = Groq(api_key=GROQ_API_KEY)
 except Exception as e:
-    print("Groq import failed:", e)
+    print("Groq error:", e)
     client = None
 
 
@@ -68,7 +66,7 @@ def get_ai_response(msg):
             return "⚠️ AI not initialized"
 
         res = client.chat.completions.create(
-            model="llama-3.1-8b-instant",  # ✅ UPDATED MODEL
+            model="llama-3.1-8b-instant",
             messages=[{"role": "user", "content": msg}]
         )
 
@@ -83,13 +81,14 @@ def get_ai_response(msg):
 # ROUTES
 # =========================
 
-# ✅ HOME (FIXED JINJA ERROR)
+# 🔥 NO JINJA → NO ERRORS
 @app.get("/", response_class=HTMLResponse)
-def home(request: Request):
-    return templates.TemplateResponse(
-        "index.html",
-        {"request": request}   # ✅ MUST be EXACT like this
-    )
+def home():
+    try:
+        with open("templates/index.html", "r", encoding="utf-8") as f:
+            return HTMLResponse(f.read())
+    except Exception as e:
+        return HTMLResponse(f"<h1>UI Error: {str(e)}</h1>")
 
 
 # CHAT
@@ -116,14 +115,14 @@ async def chat(request: Request):
             db.add(chat)
             db.commit()
 
-        # save user msg
+        # save user message
         db.add(Message(chat_id=chat_id, role="user", content=message))
         db.commit()
 
-        # AI
+        # AI response
         reply = get_ai_response(message)
 
-        # save bot msg
+        # save bot message
         db.add(Message(chat_id=chat_id, role="assistant", content=reply))
         db.commit()
 
@@ -137,7 +136,7 @@ async def chat(request: Request):
         db.close()
 
 
-# GET CHAT
+# FETCH CHAT
 @app.get("/chat/{chat_id}")
 def get_chat(chat_id: str):
     db = SessionLocal()
@@ -152,7 +151,7 @@ def get_chat(chat_id: str):
     return [{"role": m.role, "content": m.content} for m in msgs]
 
 
-# SIDEBAR
+# SIDEBAR CHATS
 @app.get("/chats")
 def get_chats():
     db = SessionLocal()
