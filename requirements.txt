@@ -14,3 +14,4 @@ python-dotenv
 groq
 PyJWT
 python-whois
+dnspython
