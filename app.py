@@ -3,41 +3,39 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+import os
+
 app = FastAPI()
 
-# Static + Templates
+# ==================================================
+# STATIC + TEMPLATE CONFIG
+# ==================================================
+
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
 templates = Jinja2Templates(directory="templates")
 
 
 # ==================================================
-# HOME PAGE (FIXED)
+# HOME ROUTE (100% FIXED)
 # ==================================================
+
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
 
     return templates.TemplateResponse(
-        "index.html",
-        {
+        request=request,
+        name="index.html",
+        context={
             "request": request
         }
     )
 
 
 # ==================================================
-# OPTIONAL USER VERSION
-# Uncomment if using login session later
+# TEST ROUTE
 # ==================================================
-"""
-@app.get("/", response_class=HTMLResponse)
-async def home(request: Request):
 
-    return templates.TemplateResponse(
-        "index.html",
-        {
-            "request": request,
-            "logged_in": True if request.session.get("user_id") else False,
-            "name": request.session.get("name", "")
-        }
-    )
-"""
+@app.get("/ping")
+async def ping():
+    return {"status": "ok"}
