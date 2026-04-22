@@ -1,9 +1,5 @@
-# =========================
-# app.py (UPDATED)
-# =========================
-
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
@@ -14,7 +10,6 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 from groq import Groq
 import requests
 import os
-import time
 
 # ==================================================
 # CONFIG
@@ -44,12 +39,10 @@ SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
 
 # ==================================================
-# TABLE MAP (matches your real DB)
-# users = id | username | password
-# chats = id | title | user_id
-# messages = id | chat_id | role | content | user_id
+# TABLES (MATCHING YOUR REAL DB)
 # ==================================================
 
+# users = id | username | password
 class User(Base):
     __tablename__ = "users"
 
@@ -58,6 +51,7 @@ class User(Base):
     password = Column(String(255))
 
 
+# chats = id | title | user_id
 class Chat(Base):
     __tablename__ = "chats"
 
@@ -66,6 +60,7 @@ class Chat(Base):
     user_id = Column(Integer)
 
 
+# messages = id | chat_id | role | content
 class Message(Base):
     __tablename__ = "messages"
 
@@ -73,7 +68,9 @@ class Message(Base):
     chat_id = Column(String(255))
     role = Column(String(50))
     content = Column(Text)
-    user_id = Column(Integer)
+
+
+Base.metadata.create_all(bind=engine)
 
 # ==================================================
 # AI CLIENTS
@@ -132,9 +129,8 @@ def ask_openrouter(prompt, model):
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     return templates.TemplateResponse(
-        request=request,
-        name="index.html",
-        context={"request": request}
+        "index.html",
+        {"request": request}
     )
 
 # ==================================================
@@ -169,7 +165,7 @@ async def signup(request: Request):
         db.refresh(user)
 
         request.session["user_id"] = user.id
-        request.session["name"] = user.username
+        request.session["email"] = user.username
 
         db.close()
 
@@ -199,7 +195,7 @@ async def login(request: Request):
             return {"ok": False, "msg": "Invalid credentials"}
 
         request.session["user_id"] = user.id
-        request.session["name"] = user.username
+        request.session["email"] = user.username
 
         db.close()
 
@@ -209,23 +205,24 @@ async def login(request: Request):
         return {"ok": False, "msg": str(e)}
 
 
+@app.get("/logout")
+async def logout(request: Request):
+    request.session.clear()
+    return {"ok": True}
+
+
 @app.get("/me")
 async def me(request: Request):
+
     uid = current_user(request)
 
     if uid:
         return {
             "logged_in": True,
-            "name": request.session.get("name")
+            "email": request.session.get("email")
         }
 
     return {"logged_in": False}
-
-
-@app.get("/logout")
-async def logout(request: Request):
-    request.session.clear()
-    return {"ok": True}
 
 # ==================================================
 # CHAT
@@ -243,49 +240,55 @@ async def chat(request: Request):
 
         uid = current_user(request)
 
-        # ---------- MODELS ----------
+        # ---------- MODEL ROUTING ----------
 
         if mode == "thinking":
-            answer = ask_openrouter(prompt, "openai/gpt-4o-mini")
+            answer = ask_openrouter(
+                prompt,
+                "openai/gpt-4o-mini"
+            )
             label = "🧠 THINK • GPT"
 
         elif mode == "code":
-            answer = ask_openrouter(prompt, "anthropic/claude-3-haiku")
+            answer = ask_openrouter(
+                prompt,
+                "anthropic/claude-3-haiku"
+            )
             label = "💻 CODE • CLAUDE"
 
         else:
             answer = ask_groq(prompt)
             label = "⚡ FAST • GROQ"
 
-        # ---------- SAVE IF LOGGED IN ----------
+        # ---------- SAVE ONLY IF LOGIN ----------
 
         if uid:
 
             db = SessionLocal()
 
-            exists = db.query(Chat).filter(
+            chat_exists = db.query(Chat).filter(
                 Chat.id == chat_id
             ).first()
 
-            if not exists:
+            if not chat_exists:
                 db.add(Chat(
                     id=chat_id,
                     title=prompt[:40],
                     user_id=uid
                 ))
 
+            # user msg
             db.add(Message(
                 chat_id=chat_id,
                 role="user",
-                content=prompt,
-                user_id=uid
+                content=prompt
             ))
 
+            # ai msg
             db.add(Message(
                 chat_id=chat_id,
                 role="assistant",
-                content=answer,
-                user_id=uid
+                content=answer
             ))
 
             db.commit()
@@ -293,15 +296,15 @@ async def chat(request: Request):
 
         return {
             "ok": True,
-            "response": answer,
-            "label": label
+            "label": label,
+            "response": answer
         }
 
     except Exception as e:
         return {
             "ok": False,
-            "response": str(e),
-            "label": "SYSTEM"
+            "label": "SYSTEM",
+            "response": str(e)
         }
 
 # ==================================================
@@ -335,7 +338,7 @@ async def history(request: Request):
     return {"items": result}
 
 # ==================================================
-# LOAD CHAT
+# LOAD SINGLE CHAT
 # ==================================================
 
 @app.get("/chat/{chat_id}")
@@ -348,9 +351,18 @@ async def get_chat(chat_id: str, request: Request):
 
     db = SessionLocal()
 
+    # verify ownership
+    owner = db.query(Chat).filter(
+        Chat.id == chat_id,
+        Chat.user_id == uid
+    ).first()
+
+    if not owner:
+        db.close()
+        return {"items": []}
+
     msgs = db.query(Message).filter(
-        Message.chat_id == chat_id,
-        Message.user_id == uid
+        Message.chat_id == chat_id
     ).order_by(Message.id.asc()).all()
 
     result = []
