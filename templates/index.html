@@ -15,8 +15,7 @@ body{
     margin:0;
     font-family:monospace;
     color:white;
-    background:
-    radial-gradient(circle at top left,#1e1b4b,#020617 55%);
+    background:radial-gradient(circle at top left,#1e1b4b,#020617 55%);
     height:100vh;
     overflow:hidden;
 }
@@ -46,6 +45,7 @@ body{
     border-radius:999px;
     border:1px solid rgba(255,255,255,.08);
     cursor:pointer;
+    transition:.2s;
 }
 
 .active{
@@ -53,38 +53,65 @@ body{
     background:rgba(139,92,246,.18);
 }
 
+/* CHAT BUBBLES */
 .bot{
     background:rgba(99,102,241,.13);
     border-left:3px solid #8b5cf6;
-    padding:16px;
-    border-radius:14px;
-    margin-bottom:14px;
+    padding:18px;
+    border-radius:16px;
+    margin-bottom:16px;
+    font-size:20px;
+    line-height:1.7;
 }
 
 .user{
     text-align:right;
     color:#ddd6fe;
-    margin:10px 0;
+    margin:14px 0;
+    font-size:20px;
 }
 
 .small{
-    font-size:12px;
+    font-size:13px;
     opacity:.65;
     margin-bottom:8px;
 }
 
+/* PREMIUM INPUT */
 input, textarea{
-    background:#020617;
-    border:1px solid rgba(255,255,255,.08);
+    background:linear-gradient(145deg,#020617,#0b1120);
+    border:1px solid rgba(139,92,246,.25);
     color:white;
-    border-radius:14px;
-    padding:12px;
+    border-radius:18px;
+    padding:18px 20px;
     width:100%;
     outline:none;
+    font-size:20px;
+    line-height:1.5;
+    transition:.25s ease;
+    box-shadow:
+        inset 0 0 0 1px rgba(255,255,255,.02),
+        0 0 18px rgba(139,92,246,.05);
+}
+
+input:focus,
+textarea:focus{
+    border-color:#8b5cf6;
+    box-shadow:
+        0 0 0 3px rgba(139,92,246,.12),
+        0 0 25px rgba(139,92,246,.18);
+}
+
+input::placeholder,
+textarea::placeholder{
+    color:rgba(255,255,255,.35);
+    font-size:20px;
 }
 
 textarea{
     resize:none;
+    min-height:78px;
+    max-height:220px;
 }
 
 /* LOGIN MODAL */
@@ -99,14 +126,14 @@ textarea{
 }
 
 .auth-box{
-    width:360px;
-    padding:28px;
+    width:420px;
+    padding:34px;
 }
 
 .link{
     color:#a78bfa;
     cursor:pointer;
-    font-size:14px;
+    font-size:16px;
 }
 
 .link:hover{
@@ -122,8 +149,8 @@ textarea{
 
     <div class="glass auth-box">
 
-        <h1 class="text-2xl mb-2 text-purple-300">CIPHER</h1>
-        <p class="opacity-70 text-sm mb-5">Secure AI Access</p>
+        <h1 class="text-3xl mb-2 text-purple-300">CIPHER</h1>
+        <p class="opacity-70 text-sm mb-6">Secure AI Access</p>
 
         <div id="signupFields" style="display:none;">
             <input id="name" placeholder="Full Name" class="mb-3">
@@ -132,7 +159,7 @@ textarea{
         <input id="email" placeholder="Email" class="mb-3">
         <input id="password" type="password" placeholder="Password" class="mb-4">
 
-        <button onclick="submitAuth()" class="btn w-full mb-3" id="authBtn">
+        <button onclick="submitAuth()" class="btn w-full mb-3 text-lg" id="authBtn">
             Login
         </button>
 
@@ -200,15 +227,15 @@ textarea{
         <div id="chat" class="glass flex-1 p-5 overflow-y-auto"></div>
 
         <!-- INPUT -->
-        <div class="glass p-3 flex gap-3">
+        <div class="glass p-4 flex gap-4 items-end">
 
             <textarea
                 id="prompt"
-                rows="2"
+                rows="3"
                 placeholder="Ask anything..."
                 class="flex-1"></textarea>
 
-            <button onclick="sendMsg()" class="btn px-7">
+            <button onclick="sendMsg()" class="btn px-8 py-5 text-xl font-bold rounded-2xl">
                 ➤
             </button>
 
@@ -223,9 +250,19 @@ let isSignup = false;
 let currentMode = "thinking";
 let currentChat = "chat_" + Date.now();
 
-/* ======================
-AUTH CHECK
-====================== */
+/* AUTO GROW */
+const observe = setInterval(()=>{
+    let box = document.getElementById("prompt");
+    if(box){
+        clearInterval(observe);
+        box.addEventListener("input", function(){
+            this.style.height = "auto";
+            this.style.height = this.scrollHeight + "px";
+        });
+    }
+},100);
+
+/* LOAD */
 window.onload = async ()=>{
     await checkLogin();
 
@@ -240,11 +277,8 @@ window.onload = async ()=>{
     });
 };
 
-/* ======================
-CHECK LOGIN
-====================== */
+/* CHECK LOGIN */
 async function checkLogin(){
-
     let res = await fetch("/me");
     let data = await res.json();
 
@@ -255,9 +289,7 @@ async function checkLogin(){
     }
 }
 
-/* ======================
-TOGGLE AUTH
-====================== */
+/* TOGGLE */
 function toggleAuth(){
 
     isSignup = !isSignup;
@@ -274,9 +306,7 @@ function toggleAuth(){
     document.getElementById("authMsg").innerText="";
 }
 
-/* ======================
-LOGIN / SIGNUP
-====================== */
+/* LOGIN / SIGNUP */
 async function submitAuth(){
 
     let email = document.getElementById("email").value.trim();
@@ -286,8 +316,8 @@ async function submitAuth(){
     let url = isSignup ? "/signup" : "/login";
 
     let body = isSignup ?
-    {name,email,password} :
-    {email,password};
+        {name,email,password} :
+        {email,password};
 
     let res = await fetch(url,{
         method:"POST",
@@ -303,28 +333,22 @@ async function submitAuth(){
         checkLogin();
     }else{
         document.getElementById("authMsg").innerText =
-            data.msg || "Failed.";
+        data.msg || "Failed.";
     }
 }
 
-/* ======================
-LOGOUT
-====================== */
+/* LOGOUT */
 function logout(){
     window.location="/logout";
 }
 
-/* ======================
-NEW CHAT
-====================== */
+/* NEW CHAT */
 function newChat(){
     currentChat = "chat_" + Date.now();
     document.getElementById("chat").innerHTML="";
 }
 
-/* ======================
-SEND CHAT
-====================== */
+/* SEND */
 async function sendMsg(){
 
     let prompt = document.getElementById("prompt");
@@ -339,6 +363,7 @@ async function sendMsg(){
     `;
 
     prompt.value="";
+    prompt.style.height="78px";
 
     let res = await fetch("/chat",{
         method:"POST",
@@ -356,9 +381,7 @@ async function sendMsg(){
 
     chat.innerHTML += `
         <div class="bot">
-            <div class="small">
-                ${data.label || "AI MODEL"}
-            </div>
+            <div class="small">${data.label || "AI MODEL"}</div>
             ${marked.parse(data.response || "No response")}
         </div>
     `;
@@ -368,9 +391,7 @@ async function sendMsg(){
     loadHistory();
 }
 
-/* ======================
-LOAD HISTORY
-====================== */
+/* HISTORY */
 async function loadHistory(){
 
     let res = await fetch("/history");
@@ -390,9 +411,7 @@ async function loadHistory(){
     });
 }
 
-/* ======================
-OPEN CHAT
-====================== */
+/* OPEN CHAT */
 async function openChat(id){
 
     currentChat = id;
