@@ -1,7 +1,13 @@
 # ==========================================================
-# app.py  (FINAL STABLE VERSION)
-# Basic Signup/Login + User Chat History + Persistence
-# Models Working
+# app.py (UPDATED - Phase 1 Tool Fusion)
+# Existing Chat + Login + History preserved
+# Added:
+# Hash Tool
+# Base64 Tool
+# Password Checker
+# JWT Decoder
+# WHOIS Lookup
+# DNS Lookup
 # ==========================================================
 
 from fastapi import FastAPI, Request
@@ -17,6 +23,13 @@ from groq import Groq
 import requests
 import os
 import uuid
+import hashlib
+import base64
+import jwt
+import whois
+import dns.resolver
+import re
+import json
 
 # ==========================================================
 # CONFIG
@@ -47,35 +60,26 @@ Base = declarative_base()
 
 # ==========================================================
 # TABLES
-# users => id username password
-# chats => id title user_id
-# messages => id chat_id role content
 # ==========================================================
 
 class User(Base):
     __tablename__ = "users"
-
     id = Column(Integer, primary_key=True)
     username = Column(String(255), unique=True)
     password = Column(String(255))
 
-
 class Chat(Base):
     __tablename__ = "chats"
-
     id = Column(String(255), primary_key=True)
     title = Column(String(255))
     user_id = Column(Integer)
 
-
 class Message(Base):
     __tablename__ = "messages"
-
     id = Column(Integer, primary_key=True)
     chat_id = Column(String(255))
     role = Column(String(50))
     content = Column(Text)
-
 
 Base.metadata.create_all(bind=engine)
 
@@ -92,17 +96,15 @@ groq_client = Groq(api_key=GROQ_API_KEY)
 def get_user_id(request):
     return request.session.get("user_id")
 
-
 def ask_groq(prompt):
     try:
         res = groq_client.chat.completions.create(
             model="llama-3.3-70b-versatile",
-            messages=[{"role": "user", "content": prompt}]
+            messages=[{"role":"user","content":prompt}]
         )
         return res.choices[0].message.content
     except Exception as e:
         return f"GROQ Error: {str(e)}"
-
 
 def ask_openrouter(prompt, model):
     try:
@@ -114,11 +116,10 @@ def ask_openrouter(prompt, model):
             },
             json={
                 "model": model,
-                "messages": [{"role": "user", "content": prompt}]
+                "messages": [{"role":"user","content":prompt}]
             },
             timeout=60
         )
-
         data = r.json()
 
         if "choices" in data:
@@ -142,12 +143,11 @@ async def home(request: Request):
     )
 
 # ==========================================================
-# SIGNUP
+# AUTH
 # ==========================================================
 
 @app.post("/signup")
 async def signup(request: Request):
-
     try:
         data = await request.json()
 
@@ -156,19 +156,13 @@ async def signup(request: Request):
 
         db = SessionLocal()
 
-        old = db.query(User).filter(
-            User.username == email
-        ).first()
+        old = db.query(User).filter(User.username == email).first()
 
         if old:
             db.close()
-            return {"ok": False, "msg": "User already exists"}
+            return {"ok":False,"msg":"User already exists"}
 
-        user = User(
-            username=email,
-            password=password
-        )
-
+        user = User(username=email,password=password)
         db.add(user)
         db.commit()
         db.refresh(user)
@@ -177,19 +171,13 @@ async def signup(request: Request):
         request.session["email"] = user.username
 
         db.close()
-
-        return {"ok": True}
+        return {"ok":True}
 
     except Exception as e:
-        return {"ok": False, "msg": str(e)}
-
-# ==========================================================
-# LOGIN
-# ==========================================================
+        return {"ok":False,"msg":str(e)}
 
 @app.post("/login")
 async def login(request: Request):
-
     try:
         data = await request.json()
 
@@ -206,41 +194,32 @@ async def login(request: Request):
         db.close()
 
         if not user:
-            return {"ok": False, "msg": "Invalid credentials"}
+            return {"ok":False,"msg":"Invalid credentials"}
 
         request.session["user_id"] = user.id
         request.session["email"] = user.username
 
-        return {"ok": True}
+        return {"ok":True}
 
     except Exception as e:
-        return {"ok": False, "msg": str(e)}
-
-# ==========================================================
-# USER STATUS
-# ==========================================================
+        return {"ok":False,"msg":str(e)}
 
 @app.get("/me")
 async def me(request: Request):
-
     uid = get_user_id(request)
 
     if uid:
         return {
-            "logged_in": True,
-            "email": request.session.get("email")
+            "logged_in":True,
+            "email":request.session.get("email")
         }
 
-    return {"logged_in": False}
-
-# ==========================================================
-# LOGOUT
-# ==========================================================
+    return {"logged_in":False}
 
 @app.get("/logout")
 async def logout(request: Request):
     request.session.clear()
-    return {"ok": True}
+    return {"ok":True}
 
 # ==========================================================
 # CHAT
@@ -261,8 +240,6 @@ async def chat(request: Request):
 
         uid = get_user_id(request)
 
-        # ---------------- MODELS ----------------
-
         if mode == "thinking":
             answer = ask_openrouter(prompt, "openai/gpt-4o-mini")
             label = "🧠 THINK • GPT"
@@ -275,15 +252,10 @@ async def chat(request: Request):
             answer = ask_groq(prompt)
             label = "⚡ FAST • GROQ"
 
-        # ---------------- SAVE ONLY LOGIN USERS ----------------
-
         if uid:
-
             db = SessionLocal()
 
-            exists = db.query(Chat).filter(
-                Chat.id == chat_id
-            ).first()
+            exists = db.query(Chat).filter(Chat.id == chat_id).first()
 
             if not exists:
                 db.add(Chat(
@@ -292,33 +264,21 @@ async def chat(request: Request):
                     user_id=uid
                 ))
 
-            db.add(Message(
-                chat_id=chat_id,
-                role="user",
-                content=prompt
-            ))
-
-            db.add(Message(
-                chat_id=chat_id,
-                role="assistant",
-                content=answer
-            ))
+            db.add(Message(chat_id=chat_id, role="user", content=prompt))
+            db.add(Message(chat_id=chat_id, role="assistant", content=answer))
 
             db.commit()
             db.close()
 
         return {
-            "ok": True,
-            "chat_id": chat_id,
-            "label": label,
-            "response": answer
+            "ok":True,
+            "chat_id":chat_id,
+            "label":label,
+            "response":answer
         }
 
     except Exception as e:
-        return {
-            "ok": False,
-            "msg": str(e)
-        }
+        return {"ok":False,"msg":str(e)}
 
 # ==========================================================
 # HISTORY
@@ -330,29 +290,22 @@ async def history(request: Request):
     uid = get_user_id(request)
 
     if not uid:
-        return {"items": []}
+        return {"items":[]}
 
     db = SessionLocal()
 
-    chats = db.query(Chat).filter(
-        Chat.user_id == uid
-    ).all()
+    chats = db.query(Chat).filter(Chat.user_id == uid).all()
 
     result = []
 
     for c in chats:
         result.append({
-            "id": c.id,
-            "title": c.title
+            "id":c.id,
+            "title":c.title
         })
 
     db.close()
-
-    return {"items": result}
-
-# ==========================================================
-# LOAD CHAT
-# ==========================================================
+    return {"items":result}
 
 @app.get("/chat/{chat_id}")
 async def load_chat(chat_id: str, request: Request):
@@ -360,7 +313,7 @@ async def load_chat(chat_id: str, request: Request):
     uid = get_user_id(request)
 
     if not uid:
-        return {"items": []}
+        return {"items":[]}
 
     db = SessionLocal()
 
@@ -371,7 +324,7 @@ async def load_chat(chat_id: str, request: Request):
 
     if not owner:
         db.close()
-        return {"items": []}
+        return {"items":[]}
 
     msgs = db.query(Message).filter(
         Message.chat_id == chat_id
@@ -381,10 +334,126 @@ async def load_chat(chat_id: str, request: Request):
 
     for m in msgs:
         result.append({
-            "role": m.role,
-            "content": m.content
+            "role":m.role,
+            "content":m.content
         })
 
     db.close()
+    return {"items":result}
 
-    return {"items": result}
+# ==========================================================
+# TOOLS
+# ==========================================================
+
+@app.post("/tool/hash")
+async def tool_hash(request: Request):
+    data = await request.json()
+    text = data["text"]
+
+    return {
+        "ok":True,
+        "md5": hashlib.md5(text.encode()).hexdigest(),
+        "sha1": hashlib.sha1(text.encode()).hexdigest(),
+        "sha256": hashlib.sha256(text.encode()).hexdigest()
+    }
+
+@app.post("/tool/base64")
+async def tool_base64(request: Request):
+    data = await request.json()
+
+    text = data["text"]
+    mode = data["mode"]
+
+    try:
+        if mode == "encode":
+            result = base64.b64encode(text.encode()).decode()
+        else:
+            result = base64.b64decode(text.encode()).decode()
+
+        return {"ok":True,"result":result}
+
+    except Exception as e:
+        return {"ok":False,"msg":str(e)}
+
+@app.post("/tool/password")
+async def tool_password(request: Request):
+    data = await request.json()
+    pwd = data["text"]
+
+    score = 0
+
+    if len(pwd) >= 8: score += 1
+    if re.search(r"[A-Z]", pwd): score += 1
+    if re.search(r"[a-z]", pwd): score += 1
+    if re.search(r"[0-9]", pwd): score += 1
+    if re.search(r"[^A-Za-z0-9]", pwd): score += 1
+
+    levels = {
+        0:"Very Weak",
+        1:"Weak",
+        2:"Medium",
+        3:"Good",
+        4:"Strong",
+        5:"Very Strong"
+    }
+
+    return {
+        "ok":True,
+        "score":score,
+        "strength":levels[score]
+    }
+
+@app.post("/tool/jwt")
+async def tool_jwt(request: Request):
+    data = await request.json()
+    token = data["text"]
+
+    try:
+        decoded = jwt.decode(
+            token,
+            options={"verify_signature":False}
+        )
+
+        return {"ok":True,"payload":decoded}
+
+    except Exception as e:
+        return {"ok":False,"msg":str(e)}
+
+@app.post("/tool/whois")
+async def tool_whois(request: Request):
+    data = await request.json()
+    domain = data["text"]
+
+    try:
+        w = whois.whois(domain)
+
+        return {
+            "ok":True,
+            "domain":domain,
+            "registrar":str(w.registrar),
+            "creation_date":str(w.creation_date),
+            "expiration_date":str(w.expiration_date),
+            "name_servers":str(w.name_servers)
+        }
+
+    except Exception as e:
+        return {"ok":False,"msg":str(e)}
+
+@app.post("/tool/dns")
+async def tool_dns(request: Request):
+    data = await request.json()
+
+    domain = data["text"]
+    rtype = data.get("rtype","A")
+
+    try:
+        answers = dns.resolver.resolve(domain, rtype)
+
+        result = []
+        for r in answers:
+            result.append(str(r))
+
+        return {"ok":True,"records":result}
+
+    except Exception as e:
+        return {"ok":False,"msg":str(e)}
