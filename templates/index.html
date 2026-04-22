@@ -1,12 +1,11 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <title>CIPHER AI</title>
 
-<!-- FAVICON -->
-<link rel="icon" href="{{ url_for('static', filename='logo.png') }}">
+<!-- FIXED favicon -->
+<link rel="icon" href="/static/logo.png">
 
 <script src="https://cdn.tailwindcss.com"></script>
 
@@ -16,140 +15,44 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 
 <style>
-:root{
-    --primary:#8b5cf6;
-    --accent:#6366f1;
-}
-
-/* BASE */
 body {
     margin:0;
     color:#e5e7eb;
     font-family:'Inter', monospace;
-    background:
-        radial-gradient(circle at 20% 20%, rgba(139,92,246,0.15), transparent 40%),
-        radial-gradient(circle at 80% 10%, rgba(99,102,241,0.12), transparent 40%),
-        #020617;
+    background:#020617;
 }
-
-/* GRID */
-body::before {
-    content:"";
-    position:fixed;
-    width:100%;
-    height:100%;
-    background:
-        linear-gradient(rgba(139,92,246,0.05) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(99,102,241,0.05) 1px, transparent 1px);
-    background-size:60px 60px;
-    z-index:-1;
-}
-
-/* GLASS */
 .glass {
     background: rgba(15,23,42,0.6);
     backdrop-filter: blur(16px);
     border:1px solid rgba(255,255,255,0.08);
     border-radius:18px;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.4);
 }
-
-/* SIDEBAR */
 .sidebar { width:260px; }
-
-/* LOGO GLOW */
-.logo {
-    filter: drop-shadow(0 0 8px rgba(139,92,246,0.5));
-}
-
-/* BUTTON */
+.logo { filter: drop-shadow(0 0 8px rgba(139,92,246,0.5)); }
 .btn {
-    border:1px solid var(--primary);
+    border:1px solid #8b5cf6;
     padding:10px;
     border-radius:12px;
-    color:var(--primary);
-    transition:0.25s;
+    color:#8b5cf6;
 }
-.btn:hover {
-    background:linear-gradient(45deg,var(--primary),var(--accent));
-    color:white;
-    box-shadow:0 0 10px rgba(139,92,246,0.3);
-}
-
-/* INPUT */
 .input-box {
-    background: rgba(2,6,23,0.8);
-    border:1px solid rgba(255,255,255,0.08);
+    background:#020617;
+    border:1px solid rgba(255,255,255,0.1);
     padding:12px;
     border-radius:12px;
     width:100%;
     color:white;
 }
-
-/* CHAT */
 .bot {
-    background: linear-gradient(135deg, rgba(139,92,246,0.12), rgba(99,102,241,0.08));
-    border-left:3px solid var(--primary);
+    background: rgba(139,92,246,0.1);
     padding:12px;
     border-radius:12px;
     margin-bottom:10px;
 }
-
 .user {
     text-align:right;
     padding:12px;
     color:#c4b5fd;
-}
-
-/* BADGE */
-.badge {
-    padding:6px 14px;
-    border-radius:999px;
-    border:1px solid rgba(255,255,255,0.12);
-    cursor:pointer;
-}
-.badge.active {
-    background: rgba(139,92,246,0.2);
-    border-color: var(--primary);
-}
-
-/* CODE BLOCK */
-pre {
-    background: rgba(2,6,23,0.9);
-    padding:16px;
-    border-radius:12px;
-    overflow:auto;
-    border:1px solid rgba(255,255,255,0.08);
-    margin-top:10px;
-}
-.copy-btn {
-    position:absolute;
-    top:8px;
-    right:8px;
-    background:rgba(139,92,246,0.2);
-    border:1px solid rgba(255,255,255,0.2);
-    padding:4px 10px;
-    font-size:12px;
-    border-radius:8px;
-    cursor:pointer;
-}
-
-/* MODAL */
-#authModal {
-    display:none;
-    position:fixed;
-    width:100%;
-    height:100%;
-    background:rgba(0,0,0,0.6);
-    backdrop-filter: blur(10px);
-    justify-content:center;
-    align-items:center;
-}
-
-/* RESPONSIVE */
-@media (max-width:768px){
-    .sidebar{display:none;}
-    .mobile-nav{display:flex;}
 }
 </style>
 </head>
@@ -161,11 +64,9 @@ pre {
 <!-- SIDEBAR -->
 <div class="sidebar glass p-4 flex flex-col justify-between hidden md:flex">
     <div>
-        <!-- LOGO + NAME -->
         <div class="flex items-center gap-3">
-            <img src="{{ url_for('static', filename='logo.png') }}"
-     class="w-10 h-10 logo rounded-lg">
-                 class="w-10 h-10 logo rounded-lg">
+            <!-- FIXED IMAGE -->
+            <img src="/static/logo.png" class="w-10 h-10 logo rounded-lg">
             <span class="text-purple-300 text-lg font-bold">CIPHER</span>
         </div>
 
@@ -180,11 +81,6 @@ pre {
 
 <div class="glass p-4 flex justify-between">
     <span>⚡ AI SECURITY CORE</span>
-    <div class="flex gap-2">
-        <span class="badge active" data-mode="thinking">THINK</span>
-        <span class="badge" data-mode="fast">FAST</span>
-        <span class="badge" data-mode="programming">CODE</span>
-    </div>
 </div>
 
 <div id="chat" class="flex-1 glass p-4 overflow-y-auto"></div>
@@ -200,7 +96,6 @@ pre {
 <script>
 let chats = {};
 let currentChat = null;
-let currentMode = "thinking";
 
 function createNewChat(){
     currentChat = "chat_" + Date.now();
@@ -209,52 +104,39 @@ function createNewChat(){
 }
 
 function render(){
-    chat.innerHTML="";
+    const chatBox = document.getElementById("chat");
+    chatBox.innerHTML="";
 
     chats[currentChat].messages.forEach(m=>{
         const div=document.createElement("div");
         div.className = m.role==="user"?"user":"bot";
 
         div.innerHTML = marked.parse(m.content);
-
-        div.querySelectorAll('pre code').forEach(block => {
-            hljs.highlightElement(block);
-
-            const btn=document.createElement("button");
-            btn.innerText="Copy";
-            btn.className="copy-btn";
-
-            btn.onclick=()=>{
-                navigator.clipboard.writeText(block.innerText);
-                btn.innerText="Copied!";
-                setTimeout(()=>btn.innerText="Copy",1500);
-            };
-
-            block.parentElement.style.position="relative";
-            block.parentElement.appendChild(btn);
-        });
-
-        chat.appendChild(div);
+        chatBox.appendChild(div);
     });
 
-    chat.scrollTop = chat.scrollHeight;
+    chatBox.scrollTop = chatBox.scrollHeight;
 }
 
 async function send(){
-    const text = msg.value;
+    const msgBox = document.getElementById("msg");
+    const text = msgBox.value;
+
     if(!text) return;
 
     chats[currentChat].messages.push({role:"user",content:text});
     render();
-    msg.value="";
+    msgBox.value="";
 
+    // ✅ FIXED JSON REQUEST
     const res = await fetch("/chat",{
         method:"POST",
-        headers:{"Content-Type":"application/x-www-form-urlencoded"},
-        body:new URLSearchParams({
+        headers:{
+            "Content-Type":"application/json"
+        },
+        body: JSON.stringify({
             message:text,
-            chat_id:currentChat,
-            mode:currentMode
+            chat_id:currentChat
         })
     });
 
@@ -267,14 +149,6 @@ async function send(){
 
     render();
 }
-
-document.querySelectorAll('.badge').forEach(b=>{
-    b.onclick=()=>{
-        currentMode=b.dataset.mode;
-        document.querySelectorAll('.badge').forEach(x=>x.classList.remove("active"));
-        b.classList.add("active");
-    }
-});
 
 createNewChat();
 </script>
