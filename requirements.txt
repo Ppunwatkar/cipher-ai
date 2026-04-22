@@ -12,3 +12,4 @@ psycopg2-binary
 jinja2
 python-dotenv
 groq
+PyJWT
