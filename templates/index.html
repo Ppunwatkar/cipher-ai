@@ -85,7 +85,7 @@ code{color:#c4b5fd}
 <div class="h-screen flex gap-3 p-3">
 
 <!-- ================= SIDEBAR ================= -->
-<div class="w-[290px] glass rounded-3xl border border-white/10 p-4 flex flex-col">
+<div class="w-[300px] glass rounded-3xl border border-white/10 p-4 flex flex-col">
 
 <!-- logo -->
 <div class="flex items-center gap-3 mb-4">
@@ -101,6 +101,72 @@ code{color:#c4b5fd}
 class="w-full rounded-2xl border border-violet-500 py-3 mb-4 hover:bg-violet-500/10 transition">
 + NEW CHAT
 </button>
+
+<!-- ================= TOOLS SECTION ================= -->
+<div class="mb-4">
+
+<div class="text-[11px] tracking-[3px] text-white/40 px-2 mb-3">
+SECURITY TOOLS
+</div>
+
+<div class="space-y-2">
+
+<button onclick="openTool('hash')"
+class="w-full flex items-center gap-3 px-4 py-3 rounded-2xl border border-white/10 bg-white/[0.02] hover:border-violet-500 hover:bg-violet-500/10 transition text-left">
+<div class="w-9 h-9 rounded-xl bg-violet-500/20 flex items-center justify-center">🔐</div>
+<div class="flex-1">
+<div class="text-sm">Hash Tool</div>
+<div class="text-[11px] text-white/40">MD5 / SHA256</div>
+</div>
+</button>
+
+<button onclick="openTool('jwt')"
+class="w-full flex items-center gap-3 px-4 py-3 rounded-2xl border border-white/10 bg-white/[0.02] hover:border-violet-500 hover:bg-violet-500/10 transition text-left">
+<div class="w-9 h-9 rounded-xl bg-cyan-500/20 flex items-center justify-center">🪪</div>
+<div class="flex-1">
+<div class="text-sm">JWT Decoder</div>
+<div class="text-[11px] text-white/40">Decode Tokens</div>
+</div>
+</button>
+
+<button onclick="openTool('whois')"
+class="w-full flex items-center gap-3 px-4 py-3 rounded-2xl border border-white/10 bg-white/[0.02] hover:border-violet-500 hover:bg-violet-500/10 transition text-left">
+<div class="w-9 h-9 rounded-xl bg-emerald-500/20 flex items-center justify-center">🌐</div>
+<div class="flex-1">
+<div class="text-sm">WHOIS Lookup</div>
+<div class="text-[11px] text-white/40">Domain Info</div>
+</div>
+</button>
+
+<button onclick="openTool('dns')"
+class="w-full flex items-center gap-3 px-4 py-3 rounded-2xl border border-white/10 bg-white/[0.02] hover:border-violet-500 hover:bg-violet-500/10 transition text-left">
+<div class="w-9 h-9 rounded-xl bg-yellow-500/20 flex items-center justify-center">📡</div>
+<div class="flex-1">
+<div class="text-sm">DNS Lookup</div>
+<div class="text-[11px] text-white/40">A / MX / TXT</div>
+</div>
+</button>
+
+<button onclick="openTool('password')"
+class="w-full flex items-center gap-3 px-4 py-3 rounded-2xl border border-white/10 bg-white/[0.02] hover:border-violet-500 hover:bg-violet-500/10 transition text-left">
+<div class="w-9 h-9 rounded-xl bg-red-500/20 flex items-center justify-center">🔑</div>
+<div class="flex-1">
+<div class="text-sm">Password Check</div>
+<div class="text-[11px] text-white/40">Strength Test</div>
+</div>
+</button>
+
+<button onclick="openTool('base64')"
+class="w-full flex items-center gap-3 px-4 py-3 rounded-2xl border border-white/10 bg-white/[0.02] hover:border-violet-500 hover:bg-violet-500/10 transition text-left">
+<div class="w-9 h-9 rounded-xl bg-pink-500/20 flex items-center justify-center">📦</div>
+<div class="flex-1">
+<div class="text-sm">Base64 Tool</div>
+<div class="text-[11px] text-white/40">Encode / Decode</div>
+</div>
+</button>
+
+</div>
+</div>
 
 <!-- history -->
 <div id="historyBox"
@@ -133,39 +199,15 @@ GU
 <div id="menu"
 class="hidden absolute left-0 bottom-16 w-64 bg-[#171717] rounded-2xl border border-white/10 p-2 z-50 shadow-2xl">
 
-<!-- guest -->
 <div id="guestMenu">
-
-<button onclick="openAuth('login')"
-class="w-full text-left px-3 py-2 rounded-xl hover:bg-white/10">
-Login
-</button>
-
-<button onclick="openAuth('signup')"
-class="w-full text-left px-3 py-2 rounded-xl hover:bg-white/10">
-Sign Up
-</button>
-
+<button onclick="openAuth('login')" class="w-full text-left px-3 py-2 rounded-xl hover:bg-white/10">Login</button>
+<button onclick="openAuth('signup')" class="w-full text-left px-3 py-2 rounded-xl hover:bg-white/10">Sign Up</button>
 </div>
 
-<!-- logged user -->
 <div id="userMenu" class="hidden">
-
-<button onclick="openProfile()"
-class="w-full text-left px-3 py-2 rounded-xl hover:bg-white/10">
-Profile
-</button>
-
-<button onclick="openSettings()"
-class="w-full text-left px-3 py-2 rounded-xl hover:bg-white/10">
-Settings
-</button>
-
-<button onclick="logoutUser()"
-class="w-full text-left px-3 py-2 rounded-xl hover:bg-red-500/10 text-red-300">
-Logout
-</button>
-
+<button onclick="openProfile()" class="w-full text-left px-3 py-2 rounded-xl hover:bg-white/10">Profile</button>
+<button onclick="openSettings()" class="w-full text-left px-3 py-2 rounded-xl hover:bg-white/10">Settings</button>
+<button onclick="logoutUser()" class="w-full text-left px-3 py-2 rounded-xl hover:bg-red-500/10 text-red-300">Logout</button>
 </div>
 
 </div>
@@ -235,34 +277,23 @@ class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center">
 <div class="w-[420px] max-w-[95%] glass rounded-2xl border border-white/10 p-7 relative">
 
 <button onclick="closeAuth()"
-class="absolute top-3 right-4 text-2xl text-white/60 hover:text-white">
-✕
-</button>
+class="absolute top-3 right-4 text-2xl text-white/60 hover:text-white">✕</button>
 
-<div class="text-4xl tracking-widest text-violet-300 mb-2">
-CIPHER
-</div>
-
-<div class="text-sm text-white/55 mb-6">
-Secure AI Access
-</div>
+<div class="text-4xl tracking-widest text-violet-300 mb-2">CIPHER</div>
+<div class="text-sm text-white/55 mb-6">Secure AI Access</div>
 
 <input id="authEmail"
 placeholder="Email"
 class="inputbox w-full rounded-xl px-4 py-3 mb-3 text-sm">
 
 <div class="relative mb-4">
-
 <input id="authPass"
 type="password"
 placeholder="Password"
 class="inputbox w-full rounded-xl px-4 py-3 pr-12 text-sm">
 
 <button onclick="togglePassword()"
-class="absolute right-3 top-3 text-sm text-white/60">
-👁
-</button>
-
+class="absolute right-3 top-3 text-sm text-white/60">👁</button>
 </div>
 
 <button id="authBtn"
@@ -273,11 +304,7 @@ Login
 
 <div class="text-center text-sm">
 <span id="switchText">Don't have an account?</span>
-
-<button onclick="switchAuthMode()"
-class="text-violet-300 ml-1">
-Sign Up
-</button>
+<button onclick="switchAuthMode()" class="text-violet-300 ml-1">Sign Up</button>
 </div>
 
 <div id="authMsg" class="text-red-300 text-sm mt-4"></div>
@@ -291,32 +318,27 @@ let currentChatId=null;
 let authMode="login";
 let loaderId=null;
 
-/* ================= INIT ================= */
 window.onload=async()=>{
 await loadUser();
 await loadHistory();
 }
 
-/* ================= MODE ================= */
 function setMode(m){
 mode=m;
-
 document.querySelectorAll(".modeBtn").forEach(btn=>{
 btn.classList.remove("bg-violet-500/20","border-violet-500");
 btn.classList.add("border-white/10");
 });
-
 document.getElementById(m+"Btn").classList.add("bg-violet-500/20","border-violet-500");
 }
 
-/* ================= CHAT ================= */
 async function sendMsg(){
 
 let prompt=document.getElementById("prompt").value.trim();
 if(!prompt)return;
 
 appendUser(prompt);
-document.getElementById("prompt").value="";
+prompt.value="";
 
 showLoader();
 
@@ -359,43 +381,23 @@ scrollBottom();
 }
 
 function appendAI(label,txt){
-
-txt=formatReply(txt);
-
 chatBox.innerHTML+=`
 <div class="msgbox">
-
-<div class="flex justify-between items-center mb-3">
-<div class="text-[11px] text-white/55">${label}</div>
-
-<button onclick="copyText(this)"
-data-copy="${encodeURIComponent(stripHtml(txt))}"
-class="copyBtn">
-Copy
-</button>
-</div>
-
-<div class="text-[15px] leading-8">${txt}</div>
-
+<div class="text-[11px] text-white/55 mb-2">${label}</div>
+<div class="text-[15px] leading-8">${escapeHtml(txt).replace(/\n/g,"<br>")}</div>
 </div>`;
 scrollBottom();
 }
 
 function showLoader(){
-
 loaderId="loader_"+Date.now();
 
 chatBox.innerHTML+=`
 <div id="${loaderId}" class="msgbox">
-
-<div class="text-[11px] text-white/55 mb-3">
-AI MODEL
-</div>
-
+<div class="text-[11px] text-white/55 mb-2">AI MODEL</div>
 <div class="typing text-2xl text-violet-300">
 <span>.</span><span>.</span><span>.</span>
 </div>
-
 </div>`;
 scrollBottom();
 }
@@ -405,58 +407,12 @@ let el=document.getElementById(loaderId);
 if(el)el.remove();
 }
 
-function formatReply(text){
-
-text=escapeHtml(text);
-
-if(text.includes("```")){
-text=text.replace(/```(\w+)?\n?([\s\S]*?)```/g,function(match,lang,code){
-
-lang=lang?lang.toUpperCase():"CODE";
-
-return `
-<div class="mt-3">
-
-<div class="flex justify-between items-center mb-2 px-1">
-<div class="text-[11px] text-violet-300">${lang}</div>
-
-<button onclick="copyCode(this)"
-data-code="${encodeURIComponent(code)}"
-class="copyBtn">
-Copy Code
-</button>
-</div>
-
-<pre><code>${code}</code></pre>
-
-</div>`;
-});
-}
-
-return text.replace(/\n/g,"<br>");
-}
-
-/* ================= COPY ================= */
-function copyCode(btn){
-navigator.clipboard.writeText(decodeURIComponent(btn.dataset.code));
-btn.innerText="Copied!";
-setTimeout(()=>btn.innerText="Copy Code",1000);
-}
-
-function copyText(btn){
-navigator.clipboard.writeText(decodeURIComponent(btn.dataset.copy));
-btn.innerText="Copied!";
-setTimeout(()=>btn.innerText="Copy",1000);
-}
-
-/* ================= HISTORY ================= */
 function newChat(){
 currentChatId=null;
 chatBox.innerHTML="";
 }
 
 async function loadHistory(){
-
 try{
 let res=await fetch("/history");
 let data=await res.json();
@@ -474,7 +430,6 @@ ${c.title}
 }
 
 async function loadChat(id){
-
 currentChatId=id;
 
 let res=await fetch("/chat/"+id);
@@ -488,15 +443,12 @@ else appendAI("AI MODEL",m.content);
 });
 }
 
-/* ================= USER ================= */
 async function loadUser(){
-
 try{
 let res=await fetch("/me");
 let data=await res.json();
 
 if(data.logged_in){
-
 let email=data.email;
 let name=email.split("@")[0];
 let initials=name.substring(0,2).toUpperCase();
@@ -507,9 +459,7 @@ avatar.innerText=initials;
 
 guestMenu.classList.add("hidden");
 userMenu.classList.remove("hidden");
-
 }else{
-
 username.innerText="Guest User";
 memberType.innerText="Guest";
 avatar.innerText="GU";
@@ -517,16 +467,11 @@ avatar.innerText="GU";
 guestMenu.classList.remove("hidden");
 userMenu.classList.add("hidden");
 }
-
 }catch(e){}
 }
 
-/* ================= MENU ================= */
-function toggleMenu(){
-menu.classList.toggle("hidden");
-}
+function toggleMenu(){menu.classList.toggle("hidden");}
 
-/* ================= AUTH ================= */
 function openAuth(type){
 authMode=type;
 updateAuth();
@@ -545,7 +490,6 @@ updateAuth();
 }
 
 function updateAuth(){
-
 if(authMode==="login"){
 authBtn.innerText="Login";
 switchText.innerText="Don't have an account?";
@@ -588,7 +532,6 @@ function togglePassword(){
 authPass.type=authPass.type==="password"?"text":"password";
 }
 
-/* ================= LOGOUT ================= */
 async function logoutUser(){
 await fetch("/logout");
 menu.classList.add("hidden");
@@ -597,23 +540,35 @@ historyBox.innerHTML="";
 await loadUser();
 }
 
-/* ================= HELPERS ================= */
-function scrollBottom(){
-chatBox.scrollTop=chatBox.scrollHeight;
+function openTool(tool){
+
+const names = {
+hash:"Hash Tool",
+jwt:"JWT Decoder",
+whois:"WHOIS Lookup",
+dns:"DNS Lookup",
+password:"Password Checker",
+base64:"Base64 Tool"
+};
+
+chatBox.innerHTML += `
+<div class="msgbox">
+<div class="text-[11px] text-violet-300 mb-2">TOOL PANEL</div>
+<div class="text-lg mb-1">${names[tool]}</div>
+<div class="text-sm text-white/55">Backend integration pending. Tool UI ready.</div>
+</div>`;
+
+scrollBottom();
 }
+
+function scrollBottom(){chatBox.scrollTop=chatBox.scrollHeight;}
 
 function escapeHtml(t){
 return t.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 }
 
-function stripHtml(html){
-let div=document.createElement("div");
-div.innerHTML=html;
-return div.innerText;
-}
-
-function openProfile(){alert("Profile Soon")}
-function openSettings(){alert("Settings Soon")}
+function openProfile(){alert("Profile Soon");}
+function openSettings(){alert("Settings Soon");}
 </script>
 
 </body>
