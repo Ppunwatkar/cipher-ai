@@ -17,14 +17,17 @@ body{
 }
 .scrollbar::-webkit-scrollbar{width:6px}
 .scrollbar::-webkit-scrollbar-thumb{background:#6d28d9;border-radius:10px}
+
 .glass{
     background:rgba(10,15,40,.65);
     backdrop-filter:blur(18px);
 }
+
 .msgbox{
     background:rgba(80,60,180,.18);
     border-left:3px solid #8b5cf6;
 }
+
 .inputbox{
     background:#030712;
     border:1px solid rgba(255,255,255,.08);
@@ -33,6 +36,37 @@ body{
     border:1px solid #8b5cf6;
     outline:none;
 }
+
+.copyBtn{
+    font-size:12px;
+    padding:4px 10px;
+    border-radius:10px;
+    border:1px solid rgba(255,255,255,.08);
+    background:rgba(255,255,255,.04);
+}
+
+.typingDots span{
+    animation:blink 1.2s infinite;
+}
+.typingDots span:nth-child(2){animation-delay:.2s}
+.typingDots span:nth-child(3){animation-delay:.4s}
+
+@keyframes blink{
+0%,80%,100%{opacity:.2}
+40%{opacity:1}
+}
+
+pre{
+    background:#030712;
+    padding:16px;
+    border-radius:14px;
+    overflow:auto;
+    margin-top:10px;
+    white-space:pre-wrap;
+}
+code{
+    color:#c4b5fd;
+}
 </style>
 </head>
 
@@ -40,314 +74,151 @@ body{
 
 <div class="h-screen flex p-3 gap-3">
 
-    <!-- ================= SIDEBAR ================= -->
-    <div class="w-[330px] glass rounded-3xl border border-white/10 flex flex-col p-4">
+<!-- SIDEBAR -->
+<div class="w-[330px] glass rounded-3xl border border-white/10 flex flex-col p-4">
 
-        <!-- LOGO -->
-        <div class="flex items-center gap-3 mb-4">
-            <img src="/static/logo.png" class="w-12 h-12 rounded-xl">
-            <div>
-                <div class="text-3xl tracking-wider text-violet-300">CIPHER</div>
-                <div class="text-xs text-white/60">AI Cyber Assistant</div>
-            </div>
-        </div>
-
-        <!-- NEW CHAT -->
-        <button onclick="newChat()"
-            class="w-full mb-4 rounded-2xl border border-violet-500 py-3 hover:bg-violet-500/10 transition">
-            + NEW CHAT
-        </button>
-
-        <!-- CHAT HISTORY -->
-        <div id="historyBox"
-             class="flex-1 overflow-y-auto space-y-2 scrollbar pr-1">
-
-        </div>
-
-        <!-- USER CARD -->
-        <div class="relative mt-4">
-
-            <div id="userCard"
-                onclick="toggleAccountMenu()"
-                class="bg-[#0a1035] border border-white/10 rounded-3xl px-4 py-4 cursor-pointer hover:border-violet-500">
-
-                <div class="flex items-center gap-3">
-
-                    <div id="userAvatar"
-                        class="w-12 h-12 rounded-full bg-slate-600 flex items-center justify-center text-lg font-bold">
-                        GU
-                    </div>
-
-                    <div class="flex-1 min-w-0">
-                        <div id="userName"
-                             class="truncate text-[15px]">Guest User</div>
-                        <div class="text-xs text-white/50">Member</div>
-                    </div>
-
-                    <div>›</div>
-                </div>
-            </div>
-
-            <!-- MENU -->
-            <div id="accountMenu"
-                class="hidden absolute left-0 bottom-20 w-72 rounded-3xl bg-[#1e1e1e] border border-white/10 p-3 z-50">
-
-                <div class="flex items-center gap-3 px-2 py-2">
-                    <div id="menuAvatar"
-                         class="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center font-bold">
-                        GU
-                    </div>
-
-                    <div class="flex-1">
-                        <div id="menuName">Guest User</div>
-                        <div class="text-xs text-white/50">Free</div>
-                    </div>
-                </div>
-
-                <div class="border-t border-white/10 my-2"></div>
-
-                <button onclick="openProfile()"
-                    class="w-full text-left px-3 py-2 rounded-xl hover:bg-white/10">
-                    Profile
-                </button>
-
-                <button onclick="openSettings()"
-                    class="w-full text-left px-3 py-2 rounded-xl hover:bg-white/10">
-                    Settings
-                </button>
-
-                <button onclick="logoutUser()"
-                    class="w-full text-left px-3 py-2 rounded-xl hover:bg-red-500/10 text-red-300">
-                    Logout
-                </button>
-            </div>
-
-        </div>
-
-    </div>
-
-
-    <!-- ================= MAIN ================= -->
-    <div class="flex-1 flex flex-col gap-3">
-
-        <!-- TOP BAR -->
-        <div class="glass rounded-3xl border border-white/10 p-5 flex justify-between items-center">
-
-            <div class="text-lg tracking-widest text-violet-300">
-                ⚡ AI SECURITY CORE
-            </div>
-
-            <div class="flex gap-2">
-
-                <button id="thinkingBtn"
-                    onclick="setMode('thinking')"
-                    class="modeBtn px-6 py-3 rounded-full border border-white/10">
-                    THINK
-                </button>
-
-                <button id="fastBtn"
-                    onclick="setMode('fast')"
-                    class="modeBtn px-6 py-3 rounded-full border border-violet-500 bg-violet-500/20">
-                    FAST
-                </button>
-
-                <button id="codeBtn"
-                    onclick="setMode('code')"
-                    class="modeBtn px-6 py-3 rounded-full border border-white/10">
-                    CODE
-                </button>
-
-            </div>
-        </div>
-
-        <!-- CHAT BOX -->
-        <div id="chatBox"
-             class="flex-1 glass rounded-3xl border border-white/10 p-6 overflow-y-auto scrollbar space-y-6">
-
-        </div>
-
-        <!-- INPUT -->
-        <div class="glass rounded-3xl border border-white/10 p-3 flex gap-3 items-end">
-
-            <textarea id="prompt"
-                rows="2"
-                placeholder="Ask anything..."
-                class="inputbox flex-1 rounded-2xl resize-none px-5 py-4 text-lg placeholder-white/30"></textarea>
-
-            <button onclick="sendMsg()"
-                class="w-24 h-20 rounded-2xl bg-violet-500 hover:bg-violet-600 text-xl">
-                ➤
-            </button>
-
-        </div>
-
-    </div>
+<div class="flex items-center gap-3 mb-4">
+<img src="/static/logo.png" class="w-12 h-12 rounded-xl">
+<div>
+<div class="text-3xl tracking-wider text-violet-300">CIPHER</div>
+<div class="text-xs text-white/60">AI Cyber Assistant</div>
+</div>
 </div>
 
+<button onclick="newChat()"
+class="w-full mb-4 rounded-2xl border border-violet-500 py-3 hover:bg-violet-500/10 transition">
++ NEW CHAT
+</button>
 
-<!-- ================= LOGIN MODAL ================= -->
-<div id="authModal"
-    class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center">
+<div id="historyBox"
+class="flex-1 overflow-y-auto space-y-2 scrollbar pr-1"></div>
 
-    <div class="w-[500px] max-w-[95%] rounded-3xl glass border border-white/10 p-8 relative">
+<!-- USER -->
+<div class="relative mt-4">
 
-        <button onclick="closeAuth()"
-            class="absolute right-5 top-4 text-3xl text-white/70">✕</button>
+<div id="userCard"
+onclick="toggleAccountMenu()"
+class="bg-[#0a1035] border border-white/10 rounded-3xl px-4 py-4 cursor-pointer hover:border-violet-500">
 
-        <div class="text-5xl text-violet-300 mb-4">CIPHER</div>
-        <div class="text-white/70 mb-8">Secure AI Access</div>
+<div class="flex items-center gap-3">
 
-        <input id="authEmail"
-            placeholder="Email"
-            class="inputbox w-full rounded-2xl px-5 py-4 mb-4">
-
-        <div class="relative mb-4">
-            <input id="authPass"
-                type="password"
-                placeholder="Password"
-                class="inputbox w-full rounded-2xl px-5 py-4 pr-16">
-
-            <button onclick="togglePassword()"
-                class="absolute right-4 top-4 text-white/60">
-                👁
-            </button>
-        </div>
-
-        <button id="authBtn"
-            onclick="signupUser()"
-            class="w-full rounded-2xl bg-violet-500 py-4 mb-4">
-            Sign Up
-        </button>
-
-        <div class="text-center">
-            <span id="switchText">Already have account?</span>
-            <button onclick="switchAuthMode()" class="text-violet-300 ml-1">
-                Login
-            </button>
-        </div>
-
-        <div id="authMsg" class="text-red-300 mt-4"></div>
-    </div>
-</div>
-
-
-<!-- ================= PROFILE MODAL ================= -->
-<div id="profileModal"
-class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center">
-
-<div class="w-[500px] max-w-[95%] rounded-3xl bg-[#1e1e1e] border border-white/10 p-8">
-
-<div class="flex justify-between mb-6">
-<h2 class="text-2xl">Edit Profile</h2>
-<button onclick="closeProfile()">✕</button>
-</div>
-
-<div class="flex justify-center mb-6">
-<div id="profileAvatar"
-class="w-28 h-28 rounded-full bg-slate-600 flex items-center justify-center text-4xl font-bold">
+<div id="userAvatar"
+class="w-12 h-12 rounded-full bg-slate-600 flex items-center justify-center text-lg font-bold">
 GU
 </div>
+
+<div class="flex-1 min-w-0">
+<div id="userName" class="truncate text-[15px]">Guest User</div>
+<div class="text-xs text-white/50">Member</div>
 </div>
 
-<input id="profileName"
-class="inputbox w-full rounded-2xl px-5 py-4 mb-4"
-placeholder="Display Name">
-
-<input id="profileEmail"
-disabled
-class="inputbox w-full rounded-2xl px-5 py-4 mb-4 text-white/50">
-
-<button onclick="saveProfile()"
-class="w-full bg-white text-black rounded-2xl py-4">
-Save
-</button>
+<div>›</div>
 
 </div>
 </div>
 
+<!-- MENU -->
+<div id="accountMenu"
+class="hidden absolute left-0 bottom-20 w-72 rounded-3xl bg-[#1e1e1e] border border-white/10 p-3 z-50">
 
-<!-- ================= SETTINGS ================= -->
-<div id="settingsModal"
-class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center">
+<div class="flex items-center gap-3 px-2 py-2">
+<div id="menuAvatar"
+class="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center font-bold">GU</div>
 
-<div class="w-[850px] h-[88vh] max-w-[96%] rounded-3xl bg-[#1e1e1e] border border-white/10 flex overflow-hidden">
-
-<div class="w-60 border-r border-white/10 p-4 space-y-2">
-
-<button onclick="showTab('general')" class="tabBtn w-full text-left px-4 py-3 rounded-xl bg-white/10">General</button>
-<button onclick="showTab('appearance')" class="tabBtn w-full text-left px-4 py-3 rounded-xl">Appearance</button>
-<button onclick="showTab('account')" class="tabBtn w-full text-left px-4 py-3 rounded-xl">Account</button>
-<button onclick="closeSettings()" class="w-full text-left px-4 py-3 rounded-xl text-red-300">Close</button>
-
+<div class="flex-1">
+<div id="menuName">Guest User</div>
+<div class="text-xs text-white/50">Free</div>
+</div>
 </div>
 
-<div class="flex-1 p-6 overflow-y-auto">
+<div class="border-t border-white/10 my-2"></div>
 
-<div id="generalTab" class="settingTab">
-<h2 class="text-2xl mb-5">General</h2>
-<div class="text-white/60">Language</div>
-<select class="inputbox w-full rounded-xl px-4 py-3 mt-2">
-<option>Auto Detect</option>
-<option>English</option>
-<option>Hindi</option>
-</select>
-</div>
+<button onclick="openProfile()"
+class="w-full text-left px-3 py-2 rounded-xl hover:bg-white/10">Profile</button>
 
-<div id="appearanceTab" class="settingTab hidden">
-<h2 class="text-2xl mb-5">Appearance</h2>
-<select onchange="changeTheme(this.value)"
-class="inputbox w-full rounded-xl px-4 py-3">
-<option value="dark">Dark</option>
-<option value="light">Light</option>
-</select>
-</div>
-
-<div id="accountTab" class="settingTab hidden">
-<h2 class="text-2xl mb-5">Account</h2>
-<div id="accEmail" class="text-white/70 mb-6"></div>
+<button onclick="openSettings()"
+class="w-full text-left px-3 py-2 rounded-xl hover:bg-white/10">Settings</button>
 
 <button onclick="logoutUser()"
-class="px-5 py-3 bg-red-500 rounded-xl">
-Logout
+class="w-full text-left px-3 py-2 rounded-xl hover:bg-red-500/10 text-red-300">Logout</button>
+
+</div>
+</div>
+</div>
+
+<!-- MAIN -->
+<div class="flex-1 flex flex-col gap-3">
+
+<!-- TOP -->
+<div class="glass rounded-3xl border border-white/10 p-5 flex justify-between items-center">
+
+<div class="text-lg tracking-widest text-violet-300">
+⚡ AI SECURITY CORE
+</div>
+
+<div class="flex gap-2">
+
+<button id="thinkingBtn"
+onclick="setMode('thinking')"
+class="modeBtn px-6 py-3 rounded-full border border-white/10">
+THINK
 </button>
+
+<button id="fastBtn"
+onclick="setMode('fast')"
+class="modeBtn px-6 py-3 rounded-full border border-violet-500 bg-violet-500/20">
+FAST
+</button>
+
+<button id="codeBtn"
+onclick="setMode('code')"
+class="modeBtn px-6 py-3 rounded-full border border-white/10">
+CODE
+</button>
+
+</div>
+</div>
+
+<!-- CHAT -->
+<div id="chatBox"
+class="flex-1 glass rounded-3xl border border-white/10 p-6 overflow-y-auto scrollbar space-y-6"></div>
+
+<!-- INPUT -->
+<div class="glass rounded-3xl border border-white/10 p-3 flex gap-3 items-end">
+
+<textarea id="prompt"
+rows="2"
+placeholder="Ask anything..."
+class="inputbox flex-1 rounded-2xl resize-none px-5 py-4 text-lg placeholder-white/30"></textarea>
+
+<button onclick="sendMsg()"
+class="w-24 h-20 rounded-2xl bg-violet-500 hover:bg-violet-600 text-xl">
+➤
+</button>
+
 </div>
 
 </div>
 </div>
-</div>
-
-
 
 <script>
 let mode="fast";
 let currentChatId=null;
-let authMode="signup";
-let currentUser=null;
-
-
-// ================== INIT ==================
+let loaderId=null;
 
 window.onload=async()=>{
 await loadUser();
 await loadHistory();
 }
 
-
-// ================== MODE ==================
-
 function setMode(m){
 mode=m;
-
 document.querySelectorAll(".modeBtn").forEach(btn=>{
 btn.classList.remove("bg-violet-500/20","border-violet-500");
 btn.classList.add("border-white/10");
 });
-
 document.getElementById(m+"Btn").classList.add("bg-violet-500/20","border-violet-500");
 }
-
-
-// ================== CHAT ==================
 
 async function sendMsg(){
 
@@ -356,6 +227,8 @@ if(!prompt)return;
 
 appendUser(prompt);
 document.getElementById("prompt").value="";
+
+showLoader();
 
 let res=await fetch("/chat",{
 method:"POST",
@@ -369,6 +242,8 @@ chat_id:currentChatId
 
 let data=await res.json();
 
+hideLoader();
+
 if(data.ok){
 currentChatId=data.chat_id;
 appendAI(data.label,data.response);
@@ -378,22 +253,92 @@ appendAI("SYSTEM",data.msg||"Failed");
 }
 }
 
-
 function appendUser(txt){
 document.getElementById("chatBox").innerHTML+=`
 <div class="text-right">
-<div class="inline-block px-4 py-3 rounded-2xl bg-[#0e153f]">${txt}</div>
+<div class="inline-block px-4 py-3 rounded-2xl bg-[#0e153f] max-w-[75%] text-left">${escapeHtml(txt)}</div>
 </div>`;
 scrollBottom();
 }
 
 function appendAI(label,txt){
+
+txt=formatReply(txt);
+
 document.getElementById("chatBox").innerHTML+=`
 <div class="msgbox rounded-2xl p-5">
-<div class="text-xs text-white/60 mb-3">${label}</div>
-<div>${txt}</div>
+<div class="flex justify-between items-center mb-3">
+<div class="text-xs text-white/60">${label}</div>
+<button onclick="copyText(this)" data-copy="${encodeURIComponent(stripHtml(txt))}" class="copyBtn">Copy</button>
+</div>
+<div class="leading-8 text-[17px]">${txt}</div>
 </div>`;
+
 scrollBottom();
+}
+
+function showLoader(){
+
+loaderId="loader_"+Date.now();
+
+document.getElementById("chatBox").innerHTML+=`
+<div id="${loaderId}" class="msgbox rounded-2xl p-5">
+<div class="text-xs text-white/60 mb-3">AI MODEL</div>
+<div class="typingDots text-2xl text-violet-300">
+<span>.</span><span>.</span><span>.</span>
+</div>
+</div>`;
+
+scrollBottom();
+}
+
+function hideLoader(){
+let el=document.getElementById(loaderId);
+if(el)el.remove();
+}
+
+function formatReply(text){
+
+text=escapeHtml(text);
+
+text=text.replace(/```([\s\S]*?)```/g,function(m,p1){
+return `
+<div class="relative">
+<button onclick="copyCode(this)" data-code="${encodeURIComponent(p1)}"
+class="copyBtn absolute right-2 top-2">Copy Code</button>
+<pre><code>${p1}</code></pre>
+</div>`;
+});
+
+text=text.replace(/\n/g,"<br>");
+return text;
+}
+
+function copyCode(btn){
+let txt=decodeURIComponent(btn.dataset.code);
+navigator.clipboard.writeText(txt);
+btn.innerText="Copied!";
+setTimeout(()=>btn.innerText="Copy Code",1200);
+}
+
+function copyText(btn){
+let txt=decodeURIComponent(btn.dataset.copy);
+navigator.clipboard.writeText(txt);
+btn.innerText="Copied!";
+setTimeout(()=>btn.innerText="Copy",1200);
+}
+
+function stripHtml(html){
+let div=document.createElement("div");
+div.innerHTML=html;
+return div.innerText;
+}
+
+function escapeHtml(text){
+return text
+.replace(/&/g,"&amp;")
+.replace(/</g,"&lt;")
+.replace(/>/g,"&gt;");
 }
 
 function scrollBottom(){
@@ -406,16 +351,11 @@ currentChatId=null;
 document.getElementById("chatBox").innerHTML="";
 }
 
-
-// ================== HISTORY ==================
-
 async function loadHistory(){
-
 let res=await fetch("/history");
 let data=await res.json();
 
 let html="";
-
 data.items.forEach(c=>{
 html+=`
 <div onclick="loadChat('${c.id}')"
@@ -427,9 +367,7 @@ ${c.title}
 document.getElementById("historyBox").innerHTML=html;
 }
 
-
 async function loadChat(id){
-
 currentChatId=id;
 
 let res=await fetch("/chat/"+id);
@@ -446,201 +384,32 @@ appendAI("AI MODEL",m.content);
 });
 }
 
-
-// ================== AUTH ==================
-
-function openAuth(){
-document.getElementById("authModal").classList.remove("hidden");
-}
-
-function closeAuth(){
-document.getElementById("authModal").classList.add("hidden");
-}
-
-function switchAuthMode(){
-
-if(authMode==="signup"){
-authMode="login";
-document.getElementById("authBtn").innerText="Login";
-document.getElementById("switchText").innerText="Need account?";
-}else{
-authMode="signup";
-document.getElementById("authBtn").innerText="Sign Up";
-document.getElementById("switchText").innerText="Already have account?";
-}
-}
-
-async function signupUser(){
-
-if(authMode==="login"){
-return loginUser();
-}
-
-let email=document.getElementById("authEmail").value;
-let password=document.getElementById("authPass").value;
-
-let res=await fetch("/signup",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({email,password})
-});
-
-let data=await res.json();
-
-if(data.ok){
-closeAuth();
-await loadUser();
-await loadHistory();
-}else{
-document.getElementById("authMsg").innerText=data.msg;
-}
-}
-
-
-async function loginUser(){
-
-let email=document.getElementById("authEmail").value;
-let password=document.getElementById("authPass").value;
-
-let res=await fetch("/login",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({email,password})
-});
-
-let data=await res.json();
-
-if(data.ok){
-closeAuth();
-await loadUser();
-await loadHistory();
-}else{
-document.getElementById("authMsg").innerText=data.msg;
-}
-}
-
-
-function togglePassword(){
-let p=document.getElementById("authPass");
-p.type=p.type==="password"?"text":"password";
-}
-
-
-// ================== USER ==================
-
 async function loadUser(){
-
+try{
 let res=await fetch("/me");
 let data=await res.json();
 
 if(data.logged_in){
-
-currentUser=data;
-
 let email=data.email;
 let name=email.split("@")[0];
 
 document.getElementById("userName").innerText=name;
 document.getElementById("menuName").innerText=name;
-document.getElementById("profileName").value=name;
-document.getElementById("profileEmail").value=email;
-document.getElementById("accEmail").innerText=email;
 
-let initials=getInitials(name);
+let initials=name.substring(0,2).toUpperCase();
 
-setAvatar(initials);
-
-}else{
-setAvatar("GU");
+document.getElementById("userAvatar").innerText=initials;
+document.getElementById("menuAvatar").innerText=initials;
 }
+}catch(e){}
 }
-
-
-function getInitials(name){
-
-let parts=name.replace(/[0-9]/g,"").split(/[\s._-]+/).filter(Boolean);
-
-if(parts.length>=2){
-return (parts[0][0]+parts[1][0]).toUpperCase();
-}
-
-return name.substring(0,2).toUpperCase();
-}
-
-
-function setAvatar(txt){
-document.getElementById("userAvatar").innerText=txt;
-document.getElementById("menuAvatar").innerText=txt;
-document.getElementById("profileAvatar").innerText=txt;
-}
-
-
-// ================= MENU =================
 
 function toggleAccountMenu(){
 document.getElementById("accountMenu").classList.toggle("hidden");
 }
 
-
-// ================= PROFILE =================
-
-function openProfile(){
-document.getElementById("accountMenu").classList.add("hidden");
-document.getElementById("profileModal").classList.remove("hidden");
-}
-
-function closeProfile(){
-document.getElementById("profileModal").classList.add("hidden");
-}
-
-function saveProfile(){
-
-let name=document.getElementById("profileName").value.trim();
-if(!name)return;
-
-document.getElementById("userName").innerText=name;
-document.getElementById("menuName").innerText=name;
-
-setAvatar(getInitials(name));
-
-closeProfile();
-}
-
-
-// ================= SETTINGS =================
-
-function openSettings(){
-document.getElementById("accountMenu").classList.add("hidden");
-document.getElementById("settingsModal").classList.remove("hidden");
-}
-
-function closeSettings(){
-document.getElementById("settingsModal").classList.add("hidden");
-}
-
-function showTab(name){
-
-document.querySelectorAll(".settingTab").forEach(t=>t.classList.add("hidden"));
-
-document.getElementById(name+"Tab").classList.remove("hidden");
-}
-
-
-// ================= THEME =================
-
-function changeTheme(v){
-
-if(v==="light"){
-document.body.style.background="#f1f5f9";
-document.body.style.color="#000";
-}else{
-document.body.style.background="linear-gradient(135deg,#020617,#07113b,#020617)";
-document.body.style.color="#fff";
-}
-}
-
-
-// ================= LOGOUT =================
+function openProfile(){}
+function openSettings(){}
 
 async function logoutUser(){
 await fetch("/logout");
