@@ -8,311 +8,416 @@
 <link rel="icon" href="/static/logo.png">
 
 <script src="https://cdn.tailwindcss.com"></script>
-
-<!-- Markdown -->
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
-<!-- Highlight -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-
 <style>
-:root{
-    --primary:#8b5cf6;
-    --accent:#6366f1;
-}
-
 body{
     margin:0;
-    color:#e5e7eb;
-    font-family:Inter, monospace;
+    font-family:monospace;
+    color:white;
     background:
-        radial-gradient(circle at 20% 20%, rgba(139,92,246,0.15), transparent 40%),
-        radial-gradient(circle at 80% 10%, rgba(99,102,241,0.12), transparent 40%),
-        #020617;
-}
-
-body::before{
-    content:"";
-    position:fixed;
-    width:100%;
-    height:100%;
-    background:
-        linear-gradient(rgba(139,92,246,0.05) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(99,102,241,0.05) 1px, transparent 1px);
-    background-size:60px 60px;
-    z-index:-1;
+    radial-gradient(circle at top left,#1e1b4b,#020617 55%);
+    height:100vh;
+    overflow:hidden;
 }
 
 .glass{
-    background:rgba(15,23,42,0.6);
-    backdrop-filter:blur(16px);
-    border:1px solid rgba(255,255,255,0.08);
-    border-radius:18px;
-    box-shadow:0 10px 40px rgba(0,0,0,0.4);
-}
-
-.sidebar{
-    width:260px;
-}
-
-.logo{
-    filter:drop-shadow(0 0 8px rgba(139,92,246,0.5));
+    background:rgba(10,20,60,.45);
+    border:1px solid rgba(255,255,255,.06);
+    backdrop-filter:blur(18px);
+    border-radius:22px;
 }
 
 .btn{
-    border:1px solid var(--primary);
-    padding:10px;
-    border-radius:12px;
-    color:var(--primary);
+    border:1px solid #8b5cf6;
+    color:#c4b5fd;
+    padding:12px;
+    border-radius:14px;
     transition:.25s;
 }
 
 .btn:hover{
-    background:linear-gradient(45deg,var(--primary),var(--accent));
+    background:#8b5cf6;
     color:white;
 }
 
-.input-box{
-    background:rgba(2,6,23,0.8);
-    border:1px solid rgba(255,255,255,0.08);
-    padding:12px;
-    border-radius:12px;
-    width:100%;
-    color:white;
-    resize:none;
+.mode{
+    padding:10px 18px;
+    border-radius:999px;
+    border:1px solid rgba(255,255,255,.08);
+    cursor:pointer;
+}
+
+.active{
+    border-color:#8b5cf6;
+    background:rgba(139,92,246,.18);
+}
+
+.bot{
+    background:rgba(99,102,241,.13);
+    border-left:3px solid #8b5cf6;
+    padding:16px;
+    border-radius:14px;
+    margin-bottom:14px;
 }
 
 .user{
     text-align:right;
-    padding:12px;
-    color:#c4b5fd;
-    margin-bottom:10px;
+    color:#ddd6fe;
+    margin:10px 0;
 }
 
-.bot{
-    background:linear-gradient(135deg, rgba(139,92,246,0.12), rgba(99,102,241,0.08));
-    border-left:3px solid var(--primary);
-    padding:12px;
-    border-radius:12px;
-    margin-bottom:12px;
-}
-
-.badge{
-    padding:6px 14px;
-    border-radius:999px;
-    border:1px solid rgba(255,255,255,0.12);
-    cursor:pointer;
-    transition:.2s;
-}
-
-.badge.active{
-    background:rgba(139,92,246,0.2);
-    border-color:var(--primary);
-}
-
-pre{
-    background:rgba(2,6,23,0.9);
-    padding:16px;
-    border-radius:12px;
-    overflow:auto;
-    border:1px solid rgba(255,255,255,0.08);
-    margin-top:10px;
-}
-
-.model-label{
+.small{
     font-size:12px;
     opacity:.65;
     margin-bottom:8px;
-    letter-spacing:.5px;
 }
 
-@media(max-width:768px){
-    .sidebar{
-        display:none;
-    }
+input, textarea{
+    background:#020617;
+    border:1px solid rgba(255,255,255,.08);
+    color:white;
+    border-radius:14px;
+    padding:12px;
+    width:100%;
+    outline:none;
+}
+
+textarea{
+    resize:none;
+}
+
+/* LOGIN MODAL */
+#authModal{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.65);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    z-index:999;
+}
+
+.auth-box{
+    width:360px;
+    padding:28px;
+}
+
+.link{
+    color:#a78bfa;
+    cursor:pointer;
+    font-size:14px;
+}
+
+.link:hover{
+    text-decoration:underline;
 }
 </style>
 </head>
 
-<body class="flex flex-col h-screen">
+<body>
 
-<div class="flex flex-1 overflow-hidden">
+<!-- LOGIN / SIGNUP MODAL -->
+<div id="authModal">
 
-<!-- Sidebar -->
-<div class="sidebar glass p-4 flex flex-col justify-between hidden md:flex">
+    <div class="glass auth-box">
 
-    <div>
-        <div class="flex items-center gap-3">
-            <img src="/static/logo.png" class="w-10 h-10 logo rounded-lg">
-            <span class="text-purple-300 text-lg font-bold">CIPHER</span>
+        <h1 class="text-2xl mb-2 text-purple-300">CIPHER</h1>
+        <p class="opacity-70 text-sm mb-5">Secure AI Access</p>
+
+        <div id="signupFields" style="display:none;">
+            <input id="name" placeholder="Full Name" class="mb-3">
         </div>
 
-        <p class="text-xs opacity-60 mt-1">AI Cyber Assistant</p>
+        <input id="email" placeholder="Email" class="mb-3">
+        <input id="password" type="password" placeholder="Password" class="mb-4">
 
-        <button onclick="createNewChat()" class="btn mt-4 w-full">
-            + NEW CHAT
+        <button onclick="submitAuth()" class="btn w-full mb-3" id="authBtn">
+            Login
         </button>
+
+        <div class="text-center">
+            <span id="switchText" class="link" onclick="toggleAuth()">
+                Create account
+            </span>
+        </div>
+
+        <p id="authMsg" class="text-red-300 text-sm mt-4"></p>
+
     </div>
 
 </div>
 
-<!-- Main -->
-<div class="flex-1 flex flex-col p-3 gap-3">
+<!-- APP -->
+<div class="flex h-screen p-4 gap-4">
 
-<!-- Top Bar -->
-<div class="glass p-4 flex justify-between items-center">
+    <!-- SIDEBAR -->
+    <div class="glass w-[290px] p-5 flex flex-col justify-between">
 
-    <span>⚡ AI SECURITY CORE</span>
+        <div>
+            <div class="flex items-center gap-3">
+                <img src="/static/logo.png" class="w-11 h-11 rounded-xl">
+                <div>
+                    <div class="text-xl text-purple-300">CIPHER</div>
+                    <div class="text-xs opacity-60">AI Cyber Assistant</div>
+                </div>
+            </div>
 
-    <div class="flex gap-2">
-        <span class="badge active" data-mode="thinking">THINK</span>
-        <span class="badge" data-mode="fast">FAST</span>
-        <span class="badge" data-mode="code">CODE</span>
+            <button onclick="newChat()" class="btn w-full mt-6">
+                + NEW CHAT
+            </button>
+
+            <div id="history" class="mt-5 space-y-2"></div>
+        </div>
+
+        <div>
+            <div class="text-sm opacity-80 mb-2" id="username">Guest</div>
+
+            <button onclick="logout()" class="btn w-full">
+                Logout
+            </button>
+        </div>
+
     </div>
 
-</div>
+    <!-- MAIN -->
+    <div class="flex-1 flex flex-col gap-4">
 
-<!-- Chat -->
-<div id="chat" class="flex-1 glass p-4 overflow-y-auto"></div>
+        <!-- TOP -->
+        <div class="glass p-5 flex justify-between items-center">
 
-<!-- Input -->
-<div class="glass p-3 flex gap-2">
+            <div>⚡ AI SECURITY CORE</div>
 
-    <textarea
-        id="prompt"
-        class="input-box flex-1"
-        rows="2"
-        placeholder="Ask anything..."></textarea>
+            <div class="flex gap-2">
+                <div class="mode active" data-mode="thinking">THINK</div>
+                <div class="mode" data-mode="fast">FAST</div>
+                <div class="mode" data-mode="code">CODE</div>
+            </div>
 
-    <button onclick="sendMessage()" class="btn px-6">
-        ➤
-    </button>
+        </div>
 
-</div>
+        <!-- CHAT -->
+        <div id="chat" class="glass flex-1 p-5 overflow-y-auto"></div>
 
-</div>
+        <!-- INPUT -->
+        <div class="glass p-3 flex gap-3">
+
+            <textarea
+                id="prompt"
+                rows="2"
+                placeholder="Ask anything..."
+                class="flex-1"></textarea>
+
+            <button onclick="sendMsg()" class="btn px-7">
+                ➤
+            </button>
+
+        </div>
+
+    </div>
+
 </div>
 
 <script>
+let isSignup = false;
 let currentMode = "thinking";
 let currentChat = "chat_" + Date.now();
 
-const chatBox = document.getElementById("chat");
-const promptBox = document.getElementById("prompt");
+/* ======================
+AUTH CHECK
+====================== */
+window.onload = async ()=>{
+    await checkLogin();
 
-/* =======================
-   MODE SWITCH
-======================= */
-document.querySelectorAll(".badge").forEach(btn=>{
-    btn.onclick = ()=>{
-        document.querySelectorAll(".badge")
+    document.querySelectorAll(".mode").forEach(btn=>{
+        btn.onclick = ()=>{
+            document.querySelectorAll(".mode")
             .forEach(x=>x.classList.remove("active"));
 
-        btn.classList.add("active");
-        currentMode = btn.dataset.mode;
-    };
-});
+            btn.classList.add("active");
+            currentMode = btn.dataset.mode;
+        };
+    });
+};
 
-/* =======================
-   NEW CHAT
-======================= */
-function createNewChat(){
-    currentChat = "chat_" + Date.now();
-    chatBox.innerHTML = "";
+/* ======================
+CHECK LOGIN
+====================== */
+async function checkLogin(){
+
+    let res = await fetch("/me");
+    let data = await res.json();
+
+    if(data.logged_in){
+        document.getElementById("authModal").style.display="none";
+        document.getElementById("username").innerText="👤 " + data.name;
+        loadHistory();
+    }
 }
 
-/* =======================
-   ADD MESSAGE
-======================= */
-function addMessage(role, content, label=null){
+/* ======================
+TOGGLE AUTH
+====================== */
+function toggleAuth(){
 
-    const div = document.createElement("div");
+    isSignup = !isSignup;
 
-    div.className = role === "user" ? "user" : "bot";
+    document.getElementById("signupFields").style.display =
+        isSignup ? "block" : "none";
 
-    if(role === "assistant" && label){
-        div.innerHTML = `
-            <div class="model-label">${label}</div>
-            ${marked.parse(content)}
-        `;
-    }else{
-        div.innerHTML = marked.parse(content);
-    }
+    document.getElementById("authBtn").innerText =
+        isSignup ? "Sign Up" : "Login";
 
-    div.querySelectorAll("pre code").forEach(block=>{
-        hljs.highlightElement(block);
+    document.getElementById("switchText").innerText =
+        isSignup ? "Already have account? Login" : "Create account";
+
+    document.getElementById("authMsg").innerText="";
+}
+
+/* ======================
+LOGIN / SIGNUP
+====================== */
+async function submitAuth(){
+
+    let email = document.getElementById("email").value.trim();
+    let password = document.getElementById("password").value.trim();
+    let name = document.getElementById("name").value.trim();
+
+    let url = isSignup ? "/signup" : "/login";
+
+    let body = isSignup ?
+    {name,email,password} :
+    {email,password};
+
+    let res = await fetch(url,{
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json"
+        },
+        body:JSON.stringify(body)
     });
 
-    chatBox.appendChild(div);
-    chatBox.scrollTop = chatBox.scrollHeight;
-}
+    let data = await res.json();
 
-/* =======================
-   SEND MESSAGE
-======================= */
-async function sendMessage(){
-
-    const text = promptBox.value.trim();
-
-    if(!text) return;
-
-    addMessage("user", text);
-
-    promptBox.value = "";
-
-    addMessage(
-        "assistant",
-        "Thinking...",
-        "⚙ Processing"
-    );
-
-    try{
-
-        const res = await fetch("/chat",{
-            method:"POST",
-            headers:{
-                "Content-Type":"application/json"
-            },
-            body:JSON.stringify({
-                message:text,
-                mode:currentMode,
-                chat_id:currentChat
-            })
-        });
-
-        const data = await res.json();
-
-        // remove thinking block
-        chatBox.lastChild.remove();
-
-        addMessage(
-            "assistant",
-            data.response || "No response.",
-            data.label || "AI MODEL"
-        );
-
-    }catch(err){
-
-        chatBox.lastChild.remove();
-
-        addMessage(
-            "assistant",
-            "Unable to connect backend.",
-            "⚠ ERROR"
-        );
+    if(data.ok){
+        checkLogin();
+    }else{
+        document.getElementById("authMsg").innerText =
+            data.msg || "Failed.";
     }
 }
 
-/* =======================
-   ENTER TO SEND
-======================= */
-promptBox.addEventListener("keydown", function(e){
-    if(e.key === "Enter" && !e.shiftKey){
-        e.preventDefault();
-        sendMessage();
-    }
-});
+/* ======================
+LOGOUT
+====================== */
+function logout(){
+    window.location="/logout";
+}
+
+/* ======================
+NEW CHAT
+====================== */
+function newChat(){
+    currentChat = "chat_" + Date.now();
+    document.getElementById("chat").innerHTML="";
+}
+
+/* ======================
+SEND CHAT
+====================== */
+async function sendMsg(){
+
+    let prompt = document.getElementById("prompt");
+    let msg = prompt.value.trim();
+
+    if(!msg) return;
+
+    let chat = document.getElementById("chat");
+
+    chat.innerHTML += `
+        <div class="user">${msg}</div>
+    `;
+
+    prompt.value="";
+
+    let res = await fetch("/chat",{
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json"
+        },
+        body:JSON.stringify({
+            message:msg,
+            mode:currentMode,
+            chat_id:currentChat
+        })
+    });
+
+    let data = await res.json();
+
+    chat.innerHTML += `
+        <div class="bot">
+            <div class="small">
+                ${data.label || "AI MODEL"}
+            </div>
+            ${marked.parse(data.response || "No response")}
+        </div>
+    `;
+
+    chat.scrollTop = chat.scrollHeight;
+
+    loadHistory();
+}
+
+/* ======================
+LOAD HISTORY
+====================== */
+async function loadHistory(){
+
+    let res = await fetch("/history");
+    let data = await res.json();
+
+    let box = document.getElementById("history");
+    box.innerHTML="";
+
+    data.forEach(chat=>{
+
+        box.innerHTML += `
+            <div onclick="openChat('${chat.id}')"
+            class="glass p-3 cursor-pointer text-sm hover:border-purple-400">
+                ${chat.title}
+            </div>
+        `;
+    });
+}
+
+/* ======================
+OPEN CHAT
+====================== */
+async function openChat(id){
+
+    currentChat = id;
+
+    let res = await fetch("/chat/" + id);
+    let data = await res.json();
+
+    let box = document.getElementById("chat");
+    box.innerHTML="";
+
+    data.forEach(msg=>{
+
+        if(msg.role==="user"){
+            box.innerHTML += `
+                <div class="user">${msg.content}</div>
+            `;
+        }else{
+            box.innerHTML += `
+                <div class="bot">
+                    ${marked.parse(msg.content)}
+                </div>
+            `;
+        }
+    });
+}
 </script>
 
 </body>
