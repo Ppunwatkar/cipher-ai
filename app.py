@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from sqlalchemy import create_engine, Column, Integer, String, Text, text
+from sqlalchemy import create_engine, Column, Integer, String, Text
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 import os
@@ -16,174 +16,114 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 # =========================
 # DB SETUP
 # =========================
-engine = create_engine(
-    DATABASE_URL,
-    pool_pre_ping=True
-)
-
+engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
 
-# =========================
-# MODELS
-# =========================
 class Chat(Base):
     __tablename__ = "chats"
-
     id = Column(String, primary_key=True)
     user_id = Column(Integer)
     title = Column(String)
 
-
 class Message(Base):
     __tablename__ = "messages"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(Integer, primary_key=True)
     chat_id = Column(String)
     role = Column(String)
     content = Column(Text)
 
-
 Base.metadata.create_all(bind=engine)
 
 # =========================
-# APP INIT
+# APP
 # =========================
 app = FastAPI()
-
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # =========================
-# AI SETUP
+# AI CLIENT
 # =========================
 try:
     from groq import Groq
     client = Groq(api_key=GROQ_API_KEY)
-except Exception as e:
-    print("Groq init error:", e)
+except:
     client = None
 
-
-def get_ai_response(msg):
+# =========================
+# MULTI MODEL RESPONSE
+# =========================
+def ask_model(model, message):
     try:
-        if not client:
-            return "⚠️ AI not configured"
-
-        response = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
-            messages=[{"role": "user", "content": msg}]
+        res = client.chat.completions.create(
+            model=model,
+            messages=[{"role": "user", "content": message}]
         )
-
-        return response.choices[0].message.content
-
+        return res.choices[0].message.content
     except Exception as e:
-        print("AI ERROR:", str(e))
-        return f"AI Error: {str(e)}"
+        return f"[{model} ERROR]"
 
+def get_multi_response(message):
+    if not client:
+        return "⚠️ AI not configured"
+
+    responses = []
+
+    # 🔥 ALL MODELS RUN
+    models = {
+        "🧠 THINK": "llama-3.1-70b-versatile",
+        "⚡ FAST": "llama-3.1-8b-instant",
+        "💻 CODE": "llama-3.1-70b-versatile"
+    }
+
+    for label, model in models.items():
+        reply = ask_model(model, message)
+        responses.append(f"### {label}\n{reply}")
+
+    return "\n\n---\n\n".join(responses)
 
 # =========================
 # ROUTES
 # =========================
-
-# ✅ NO JINJA = NO TEMPLATE ERRORS
 @app.get("/", response_class=HTMLResponse)
 def home():
-    try:
-        with open("templates/index.html", "r", encoding="utf-8") as f:
-            return HTMLResponse(f.read())
-    except Exception as e:
-        return HTMLResponse(f"<h1>UI Error: {str(e)}</h1>")
+    with open("templates/index.html", "r", encoding="utf-8") as f:
+        return HTMLResponse(f.read())
 
-
-# ✅ CHAT API (FIXED JSON ERROR)
 @app.post("/chat")
 async def chat(request: Request):
     try:
         data = await request.json()
-    except Exception:
-        return JSONResponse(status_code=400, content={"error": "Invalid JSON"})
+    except:
+        return {"response": "Invalid request"}
 
     message = data.get("message")
     chat_id = data.get("chat_id")
 
-    if not message or not chat_id:
-        return JSONResponse(status_code=400, content={"error": "Missing fields"})
+    if not message:
+        return {"response": "Empty message"}
 
     db = SessionLocal()
 
     try:
-        # Ensure chat exists
         chat = db.query(Chat).filter(Chat.id == chat_id).first()
-
         if not chat:
-            chat = Chat(
-                id=chat_id,
-                user_id=1,
-                title=message[:30]
-            )
+            chat = Chat(id=chat_id, user_id=1, title=message[:30])
             db.add(chat)
             db.commit()
 
-        # Save user message
         db.add(Message(chat_id=chat_id, role="user", content=message))
         db.commit()
 
-        # AI response
-        reply = get_ai_response(message)
+        reply = get_multi_response(message)
 
-        # Save AI message
         db.add(Message(chat_id=chat_id, role="assistant", content=reply))
         db.commit()
 
         return {"response": reply}
 
     except Exception as e:
-        print("CHAT ERROR:", str(e))
-        return JSONResponse(status_code=500, content={"error": str(e)})
+        return {"response": f"Error: {str(e)}"}
 
     finally:
         db.close()
-
-
-# ✅ GET CHAT HISTORY
-@app.get("/chat/{chat_id}")
-def get_chat(chat_id: str):
-    db = SessionLocal()
-
-    messages = db.query(Message)\
-        .filter(Message.chat_id == chat_id)\
-        .order_by(Message.id)\
-        .all()
-
-    db.close()
-
-    return [{"role": m.role, "content": m.content} for m in messages]
-
-
-# ✅ SIDEBAR CHAT LIST
-@app.get("/chats")
-def get_chats():
-    db = SessionLocal()
-
-    chats = db.query(Chat).order_by(Chat.id.desc()).all()
-
-    db.close()
-
-    return [{"chat_id": c.id, "title": c.title} for c in chats]
-
-
-# ✅ DB TEST
-@app.get("/db-check")
-def db_check():
-    try:
-        with engine.connect() as conn:
-            conn.execute(text("SELECT 1"))
-        return {"status": "connected"}
-    except Exception as e:
-        return {"error": str(e)}
-
-
-# ✅ AI TEST
-@app.get("/ai-test")
-def ai_test():
-    return {"response": get_ai_response("Hello")}
