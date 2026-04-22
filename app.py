@@ -1,10 +1,10 @@
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
-from sqlalchemy import create_engine, Column, Integer, String, Text
+from sqlalchemy import create_engine, Column, Integer, String, Text, text
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 from groq import Groq
@@ -39,15 +39,48 @@ SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
 
 # ==================================================
-# TABLES
+# SAFE DB MIGRATION
+# ==================================================
+
+with engine.begin() as conn:
+
+    conn.execute(text("""
+        CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            full_name VARCHAR(200),
+            email VARCHAR(200) UNIQUE,
+            password VARCHAR(200)
+        )
+    """))
+
+    conn.execute(text("""
+        CREATE TABLE IF NOT EXISTS chats (
+            id VARCHAR(200) PRIMARY KEY,
+            user_id INTEGER,
+            title VARCHAR(300)
+        )
+    """))
+
+    conn.execute(text("""
+        CREATE TABLE IF NOT EXISTS messages (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER,
+            chat_id VARCHAR(200),
+            role VARCHAR(30),
+            content TEXT
+        )
+    """))
+
+# ==================================================
+# ORM MODELS
 # ==================================================
 
 class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(200))
-    email = Column(String(200), unique=True)
+    full_name = Column(String(200))
+    email = Column(String(200))
     password = Column(String(200))
 
 
@@ -65,11 +98,8 @@ class Message(Base):
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer)
     chat_id = Column(String(200))
-    role = Column(String(20))
+    role = Column(String(30))
     content = Column(Text)
-
-
-Base.metadata.create_all(bind=engine)
 
 # ==================================================
 # AI CLIENTS
@@ -87,13 +117,13 @@ def current_user(request: Request):
 
 def ask_groq(prompt):
     try:
-        chat = groq_client.chat.completions.create(
+        r = groq_client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[{"role":"user","content":prompt}]
         )
-        return chat.choices[0].message.content
+        return r.choices[0].message.content
     except Exception as e:
-        return f"GROQ Error: {str(e)}"
+        return str(e)
 
 
 def ask_openrouter(prompt, model):
@@ -106,7 +136,7 @@ def ask_openrouter(prompt, model):
             },
             json={
                 "model": model,
-                "messages":[{"role":"user","content":prompt}]
+                "messages": [{"role":"user","content":prompt}]
             },
             timeout=60
         )
@@ -119,7 +149,7 @@ def ask_openrouter(prompt, model):
         return str(data)
 
     except Exception as e:
-        return f"AI Error: {str(e)}"
+        return str(e)
 
 # ==================================================
 # HOME
@@ -127,7 +157,6 @@ def ask_openrouter(prompt, model):
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
-
     return templates.TemplateResponse(
         request=request,
         name="index.html",
@@ -146,16 +175,16 @@ async def signup(request: Request):
 
         db = SessionLocal()
 
-        old = db.query(User).filter(
+        exists = db.query(User).filter(
             User.email == data["email"]
         ).first()
 
-        if old:
+        if exists:
             db.close()
             return {"ok": False, "msg": "Email already exists"}
 
         user = User(
-            name=data["name"],
+            full_name=data["name"],
             email=data["email"],
             password=data["password"]
         )
@@ -165,7 +194,7 @@ async def signup(request: Request):
         db.refresh(user)
 
         request.session["user_id"] = user.id
-        request.session["name"] = user.name
+        request.session["name"] = user.full_name
 
         db.close()
 
@@ -193,7 +222,7 @@ async def login(request: Request):
             return {"ok": False, "msg": "Invalid credentials"}
 
         request.session["user_id"] = user.id
-        request.session["name"] = user.name
+        request.session["name"] = user.full_name
 
         db.close()
 
@@ -202,12 +231,10 @@ async def login(request: Request):
     except Exception as e:
         return {"ok": False, "msg": str(e)}
 
-
 @app.get("/logout")
 async def logout(request: Request):
     request.session.clear()
     return {"ok": True}
-
 
 @app.get("/me")
 async def me(request: Request):
@@ -229,77 +256,69 @@ async def me(request: Request):
 @app.post("/chat")
 async def chat(request: Request):
 
-    try:
-        data = await request.json()
+    data = await request.json()
 
-        prompt = data["message"]
-        mode = data["mode"]
-        chat_id = data["chat_id"]
+    prompt = data["message"]
+    mode = data["mode"]
+    chat_id = data["chat_id"]
 
-        uid = current_user(request)
+    uid = current_user(request)
 
-        # MODEL ROUTING
-        if mode == "thinking":
-            answer = ask_openrouter(
-                prompt,
-                "openai/gpt-4o-mini"
-            )
-            label = "🧠 THINK • GPT"
+    if mode == "thinking":
+        answer = ask_openrouter(
+            prompt,
+            "openai/gpt-4o-mini"
+        )
+        label = "🧠 THINK • GPT"
 
-        elif mode == "code":
-            answer = ask_openrouter(
-                prompt,
-                "anthropic/claude-3.5-sonnet"
-            )
-            label = "💻 CODE • CLAUDE"
+    elif mode == "code":
+        answer = ask_openrouter(
+            prompt,
+            "anthropic/claude-3-haiku"
+        )
+        label = "💻 CODE • CLAUDE"
 
-        else:
-            answer = ask_groq(prompt)
-            label = "⚡ FAST • GROQ"
+    else:
+        answer = ask_groq(prompt)
+        label = "⚡ FAST • GROQ"
 
-        # SAVE ONLY IF LOGIN
-        if uid:
+    # SAVE ONLY IF LOGGED IN
+    if uid:
 
-            db = SessionLocal()
+        db = SessionLocal()
 
-            exists = db.query(Chat).filter(
-                Chat.id == chat_id
-            ).first()
+        exists = db.query(Chat).filter(
+            Chat.id == chat_id
+        ).first()
 
-            if not exists:
-                db.add(Chat(
-                    id=chat_id,
-                    user_id=uid,
-                    title=prompt[:40]
-                ))
-
-            db.add(Message(
+        if not exists:
+            db.add(Chat(
+                id=chat_id,
                 user_id=uid,
-                chat_id=chat_id,
-                role="user",
-                content=prompt
+                title=prompt[:40]
             ))
 
-            db.add(Message(
-                user_id=uid,
-                chat_id=chat_id,
-                role="assistant",
-                content=answer
-            ))
+        db.add(Message(
+            user_id=uid,
+            chat_id=chat_id,
+            role="user",
+            content=prompt
+        ))
 
-            db.commit()
-            db.close()
+        db.add(Message(
+            user_id=uid,
+            chat_id=chat_id,
+            role="assistant",
+            content=answer
+        ))
 
-        return {
-            "response": answer,
-            "label": label
-        }
+        db.commit()
+        db.close()
 
-    except Exception as e:
-        return {
-            "response": f"Error: {str(e)}",
-            "label": "SYSTEM"
-        }
+    return {
+        "response": answer,
+        "label": label
+    }
 
 # ==================================================
 # HISTORY
@@ -358,11 +377,3 @@ async def get_chat(chat_id: str, request: Request):
     db.close()
 
     return result
-
-# ==================================================
-# TEST
-# ==================================================
-
-@app.get("/ping")
-async def ping():
-    return {"status": "ok"}
