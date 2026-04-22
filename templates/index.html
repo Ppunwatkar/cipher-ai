@@ -2,82 +2,135 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CIPHER AI</title>
 
 <link rel="icon" href="/static/logo.png">
 
 <script src="https://cdn.tailwindcss.com"></script>
 
-<!-- MARKDOWN + CODE -->
+<!-- Markdown -->
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+<!-- Highlight -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 
 <style>
-body {
+:root{
+    --primary:#8b5cf6;
+    --accent:#6366f1;
+}
+
+body{
     margin:0;
     color:#e5e7eb;
-    font-family:'Inter', monospace;
-    background:#020617;
+    font-family:Inter, monospace;
+    background:
+        radial-gradient(circle at 20% 20%, rgba(139,92,246,0.15), transparent 40%),
+        radial-gradient(circle at 80% 10%, rgba(99,102,241,0.12), transparent 40%),
+        #020617;
 }
 
-.glass {
-    background: rgba(15,23,42,0.6);
-    backdrop-filter: blur(16px);
+body::before{
+    content:"";
+    position:fixed;
+    width:100%;
+    height:100%;
+    background:
+        linear-gradient(rgba(139,92,246,0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(99,102,241,0.05) 1px, transparent 1px);
+    background-size:60px 60px;
+    z-index:-1;
+}
+
+.glass{
+    background:rgba(15,23,42,0.6);
+    backdrop-filter:blur(16px);
     border:1px solid rgba(255,255,255,0.08);
     border-radius:18px;
+    box-shadow:0 10px 40px rgba(0,0,0,0.4);
 }
 
-.sidebar { width:260px; }
-
-.logo {
-    filter: drop-shadow(0 0 8px rgba(139,92,246,0.5));
+.sidebar{
+    width:260px;
 }
 
-.btn {
-    border:1px solid #8b5cf6;
+.logo{
+    filter:drop-shadow(0 0 8px rgba(139,92,246,0.5));
+}
+
+.btn{
+    border:1px solid var(--primary);
     padding:10px;
     border-radius:12px;
-    color:#8b5cf6;
-    transition:0.2s;
+    color:var(--primary);
+    transition:.25s;
 }
-.btn:hover {
-    background:#8b5cf6;
+
+.btn:hover{
+    background:linear-gradient(45deg,var(--primary),var(--accent));
     color:white;
 }
 
-.input-box {
-    background:#020617;
-    border:1px solid rgba(255,255,255,0.1);
+.input-box{
+    background:rgba(2,6,23,0.8);
+    border:1px solid rgba(255,255,255,0.08);
     padding:12px;
     border-radius:12px;
     width:100%;
     color:white;
+    resize:none;
 }
 
-.bot {
-    background: rgba(139,92,246,0.1);
-    padding:12px;
-    border-radius:12px;
-    margin-bottom:10px;
-}
-
-.user {
+.user{
     text-align:right;
     padding:12px;
     color:#c4b5fd;
+    margin-bottom:10px;
 }
 
-.badge {
+.bot{
+    background:linear-gradient(135deg, rgba(139,92,246,0.12), rgba(99,102,241,0.08));
+    border-left:3px solid var(--primary);
+    padding:12px;
+    border-radius:12px;
+    margin-bottom:12px;
+}
+
+.badge{
     padding:6px 14px;
     border-radius:999px;
     border:1px solid rgba(255,255,255,0.12);
     cursor:pointer;
+    transition:.2s;
 }
 
-.badge.active {
-    background: rgba(139,92,246,0.2);
-    border-color:#8b5cf6;
+.badge.active{
+    background:rgba(139,92,246,0.2);
+    border-color:var(--primary);
+}
+
+pre{
+    background:rgba(2,6,23,0.9);
+    padding:16px;
+    border-radius:12px;
+    overflow:auto;
+    border:1px solid rgba(255,255,255,0.08);
+    margin-top:10px;
+}
+
+.model-label{
+    font-size:12px;
+    opacity:.65;
+    margin-bottom:8px;
+    letter-spacing:.5px;
+}
+
+@media(max-width:768px){
+    .sidebar{
+        display:none;
+    }
 }
 </style>
 </head>
@@ -86,8 +139,9 @@ body {
 
 <div class="flex flex-1 overflow-hidden">
 
-<!-- SIDEBAR -->
+<!-- Sidebar -->
 <div class="sidebar glass p-4 flex flex-col justify-between hidden md:flex">
+
     <div>
         <div class="flex items-center gap-3">
             <img src="/static/logo.png" class="w-10 h-10 logo rounded-lg">
@@ -96,116 +150,169 @@ body {
 
         <p class="text-xs opacity-60 mt-1">AI Cyber Assistant</p>
 
-        <button onclick="createNewChat()" class="btn mt-4 w-full">+ NEW CHAT</button>
+        <button onclick="createNewChat()" class="btn mt-4 w-full">
+            + NEW CHAT
+        </button>
     </div>
+
 </div>
 
-<!-- MAIN -->
+<!-- Main -->
 <div class="flex-1 flex flex-col p-3 gap-3">
 
-<div class="glass p-4 flex justify-between">
+<!-- Top Bar -->
+<div class="glass p-4 flex justify-between items-center">
+
     <span>⚡ AI SECURITY CORE</span>
 
-    <!-- MULTI MODE BUTTONS -->
     <div class="flex gap-2">
         <span class="badge active" data-mode="thinking">THINK</span>
         <span class="badge" data-mode="fast">FAST</span>
         <span class="badge" data-mode="code">CODE</span>
     </div>
+
 </div>
 
+<!-- Chat -->
 <div id="chat" class="flex-1 glass p-4 overflow-y-auto"></div>
 
+<!-- Input -->
 <div class="glass p-3 flex gap-2">
-    <textarea id="msg" class="input-box flex-1"></textarea>
-    <button onclick="send()" class="btn px-6">➤</button>
+
+    <textarea
+        id="prompt"
+        class="input-box flex-1"
+        rows="2"
+        placeholder="Ask anything..."></textarea>
+
+    <button onclick="sendMessage()" class="btn px-6">
+        ➤
+    </button>
+
 </div>
 
 </div>
 </div>
 
 <script>
-let chats = {};
-let currentChat = null;
 let currentMode = "thinking";
+let currentChat = "chat_" + Date.now();
 
+const chatBox = document.getElementById("chat");
+const promptBox = document.getElementById("prompt");
+
+/* =======================
+   MODE SWITCH
+======================= */
+document.querySelectorAll(".badge").forEach(btn=>{
+    btn.onclick = ()=>{
+        document.querySelectorAll(".badge")
+            .forEach(x=>x.classList.remove("active"));
+
+        btn.classList.add("active");
+        currentMode = btn.dataset.mode;
+    };
+});
+
+/* =======================
+   NEW CHAT
+======================= */
 function createNewChat(){
     currentChat = "chat_" + Date.now();
-    chats[currentChat] = {messages:[]};
-    render();
+    chatBox.innerHTML = "";
 }
 
-function render(){
-    const chatBox = document.getElementById("chat");
-    chatBox.innerHTML="";
+/* =======================
+   ADD MESSAGE
+======================= */
+function addMessage(role, content, label=null){
 
-    chats[currentChat].messages.forEach(m=>{
-        const div=document.createElement("div");
-        div.className = m.role==="user" ? "user" : "bot";
+    const div = document.createElement("div");
 
-        div.innerHTML = marked.parse(m.content);
+    div.className = role === "user" ? "user" : "bot";
 
-        div.querySelectorAll('pre code').forEach(block => {
-            hljs.highlightElement(block);
-        });
+    if(role === "assistant" && label){
+        div.innerHTML = `
+            <div class="model-label">${label}</div>
+            ${marked.parse(content)}
+        `;
+    }else{
+        div.innerHTML = marked.parse(content);
+    }
 
-        chatBox.appendChild(div);
+    div.querySelectorAll("pre code").forEach(block=>{
+        hljs.highlightElement(block);
     });
 
+    chatBox.appendChild(div);
     chatBox.scrollTop = chatBox.scrollHeight;
 }
 
-async function send(){
-    const msgBox = document.getElementById("msg");
-    const text = msgBox.value;
+/* =======================
+   SEND MESSAGE
+======================= */
+async function sendMessage(){
+
+    const text = promptBox.value.trim();
 
     if(!text) return;
 
-    chats[currentChat].messages.push({role:"user",content:text});
-    render();
-    msgBox.value="";
+    addMessage("user", text);
 
-    try {
+    promptBox.value = "";
+
+    addMessage(
+        "assistant",
+        "Thinking...",
+        "⚙ Processing"
+    );
+
+    try{
+
         const res = await fetch("/chat",{
             method:"POST",
             headers:{
                 "Content-Type":"application/json"
             },
-            body: JSON.stringify({
+            body:JSON.stringify({
                 message:text,
-                chat_id:currentChat,
-                mode:currentMode
+                mode:currentMode,
+                chat_id:currentChat
             })
         });
 
         const data = await res.json();
 
-        chats[currentChat].messages.push({
-            role:"assistant",
-            content:data.response || "⚠️ No response"
-        });
+        // remove thinking block
+        chatBox.lastChild.remove();
 
-    } catch (err) {
-        chats[currentChat].messages.push({
-            role:"assistant",
-            content:"⚠️ Backend not responding"
-        });
+        addMessage(
+            "assistant",
+            data.response || "No response.",
+            data.label || "AI MODEL"
+        );
+
+    }catch(err){
+
+        chatBox.lastChild.remove();
+
+        addMessage(
+            "assistant",
+            "Unable to connect backend.",
+            "⚠ ERROR"
+        );
     }
-
-    render();
 }
 
-// MODE SWITCHING
-document.querySelectorAll('.badge').forEach(b=>{
-    b.onclick=()=>{
-        currentMode = b.dataset.mode;
-
-        document.querySelectorAll('.badge').forEach(x=>x.classList.remove("active"));
-        b.classList.add("active");
+/* =======================
+   ENTER TO SEND
+======================= */
+promptBox.addEventListener("keydown", function(e){
+    if(e.key === "Enter" && !e.shiftKey){
+        e.preventDefault();
+        sendMessage();
     }
 });
-
-createNewChat();
 </script>
 
 </body>
