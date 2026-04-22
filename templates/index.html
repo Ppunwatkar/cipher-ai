@@ -47,6 +47,24 @@ padding:14px;
 0%,80%,100%{opacity:.2}
 40%{opacity:1}
 }
+.toolInput{
+width:100%;
+padding:12px;
+border-radius:14px;
+background:#020617;
+border:1px solid rgba(255,255,255,.08);
+color:#fff;
+margin-bottom:10px;
+}
+.toolBtn{
+padding:10px 16px;
+border-radius:14px;
+background:#7c3aed;
+}
+pre{
+white-space:pre-wrap;
+word-wrap:break-word;
+}
 </style>
 </head>
 
@@ -60,7 +78,6 @@ padding:14px;
 <!-- LOGO -->
 <div class="flex items-center gap-3 mb-4 shrink-0">
 <img src="/static/logo.png" class="w-12 h-12 object-contain rounded-xl">
-
 <div>
 <div class="text-3xl tracking-[6px] text-violet-300">CIPHER</div>
 <div class="text-xs text-white/55 mt-1">AI Cyber Assistant</div>
@@ -73,92 +90,35 @@ class="w-full rounded-2xl border border-violet-500 py-3 mb-4 hover:bg-violet-500
 + NEW CHAT
 </button>
 
-<!-- HISTORY (NOW BIG SPACE) -->
+<!-- HISTORY -->
 <div id="historyBox"
 class="flex-1 overflow-y-auto scrollbar pr-1 space-y-2 min-h-0 mb-4">
 </div>
 
-<!-- TOOLS NOW MOVED BELOW HISTORY -->
+<!-- TOOLS -->
 <div class="shrink-0 mb-4">
 
 <div class="flex items-center justify-between mb-2 px-1">
-<div class="text-[11px] tracking-[4px] text-white/40">
-SECURITY TOOLS
-</div>
+<div class="text-[11px] tracking-[4px] text-white/40">SECURITY TOOLS</div>
 
 <button onclick="toggleTools()"
-class="text-xs text-violet-300 hover:text-white">
-Hide
-</button>
+class="text-xs text-violet-300 hover:text-white">Hide</button>
 </div>
 
 <div id="toolsPanel"
 class="space-y-2 max-h-[220px] overflow-y-auto scrollbar pr-1">
 
-<!-- HASH -->
-<button onclick="openTool('hash')"
-class="w-full flex items-center gap-3 px-3 py-3 rounded-2xl border border-white/10 hover:border-violet-500 hover:bg-violet-500/10 transition text-left">
-<div class="w-10 h-10 rounded-xl bg-violet-500/20 flex items-center justify-center">🔐</div>
-<div>
-<div class="text-sm">Hash Tool</div>
-<div class="text-[11px] text-white/40">MD5 / SHA256</div>
-</div>
-</button>
-
-<!-- JWT -->
-<button onclick="openTool('jwt')"
-class="w-full flex items-center gap-3 px-3 py-3 rounded-2xl border border-white/10 hover:border-violet-500 hover:bg-violet-500/10 transition text-left">
-<div class="w-10 h-10 rounded-xl bg-cyan-500/20 flex items-center justify-center">🪪</div>
-<div>
-<div class="text-sm">JWT Decoder</div>
-<div class="text-[11px] text-white/40">Decode Tokens</div>
-</div>
-</button>
-
-<!-- WHOIS -->
-<button onclick="openTool('whois')"
-class="w-full flex items-center gap-3 px-3 py-3 rounded-2xl border border-white/10 hover:border-violet-500 hover:bg-violet-500/10 transition text-left">
-<div class="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">🌐</div>
-<div>
-<div class="text-sm">WHOIS Lookup</div>
-<div class="text-[11px] text-white/40">Domain Info</div>
-</div>
-</button>
-
-<!-- DNS -->
-<button onclick="openTool('dns')"
-class="w-full flex items-center gap-3 px-3 py-3 rounded-2xl border border-white/10 hover:border-violet-500 hover:bg-violet-500/10 transition text-left">
-<div class="w-10 h-10 rounded-xl bg-yellow-500/20 flex items-center justify-center">📡</div>
-<div>
-<div class="text-sm">DNS Lookup</div>
-<div class="text-[11px] text-white/40">A / MX / TXT</div>
-</div>
-</button>
-
-<!-- PASSWORD -->
-<button onclick="openTool('password')"
-class="w-full flex items-center gap-3 px-3 py-3 rounded-2xl border border-white/10 hover:border-violet-500 hover:bg-violet-500/10 transition text-left">
-<div class="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center">🔑</div>
-<div>
-<div class="text-sm">Password Check</div>
-<div class="text-[11px] text-white/40">Strength Test</div>
-</div>
-</button>
-
-<!-- BASE64 -->
-<button onclick="openTool('base64')"
-class="w-full flex items-center gap-3 px-3 py-3 rounded-2xl border border-white/10 hover:border-violet-500 hover:bg-violet-500/10 transition text-left">
-<div class="w-10 h-10 rounded-xl bg-pink-500/20 flex items-center justify-center">📦</div>
-<div>
-<div class="text-sm">Base64 Tool</div>
-<div class="text-[11px] text-white/40">Encode / Decode</div>
-</div>
-</button>
+<button onclick="openTool('hash')" class="toolRow">🔐 Hash Tool</button>
+<button onclick="openTool('base64')" class="toolRow">📦 Base64 Tool</button>
+<button onclick="openTool('password')" class="toolRow">🔑 Password Check</button>
+<button onclick="openTool('jwt')" class="toolRow">🪪 JWT Decoder</button>
+<button onclick="openTool('whois')" class="toolRow">🌐 WHOIS Lookup</button>
+<button onclick="openTool('dns')" class="toolRow">📡 DNS Lookup</button>
 
 </div>
 </div>
 
-<!-- USER CARD -->
+<!-- USER -->
 <div class="relative shrink-0">
 
 <div onclick="toggleMenu()"
@@ -177,10 +137,10 @@ GU
 </div>
 
 <div>›</div>
+
 </div>
 </div>
 
-<!-- MENU -->
 <div id="menu"
 class="hidden absolute left-0 bottom-16 w-64 bg-[#171717] rounded-2xl border border-white/10 p-2 z-50">
 
@@ -190,8 +150,6 @@ class="hidden absolute left-0 bottom-16 w-64 bg-[#171717] rounded-2xl border bor
 </div>
 
 <div id="userMenu" class="hidden">
-<button onclick="openProfile()" class="w-full text-left px-3 py-2 rounded-xl hover:bg-white/10">Profile</button>
-<button onclick="openSettings()" class="w-full text-left px-3 py-2 rounded-xl hover:bg-white/10">Settings</button>
 <button onclick="logoutUser()" class="w-full text-left px-3 py-2 rounded-xl hover:bg-red-500/10 text-red-300">Logout</button>
 </div>
 
@@ -203,12 +161,10 @@ class="hidden absolute left-0 bottom-16 w-64 bg-[#171717] rounded-2xl border bor
 <!-- ================= MAIN ================= -->
 <div class="flex-1 flex flex-col gap-3">
 
-<!-- TOP BAR -->
+<!-- TOP -->
 <div class="glass rounded-3xl border border-white/10 px-8 py-5 flex justify-between items-center">
 
-<div class="text-violet-300 tracking-widest text-lg">
-⚡ AI SECURITY CORE
-</div>
+<div class="text-violet-300 tracking-widest text-lg">⚡ AI SECURITY CORE</div>
 
 <div class="flex gap-2">
 <button id="thinkingBtn" onclick="setMode('thinking')" class="modeBtn px-5 py-3 rounded-full border border-white/10 text-sm">THINK</button>
@@ -232,9 +188,7 @@ placeholder="Ask anything..."
 class="inputbox flex-1 rounded-2xl resize-none px-5 py-4 text-base placeholder-white/25"></textarea>
 
 <button onclick="sendMsg()"
-class="w-24 h-16 rounded-2xl bg-violet-500 hover:bg-violet-600 text-xl">
-➤
-</button>
+class="w-24 h-16 rounded-2xl bg-violet-500 hover:bg-violet-600 text-xl">➤</button>
 
 </div>
 
@@ -242,10 +196,192 @@ class="w-24 h-16 rounded-2xl bg-violet-500 hover:bg-violet-600 text-xl">
 </div>
 
 <script>
+let mode="fast";
+let currentChatId=null;
+
+document.querySelectorAll(".toolRow").forEach(x=>{
+x.className="w-full text-left px-4 py-3 rounded-2xl border border-white/10 hover:border-violet-500 hover:bg-violet-500/10 transition";
+});
+
 function toggleTools(){
 let box=document.getElementById("toolsPanel");
 box.style.display=box.style.display==="none"?"block":"none";
 }
+
+function setMode(m){
+mode=m;
+document.querySelectorAll(".modeBtn").forEach(btn=>{
+btn.classList.remove("bg-violet-500/20","border-violet-500");
+btn.classList.add("border-white/10");
+});
+document.getElementById(m+"Btn").classList.add("bg-violet-500/20","border-violet-500");
+}
+
+function newChat(){
+chatBox.innerHTML="";
+currentChatId=null;
+}
+
+async function sendMsg(){
+
+let prompt=document.getElementById("prompt").value.trim();
+if(!prompt)return;
+
+chatBox.innerHTML+=`
+<div class="text-right">
+<div class="inline-block bg-[#101844] px-4 py-3 rounded-2xl max-w-[75%]">
+${prompt}
+</div>
+</div>`;
+
+document.getElementById("prompt").value="";
+scrollBottom();
+
+let res=await fetch("/chat",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({
+message:prompt,
+mode:mode,
+chat_id:currentChatId
+})
+});
+
+let data=await res.json();
+
+if(data.ok){
+currentChatId=data.chat_id;
+
+chatBox.innerHTML+=`
+<div class="msgbox">
+<div class="text-[11px] text-white/55 mb-2">${data.label}</div>
+<div>${data.response.replace(/\n/g,"<br>")}</div>
+</div>`;
+}
+
+scrollBottom();
+loadHistory();
+}
+
+async function loadHistory(){
+
+let res=await fetch("/history");
+let data=await res.json();
+
+historyBox.innerHTML="";
+
+(data.items||[]).forEach(c=>{
+historyBox.innerHTML+=`
+<div onclick="loadChat('${c.id}')"
+class="p-3 rounded-2xl border border-white/10 hover:border-violet-500 cursor-pointer text-sm">
+${c.title}
+</div>`;
+});
+}
+
+async function loadChat(id){
+
+let res=await fetch("/chat/"+id);
+let data=await res.json();
+
+chatBox.innerHTML="";
+currentChatId=id;
+
+(data.items||[]).forEach(m=>{
+
+if(m.role==="user"){
+chatBox.innerHTML+=`
+<div class="text-right">
+<div class="inline-block bg-[#101844] px-4 py-3 rounded-2xl max-w-[75%]">
+${m.content}
+</div>
+</div>`;
+}else{
+chatBox.innerHTML+=`
+<div class="msgbox">
+<div>${m.content.replace(/\n/g,"<br>")}</div>
+</div>`;
+}
+
+});
+
+scrollBottom();
+}
+
+async function openTool(tool){
+
+let html="";
+
+if(tool==="hash"){
+html=`
+<input id="toolText" class="toolInput" placeholder="Enter text">
+<button class="toolBtn" onclick="runTool('hash')">Generate</button>`;
+}
+
+if(tool==="base64"){
+html=`
+<input id="toolText" class="toolInput" placeholder="Enter text">
+<select id="toolMode" class="toolInput">
+<option value="encode">Encode</option>
+<option value="decode">Decode</option>
+</select>
+<button class="toolBtn" onclick="runTool('base64')">Run</button>`;
+}
+
+if(tool==="password" || tool==="jwt" || tool==="whois"){
+html=`
+<input id="toolText" class="toolInput" placeholder="Enter value">
+<button class="toolBtn" onclick="runTool('${tool}')">Run</button>`;
+}
+
+if(tool==="dns"){
+html=`
+<input id="toolText" class="toolInput" placeholder="Domain">
+<select id="toolMode" class="toolInput">
+<option value="A">A</option>
+<option value="MX">MX</option>
+<option value="TXT">TXT</option>
+<option value="NS">NS</option>
+</select>
+<button class="toolBtn" onclick="runTool('dns')">Lookup</button>`;
+}
+
+chatBox.innerHTML+=`
+<div class="msgbox">
+<div class="text-violet-300 mb-3">TOOL PANEL • ${tool.toUpperCase()}</div>
+${html}
+<div id="toolResult" class="mt-3 text-sm text-white/80"></div>
+</div>`;
+
+scrollBottom();
+}
+
+async function runTool(name){
+
+let text=document.getElementById("toolText").value;
+let mode=document.getElementById("toolMode")?.value || "";
+
+let res=await fetch("/tool/"+name,{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({
+text:text,
+mode:mode,
+rtype:mode
+})
+});
+
+let data=await res.json();
+
+document.getElementById("toolResult").innerHTML=
+`<pre>${JSON.stringify(data,null,2)}</pre>`;
+}
+
+function scrollBottom(){
+chatBox.scrollTop=chatBox.scrollHeight;
+}
+
+window.onload=loadHistory;
 </script>
 
 </body>
