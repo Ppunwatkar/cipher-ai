@@ -16,7 +16,11 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 # =========================
 # DB SETUP
 # =========================
-engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+engine = create_engine(
+    DATABASE_URL,
+    pool_pre_ping=True
+)
+
 SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
 
@@ -56,21 +60,21 @@ try:
     from groq import Groq
     client = Groq(api_key=GROQ_API_KEY)
 except Exception as e:
-    print("Groq error:", e)
+    print("Groq init error:", e)
     client = None
 
 
 def get_ai_response(msg):
     try:
         if not client:
-            return "⚠️ AI not initialized"
+            return "⚠️ AI not configured"
 
-        res = client.chat.completions.create(
+        response = client.chat.completions.create(
             model="llama-3.1-8b-instant",
             messages=[{"role": "user", "content": msg}]
         )
 
-        return res.choices[0].message.content
+        return response.choices[0].message.content
 
     except Exception as e:
         print("AI ERROR:", str(e))
@@ -81,7 +85,7 @@ def get_ai_response(msg):
 # ROUTES
 # =========================
 
-# 🔥 NO JINJA → NO ERRORS
+# ✅ NO JINJA = NO TEMPLATE ERRORS
 @app.get("/", response_class=HTMLResponse)
 def home():
     try:
@@ -91,38 +95,43 @@ def home():
         return HTMLResponse(f"<h1>UI Error: {str(e)}</h1>")
 
 
-# CHAT
+# ✅ CHAT API (FIXED JSON ERROR)
 @app.post("/chat")
 async def chat(request: Request):
-    data = await request.json()
+    try:
+        data = await request.json()
+    except Exception:
+        return JSONResponse(status_code=400, content={"error": "Invalid JSON"})
 
     message = data.get("message")
     chat_id = data.get("chat_id")
-    user_id = 1
+
+    if not message or not chat_id:
+        return JSONResponse(status_code=400, content={"error": "Missing fields"})
 
     db = SessionLocal()
 
     try:
-        # create chat if not exists
+        # Ensure chat exists
         chat = db.query(Chat).filter(Chat.id == chat_id).first()
 
         if not chat:
             chat = Chat(
                 id=chat_id,
-                user_id=user_id,
+                user_id=1,
                 title=message[:30]
             )
             db.add(chat)
             db.commit()
 
-        # save user message
+        # Save user message
         db.add(Message(chat_id=chat_id, role="user", content=message))
         db.commit()
 
         # AI response
         reply = get_ai_response(message)
 
-        # save bot message
+        # Save AI message
         db.add(Message(chat_id=chat_id, role="assistant", content=reply))
         db.commit()
 
@@ -136,22 +145,22 @@ async def chat(request: Request):
         db.close()
 
 
-# FETCH CHAT
+# ✅ GET CHAT HISTORY
 @app.get("/chat/{chat_id}")
 def get_chat(chat_id: str):
     db = SessionLocal()
 
-    msgs = db.query(Message)\
+    messages = db.query(Message)\
         .filter(Message.chat_id == chat_id)\
         .order_by(Message.id)\
         .all()
 
     db.close()
 
-    return [{"role": m.role, "content": m.content} for m in msgs]
+    return [{"role": m.role, "content": m.content} for m in messages]
 
 
-# SIDEBAR CHATS
+# ✅ SIDEBAR CHAT LIST
 @app.get("/chats")
 def get_chats():
     db = SessionLocal()
@@ -163,7 +172,7 @@ def get_chats():
     return [{"chat_id": c.id, "title": c.title} for c in chats]
 
 
-# DB CHECK
+# ✅ DB TEST
 @app.get("/db-check")
 def db_check():
     try:
@@ -174,7 +183,7 @@ def db_check():
         return {"error": str(e)}
 
 
-# AI TEST
+# ✅ AI TEST
 @app.get("/ai-test")
 def ai_test():
     return {"response": get_ai_response("Hello")}
