@@ -74,7 +74,7 @@ body{
     margin-bottom:8px;
 }
 
-/* FIXED INPUTS */
+/* INPUT FIX */
 input, textarea{
     background:#020617;
     border:1px solid rgba(139,92,246,.25);
@@ -85,20 +85,19 @@ input, textarea{
     font-size:16px;
     transition:.2s;
     line-height:1.4;
-    padding:14px 18px;
     box-sizing:border-box;
-    vertical-align:middle;
+    padding:14px 18px 14px 22px;
 }
 
 input{
-    height:50px;
+    height:52px;
 }
 
 textarea{
     resize:none;
-    min-height:62px;
+    min-height:68px;
     max-height:220px;
-    padding-top:16px;
+    padding:18px 18px 18px 24px;
 }
 
 input:focus,
@@ -109,10 +108,10 @@ textarea:focus{
 
 input::placeholder,
 textarea::placeholder{
-    color:rgba(255,255,255,.35);
+    color:rgba(255,255,255,.38);
 }
 
-/* AUTH MODAL */
+/* AUTH */
 #authModal{
     position:fixed;
     inset:0;
@@ -157,7 +156,7 @@ textarea::placeholder{
 
 <body>
 
-<!-- AUTH -->
+<!-- LOGIN / SIGNUP -->
 <div id="authModal">
 
 <div class="glass auth-box">
@@ -189,6 +188,28 @@ Create account
 </div>
 </div>
 
+<!-- SETTINGS MODAL -->
+<div id="settingsModal"
+style="display:none"
+class="fixed inset-0 bg-black/50 flex justify-center items-center z-[999]">
+
+<div class="glass w-[360px] p-6 relative">
+
+<div onclick="closeSettings()"
+class="absolute top-3 right-4 cursor-pointer text-xl opacity-70">✕</div>
+
+<h2 class="text-xl text-purple-300 mb-5">Settings</h2>
+
+<div class="space-y-3">
+<button class="w-full text-left px-4 py-3 rounded-xl hover:bg-white/5">🌙 Theme Mode</button>
+<button class="w-full text-left px-4 py-3 rounded-xl hover:bg-white/5">🔔 Notifications</button>
+<button class="w-full text-left px-4 py-3 rounded-xl hover:bg-white/5">🧠 AI Preferences</button>
+<button class="w-full text-left px-4 py-3 rounded-xl hover:bg-white/5">🔒 Privacy</button>
+</div>
+
+</div>
+</div>
+
 <!-- APP -->
 <div class="flex h-screen p-4 gap-4">
 
@@ -212,14 +233,53 @@ Create account
 <div id="history" class="mt-5 space-y-2"></div>
 </div>
 
-<div>
-<div class="text-sm opacity-80 mb-2" id="username">
-Guest Mode
+<!-- USER CARD -->
+<div class="relative">
+
+<div onclick="toggleMenu()"
+class="glass p-3 cursor-pointer hover:border-purple-400 transition">
+
+<div class="flex items-center gap-3">
+
+<div class="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center text-sm">
+PP
 </div>
 
-<button onclick="showModal()" class="btn w-full">
-Login
+<div class="flex-1">
+<div class="text-sm text-white" id="username">Guest User</div>
+<div class="text-xs opacity-60" id="userplan">Free</div>
+</div>
+
+<div class="text-lg opacity-70">›</div>
+
+</div>
+</div>
+
+<!-- MENU -->
+<div id="userMenu"
+class="hidden absolute bottom-16 left-0 w-full glass p-3 space-y-2 z-50">
+
+<button onclick="showSettings()"
+class="w-full text-left px-3 py-2 rounded-xl hover:bg-white/5">
+⚙ Settings
 </button>
+
+<button onclick="showProfile()"
+class="w-full text-left px-3 py-2 rounded-xl hover:bg-white/5">
+👤 Profile
+</button>
+
+<button onclick="showModal()"
+class="w-full text-left px-3 py-2 rounded-xl hover:bg-white/5">
+🔐 Login / Signup
+</button>
+
+<button onclick="logoutUser()"
+class="w-full text-left px-3 py-2 rounded-xl hover:bg-red-500/10 text-red-300">
+↩ Logout
+</button>
+
+</div>
 </div>
 
 </div>
@@ -270,225 +330,238 @@ let loggedIn = false;
 /* LOAD */
 window.onload = async ()=>{
 
-    await checkLogin();
+await checkLogin();
 
-    document.querySelectorAll(".mode").forEach(btn=>{
-        btn.onclick = ()=>{
-            document.querySelectorAll(".mode")
-            .forEach(x=>x.classList.remove("active"));
+document.querySelectorAll(".mode").forEach(btn=>{
+btn.onclick = ()=>{
+document.querySelectorAll(".mode")
+.forEach(x=>x.classList.remove("active"));
 
-            btn.classList.add("active");
-            currentMode = btn.dataset.mode;
-        };
-    });
+btn.classList.add("active");
+currentMode = btn.dataset.mode;
+};
+});
 
-    autoGrow();
+autoGrow();
 };
 
-/* AUTOGROW */
+/* AUTO TEXTAREA */
 function autoGrow(){
-    const t = document.getElementById("prompt");
+const t = document.getElementById("prompt");
 
-    t.addEventListener("input", function(){
-        this.style.height="auto";
-        this.style.height=this.scrollHeight+"px";
-    });
+t.addEventListener("input", function(){
+this.style.height="auto";
+this.style.height=this.scrollHeight+"px";
+});
 }
 
 /* MODAL */
 function showModal(){
-    document.getElementById("authModal").style.display="flex";
+document.getElementById("authModal").style.display="flex";
 }
 
 function closeModal(){
-    document.getElementById("authModal").style.display="none";
+document.getElementById("authModal").style.display="none";
+}
+
+/* SETTINGS */
+function showSettings(){
+document.getElementById("settingsModal").style.display="flex";
+}
+
+function closeSettings(){
+document.getElementById("settingsModal").style.display="none";
+}
+
+/* USER MENU */
+function toggleMenu(){
+document.getElementById("userMenu").classList.toggle("hidden");
 }
 
 /* LOGIN CHECK */
 async function checkLogin(){
 
-    let res = await fetch("/me");
-    let data = await res.json();
+let res = await fetch("/me");
+let data = await res.json();
 
-    if(data.logged_in){
-        loggedIn = true;
-        closeModal();
+if(data.logged_in){
+loggedIn = true;
+closeModal();
 
-        document.getElementById("username").innerText =
-        "👤 " + data.name;
+document.getElementById("username").innerText = data.name;
+document.getElementById("userplan").innerText = "Member";
 
-        loadHistory();
-    }else{
-        loggedIn = false;
-    }
+loadHistory();
+}else{
+loggedIn = false;
+}
 }
 
-/* TOGGLE */
+/* TOGGLE LOGIN SIGNUP */
 function toggleAuth(){
 
-    isSignup = !isSignup;
+isSignup = !isSignup;
 
-    document.getElementById("signupFields").style.display =
-    isSignup ? "block" : "none";
+document.getElementById("signupFields").style.display =
+isSignup ? "block" : "none";
 
-    document.getElementById("authBtn").innerText =
-    isSignup ? "Sign Up" : "Login";
+document.getElementById("authBtn").innerText =
+isSignup ? "Sign Up" : "Login";
 
-    document.getElementById("switchText").innerText =
-    isSignup ?
-    "Already have account? Login" :
-    "Create account";
-
-    document.getElementById("authMsg").innerText="";
+document.getElementById("switchText").innerText =
+isSignup ? "Already have account? Login" : "Create account";
 }
 
 /* AUTH */
 async function submitAuth(){
 
-    let body = {
-        name:val("name"),
-        email:val("email"),
-        password:val("password")
-    };
+let body = {
+name:val("name"),
+email:val("email"),
+password:val("password")
+};
 
-    let url = isSignup ? "/signup" : "/login";
+let url = isSignup ? "/signup" : "/login";
 
-    if(!isSignup){
-        body = {
-            email:val("email"),
-            password:val("password")
-        };
-    }
+if(!isSignup){
+body = {
+email:val("email"),
+password:val("password")
+};
+}
 
-    let res = await fetch(url,{
-        method:"POST",
-        headers:{
-            "Content-Type":"application/json"
-        },
-        body:JSON.stringify(body)
-    });
+let res = await fetch(url,{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify(body)
+});
 
-    let data = await res.json();
+let data = await res.json();
 
-    if(data.ok){
-
-        loggedIn = true;
-
-        closeModal();
-
-        setTimeout(()=>{
-            location.reload();
-        },300);
-
-    }else{
-        document.getElementById("authMsg").innerText =
-        data.msg || "Failed.";
-    }
+if(data.ok){
+closeModal();
+setTimeout(()=>location.reload(),300);
+}else{
+document.getElementById("authMsg").innerText =
+data.msg || "Failed.";
+}
 }
 
 function val(id){
-    return document.getElementById(id).value.trim();
+return document.getElementById(id).value.trim();
 }
 
-/* NEW CHAT */
+/* CHAT */
 function newChat(){
-    currentChat = "chat_" + Date.now();
-    document.getElementById("chat").innerHTML="";
+currentChat = "chat_" + Date.now();
+document.getElementById("chat").innerHTML="";
 }
 
-/* SEND */
 async function sendMsg(){
 
-    let prompt = document.getElementById("prompt");
-    let msg = prompt.value.trim();
+let prompt = document.getElementById("prompt");
+let msg = prompt.value.trim();
 
-    if(!msg) return;
+if(!msg) return;
 
-    let box = document.getElementById("chat");
+let box = document.getElementById("chat");
 
-    box.innerHTML += `
-    <div class="user">${msg}</div>
-    `;
+box.innerHTML += `<div class="user">${msg}</div>`;
 
-    prompt.value="";
-    prompt.style.height="62px";
+prompt.value="";
+prompt.style.height="68px";
 
-    let res = await fetch("/chat",{
-        method:"POST",
-        headers:{
-            "Content-Type":"application/json"
-        },
-        body:JSON.stringify({
-            message:msg,
-            mode:currentMode,
-            chat_id:currentChat
-        })
-    });
+let res = await fetch("/chat",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({
+message:msg,
+mode:currentMode,
+chat_id:currentChat
+})
+});
 
-    let data = await res.json();
+let data = await res.json();
 
-    box.innerHTML += `
-    <div class="bot">
-        <div class="small">${data.label || "AI MODEL"}</div>
-        ${marked.parse(data.response || "No response")}
-    </div>
-    `;
+box.innerHTML += `
+<div class="bot">
+<div class="small">${data.label || "AI MODEL"}</div>
+${marked.parse(data.response || "No response")}
+</div>
+`;
 
-    box.scrollTop = box.scrollHeight;
+box.scrollTop = box.scrollHeight;
 
-    if(loggedIn){
-        loadHistory();
-    }else{
-        setTimeout(()=>showModal(),1200);
-    }
+if(loggedIn){
+loadHistory();
+}else{
+setTimeout(()=>showModal(),1500);
+}
 }
 
 /* HISTORY */
 async function loadHistory(){
 
-    let res = await fetch("/history");
-    let data = await res.json();
+let res = await fetch("/history");
+let data = await res.json();
 
-    let side = document.getElementById("history");
-    side.innerHTML="";
+let side = document.getElementById("history");
+side.innerHTML="";
 
-    data.forEach(chat=>{
-
-        side.innerHTML += `
-        <div onclick="openChat('${chat.id}')"
-        class="glass p-3 cursor-pointer text-sm hover:border-purple-400">
-        ${chat.title}
-        </div>
-        `;
-    });
+data.forEach(chat=>{
+side.innerHTML += `
+<div onclick="openChat('${chat.id}')"
+class="glass p-3 cursor-pointer text-sm hover:border-purple-400">
+${chat.title}
+</div>
+`;
+});
 }
 
 /* OPEN CHAT */
 async function openChat(id){
 
-    currentChat = id;
+currentChat = id;
 
-    let res = await fetch("/chat/" + id);
-    let data = await res.json();
+let res = await fetch("/chat/" + id);
+let data = await res.json();
 
-    let box = document.getElementById("chat");
-    box.innerHTML="";
+let box = document.getElementById("chat");
+box.innerHTML="";
 
-    data.forEach(msg=>{
+data.forEach(msg=>{
 
-        if(msg.role=="user"){
-            box.innerHTML += `
-            <div class="user">${msg.content}</div>
-            `;
-        }else{
-            box.innerHTML += `
-            <div class="bot">
-            ${marked.parse(msg.content)}
-            </div>
-            `;
-        }
-    });
+if(msg.role=="user"){
+box.innerHTML += `<div class="user">${msg.content}</div>`;
+}else{
+box.innerHTML += `
+<div class="bot">
+${marked.parse(msg.content)}
+</div>`;
 }
+});
+}
+
+/* PROFILE */
+function showProfile(){
+alert("Profile coming next update.");
+}
+
+/* LOGOUT */
+async function logoutUser(){
+await fetch("/logout");
+location.reload();
+}
+
+/* OUTSIDE CLICK */
+document.addEventListener("click", function(e){
+
+let menu = document.getElementById("userMenu");
+
+if(!e.target.closest(".relative")){
+menu.classList.add("hidden");
+}
+});
 </script>
 
 </body>
