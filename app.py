@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from sqlalchemy import create_engine, Column, Integer, String, Text
+from sqlalchemy import create_engine, Column, Integer, String, Text,text
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 import os
@@ -40,6 +40,12 @@ Base.metadata.create_all(bind=engine)
 # =========================
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+@app.get("/debug-db")
+def debug_db():
+    with engine.connect() as conn:
+        result = conn.execute(text("SELECT * FROM chats LIMIT 1"))
+        return {"status": "DB connected successfully"}
 
 # =========================
 # AI CLIENT
