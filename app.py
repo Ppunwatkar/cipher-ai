@@ -39,15 +39,17 @@ SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
 
 # ==================================================
-# MODELS
+# IMPORTANT:
+# YOUR REAL users TABLE HAS:
+# id | username | password
+# So we map EXACTLY to that schema
 # ==================================================
 
 class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(200))
-    email = Column(String(200), unique=True)
+    username = Column(String(200))
     password = Column(String(200))
 
 
@@ -55,21 +57,19 @@ class Chat(Base):
     __tablename__ = "chats"
 
     id = Column(String(200), primary_key=True)
-    user_id = Column(Integer)
     title = Column(String(300))
+    user_id = Column(Integer)
 
 
 class Message(Base):
     __tablename__ = "messages"
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer)
     chat_id = Column(String(200))
     role = Column(String(30))
     content = Column(Text)
+    user_id = Column(Integer)
 
-
-Base.metadata.create_all(bind=engine)
 
 # ==================================================
 # AI CLIENTS
@@ -142,20 +142,23 @@ async def signup(request: Request):
 
     try:
         data = await request.json()
+
         db = SessionLocal()
 
+        username = data["email"]   # use email as username
+        password = data["password"]
+
         old = db.query(User).filter(
-            User.email == data["email"]
+            User.username == username
         ).first()
 
         if old:
             db.close()
-            return {"ok": False, "msg": "Email already exists"}
+            return {"ok": False, "msg": "Account already exists"}
 
         user = User(
-            name=data["name"],
-            email=data["email"],
-            password=data["password"]
+            username=username,
+            password=password
         )
 
         db.add(user)
@@ -163,7 +166,7 @@ async def signup(request: Request):
         db.refresh(user)
 
         request.session["user_id"] = user.id
-        request.session["name"] = user.name
+        request.session["name"] = username
 
         db.close()
 
@@ -178,10 +181,11 @@ async def login(request: Request):
 
     try:
         data = await request.json()
+
         db = SessionLocal()
 
         user = db.query(User).filter(
-            User.email == data["email"],
+            User.username == data["email"],
             User.password == data["password"]
         ).first()
 
@@ -190,7 +194,7 @@ async def login(request: Request):
             return {"ok": False, "msg": "Invalid credentials"}
 
         request.session["user_id"] = user.id
-        request.session["name"] = user.name
+        request.session["name"] = user.username
 
         db.close()
 
@@ -198,12 +202,6 @@ async def login(request: Request):
 
     except Exception as e:
         return {"ok": False, "msg": str(e)}
-
-
-@app.get("/logout")
-async def logout(request: Request):
-    request.session.clear()
-    return {"ok": True}
 
 
 @app.get("/me")
@@ -219,6 +217,12 @@ async def me(request: Request):
 
     return {"logged_in": False}
 
+
+@app.get("/logout")
+async def logout(request: Request):
+    request.session.clear()
+    return {"ok": True}
+
 # ==================================================
 # CHAT
 # ==================================================
@@ -226,78 +230,64 @@ async def me(request: Request):
 @app.post("/chat")
 async def chat(request: Request):
 
-    try:
-        data = await request.json()
+    data = await request.json()
 
-        prompt = data["message"]
-        mode = data["mode"]
-        chat_id = data["chat_id"]
+    prompt = data["message"]
+    mode = data["mode"]
+    chat_id = data["chat_id"]
 
-        uid = current_user(request)
+    uid = current_user(request)
 
-        # MODEL ROUTING
-        if mode == "thinking":
-            answer = ask_openrouter(
-                prompt,
-                "openai/gpt-4o-mini"
-            )
-            label = "🧠 THINK • GPT"
+    # MODELS
+    if mode == "thinking":
+        answer = ask_openrouter(prompt, "openai/gpt-4o-mini")
+        label = "🧠 THINK • GPT"
 
-        elif mode == "code":
-            answer = ask_openrouter(
-                prompt,
-                "anthropic/claude-3-haiku"
-            )
-            label = "💻 CODE • CLAUDE"
+    elif mode == "code":
+        answer = ask_openrouter(prompt, "anthropic/claude-3-haiku")
+        label = "💻 CODE • CLAUDE"
 
-        else:
-            answer = ask_groq(prompt)
-            label = "⚡ FAST • GROQ"
+    else:
+        answer = ask_groq(prompt)
+        label = "⚡ FAST • GROQ"
 
-        # SAVE ONLY IF USER LOGGED IN
-        if uid:
+    # SAVE ONLY LOGIN USERS
+    if uid:
 
-            db = SessionLocal()
+        db = SessionLocal()
 
-            exists = db.query(Chat).filter(
-                Chat.id == chat_id
-            ).first()
+        exists = db.query(Chat).filter(
+            Chat.id == chat_id
+        ).first()
 
-            if not exists:
-                db.add(Chat(
-                    id=chat_id,
-                    user_id=uid,
-                    title=prompt[:40]
-                ))
-
-            db.add(Message(
-                user_id=uid,
-                chat_id=chat_id,
-                role="user",
-                content=prompt
+        if not exists:
+            db.add(Chat(
+                id=chat_id,
+                title=prompt[:40],
+                user_id=uid
             ))
 
-            db.add(Message(
-                user_id=uid,
-                chat_id=chat_id,
-                role="assistant",
-                content=answer
-            ))
+        db.add(Message(
+            chat_id=chat_id,
+            role="user",
+            content=prompt,
+            user_id=uid
+        ))
 
-            db.commit()
-            db.close()
+        db.add(Message(
+            chat_id=chat_id,
+            role="assistant",
+            content=answer,
+            user_id=uid
+        ))
 
-        return {
-            "response": answer,
-            "label": label,
-            "guest": False if uid else True
-        }
+        db.commit()
+        db.close()
 
-    except Exception as e:
-        return {
-            "response": f"Error: {str(e)}",
-            "label": "SYSTEM"
-        }
+    return {
+        "response": answer,
+        "label": label
+    }
 
 # ==================================================
 # HISTORY
@@ -341,8 +331,8 @@ async def get_chat(chat_id: str, request: Request):
     db = SessionLocal()
 
     msgs = db.query(Message).filter(
-        Message.user_id == uid,
-        Message.chat_id == chat_id
+        Message.chat_id == chat_id,
+        Message.user_id == uid
     ).all()
 
     result = []
@@ -356,11 +346,3 @@ async def get_chat(chat_id: str, request: Request):
     db.close()
 
     return result
-
-# ==================================================
-# TEST
-# ==================================================
-
-@app.get("/ping")
-async def ping():
-    return {"status": "ok"}
