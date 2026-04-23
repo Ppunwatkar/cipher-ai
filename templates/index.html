@@ -28,14 +28,14 @@ background:#7c3aed;
 border-radius:10px;
 }
 
-.inputbox,.toolInput{
+.inputbox,.toolInput,.authInput{
 background:#020617;
 border:1px solid rgba(255,255,255,.08);
 color:#fff;
 outline:none;
 }
 
-.inputbox:focus,.toolInput:focus{
+.inputbox:focus,.toolInput:focus,.authInput:focus{
 border-color:#8b5cf6;
 }
 
@@ -46,21 +46,21 @@ border-radius:16px;
 padding:14px;
 }
 
-.toolInput{
+.toolInput,.authInput{
 width:100%;
 padding:12px;
 border-radius:14px;
 margin-bottom:10px;
 }
 
-.toolBtn{
+.toolBtn,.authBtn{
 padding:10px 16px;
 border-radius:14px;
 background:#7c3aed;
 transition:.2s;
 }
 
-.toolBtn:hover{
+.toolBtn:hover,.authBtn:hover{
 background:#6d28d9;
 }
 
@@ -86,38 +86,71 @@ font-size:24px;
 40%{opacity:1}
 }
 
-/* TOOL AREA */
+/* TOOL PANEL */
 #toolsPanel{
+max-height:220px;
 overflow-y:auto;
-overflow-x:visible;
-position:relative;
+overflow-x:hidden !important;
 padding-right:6px;
+position:relative;
 }
 
 .toolCard{
-position:relative;
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:10px;
 width:100%;
-text-align:left;
 padding:12px 14px;
 border-radius:18px;
 border:1px solid rgba(255,255,255,.08);
-transition:.25s;
 background:rgba(255,255,255,.02);
-overflow:visible;
+transition:.25s;
+text-align:left;
 }
 
 .toolCard:hover{
 border-color:#8b5cf6;
 background:rgba(124,58,237,.08);
-z-index:50;
 }
 
-/* TOOLTIP */
+.toolName{
+flex:1;
+white-space:nowrap;
+overflow:hidden;
+text-overflow:ellipsis;
+}
+
+/* INFO */
+.infoWrap{
+position:relative;
+flex-shrink:0;
+}
+
+.infoBtn{
+width:24px;
+height:24px;
+border-radius:50%;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:12px;
+font-weight:bold;
+background:#111938;
+border:1px solid rgba(255,255,255,.08);
+color:#c4b5fd;
+cursor:pointer;
+}
+
+.infoBtn:hover{
+border-color:#8b5cf6;
+}
+
 .toolTip{
 position:absolute;
-left:calc(100% + 14px);
-top:0;
-width:270px;
+right:-285px;
+top:-4px;
+width:260px;
 padding:14px;
 border-radius:16px;
 background:#090f25;
@@ -128,16 +161,16 @@ line-height:1.6;
 color:#e5e7eb;
 opacity:0;
 visibility:hidden;
-transform:translateY(6px) scale(.98);
+transform:translateY(6px);
 transition:.18s ease;
 pointer-events:none;
 z-index:9999;
 }
 
-.toolCard:hover .toolTip{
+.infoWrap:hover .toolTip{
 opacity:1;
 visibility:visible;
-transform:translateY(0) scale(1);
+transform:translateY(0);
 }
 
 .tipTitle{
@@ -145,7 +178,6 @@ font-size:13px;
 font-weight:700;
 color:#c4b5fd;
 margin-bottom:6px;
-letter-spacing:1px;
 }
 
 .tipExample{
@@ -156,6 +188,25 @@ background:rgba(255,255,255,.03);
 color:#a5f3fc;
 font-size:11px;
 }
+
+/* MODAL */
+.modalBg{
+position:fixed;
+inset:0;
+background:rgba(0,0,0,.55);
+display:none;
+align-items:center;
+justify-content:center;
+z-index:99999;
+}
+
+.modalCard{
+width:380px;
+background:#070d2c;
+border:1px solid rgba(255,255,255,.08);
+border-radius:24px;
+padding:24px;
+}
 </style>
 </head>
 
@@ -163,11 +214,11 @@ font-size:11px;
 
 <div class="h-screen flex gap-3 p-3">
 
-<!-- LEFT SIDEBAR -->
+<!-- LEFT -->
 <div class="w-[300px] glass rounded-3xl border border-white/10 p-4 flex flex-col h-full overflow-hidden">
 
 <!-- LOGO -->
-<div class="flex items-center gap-3 mb-4 shrink-0">
+<div class="flex items-center gap-3 mb-4">
 <img src="/static/logo.png" class="w-12 h-12 object-contain rounded-xl">
 <div>
 <div class="text-3xl tracking-[6px] text-violet-300">CIPHER</div>
@@ -186,71 +237,95 @@ class="w-full rounded-2xl border border-violet-500 py-3 mb-4 hover:bg-violet-500
 class="flex-1 overflow-y-auto scrollbar pr-1 space-y-2 min-h-0 mb-4"></div>
 
 <!-- TOOLS -->
-<div class="shrink-0 mb-4">
+<div class="mb-4">
 
 <div class="flex justify-between items-center mb-2 px-1">
 <div class="text-[11px] tracking-[4px] text-white/40">SECURITY TOOLS</div>
 <button onclick="toggleTools()" class="text-xs text-violet-300">Hide</button>
 </div>
 
-<div id="toolsPanel" class="space-y-2 max-h-[220px] scrollbar">
+<div id="toolsPanel" class="space-y-2 scrollbar">
 
+<!-- HASH -->
 <button onclick="openTool('hash')" class="toolCard">
-🔐 Hash Tool
+<div class="toolName">🔐 Hash Tool</div>
+<div class="infoWrap">
+<div class="infoBtn">i</div>
 <div class="toolTip">
 <div class="tipTitle">Hash Tool</div>
-Creates MD5 / SHA1 / SHA256 hashes from text.
+Creates MD5 / SHA1 / SHA256 hashes.
 <div class="tipExample">cipher123</div>
 </div>
-</button>
-
-<button onclick="openTool('base64')" class="toolCard">
-📦 Base64 Tool
-<div class="toolTip">
-<div class="tipTitle">Base64 Tool</div>
-Encode / Decode text safely.
-<div class="tipExample">hello → aGVsbG8=</div>
 </div>
 </button>
 
+<!-- BASE64 -->
+<button onclick="openTool('base64')" class="toolCard">
+<div class="toolName">📦 Base64 Tool</div>
+<div class="infoWrap">
+<div class="infoBtn">i</div>
+<div class="toolTip">
+<div class="tipTitle">Base64 Tool</div>
+Encode / Decode text.
+<div class="tipExample">hello → aGVsbG8=</div>
+</div>
+</div>
+</button>
+
+<!-- PASSWORD -->
 <button onclick="openTool('password')" class="toolCard">
-🔑 Password Check
+<div class="toolName">🔑 Password Check</div>
+<div class="infoWrap">
+<div class="infoBtn">i</div>
 <div class="toolTip">
 <div class="tipTitle">Password Checker</div>
 Checks password strength.
 <div class="tipExample">Cipher@2026</div>
 </div>
-</button>
-
-<button onclick="openTool('jwt')" class="toolCard">
-🪪 JWT Decoder
-<div class="toolTip">
-<div class="tipTitle">JWT Decoder</div>
-Reads JWT token claims.
-<div class="tipExample">Paste token</div>
 </div>
 </button>
 
+<!-- JWT -->
+<button onclick="openTool('jwt')" class="toolCard">
+<div class="toolName">🪪 JWT Decoder</div>
+<div class="infoWrap">
+<div class="infoBtn">i</div>
+<div class="toolTip">
+<div class="tipTitle">JWT Decoder</div>
+Reads JWT claims.
+<div class="tipExample">Paste token</div>
+</div>
+</div>
+</button>
+
+<!-- WHOIS -->
 <button onclick="openTool('whois')" class="toolCard">
-🌐 WHOIS Lookup
+<div class="toolName">🌐 WHOIS Lookup</div>
+<div class="infoWrap">
+<div class="infoBtn">i</div>
 <div class="toolTip">
 <div class="tipTitle">WHOIS Lookup</div>
 Shows registrar / expiry / owner.
 <div class="tipExample">google.com</div>
 </div>
+</div>
 </button>
 
+<!-- DNS -->
 <button onclick="openTool('dns')" class="toolCard">
-📡 DNS Lookup
+<div class="toolName">📡 DNS Lookup</div>
+<div class="infoWrap">
+<div class="infoBtn">i</div>
 <div class="toolTip">
 <div class="tipTitle">DNS Lookup</div>
 A = IPv4<br>
 AAAA = IPv6<br>
 MX = Mail Server<br>
-TXT = SPF / Verify<br>
+TXT = Verify<br>
 NS = Nameserver<br>
 CNAME = Alias
-<div class="tipExample">google.com + MX</div>
+<div class="tipExample">google.com MX</div>
+</div>
 </div>
 </button>
 
@@ -258,19 +333,42 @@ CNAME = Alias
 </div>
 
 <!-- USER -->
-<div class="shrink-0">
-<div class="bg-[#0d153d] rounded-2xl border border-white/10 px-4 py-3">
+<div class="relative mt-auto">
+
+<div onclick="toggleMenu()"
+class="bg-[#0d153d] rounded-2xl border border-white/10 px-4 py-3 cursor-pointer">
+
 <div class="flex items-center gap-3">
-<div class="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center text-sm font-bold">
+
+<div id="avatar"
+class="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center text-sm font-bold">
 GU
 </div>
+
 <div class="flex-1 min-w-0">
-<div class="truncate text-sm">Guest User</div>
-<div class="text-[11px] text-white/45">Guest</div>
+<div id="username" class="truncate text-sm">Guest User</div>
+<div id="memberType" class="text-[11px] text-white/45">Guest</div>
 </div>
+
 <div>›</div>
+
 </div>
 </div>
+
+<div id="menu"
+class="hidden absolute left-0 bottom-16 w-60 bg-[#171717] rounded-2xl border border-white/10 p-2 z-50">
+
+<div id="guestMenu">
+<button onclick="openAuth('login')" class="w-full text-left px-3 py-2 rounded-xl hover:bg-white/10">Login</button>
+<button onclick="openAuth('signup')" class="w-full text-left px-3 py-2 rounded-xl hover:bg-white/10">Sign Up</button>
+</div>
+
+<div id="userMenu" class="hidden">
+<button onclick="logoutUser()" class="w-full text-left px-3 py-2 rounded-xl hover:bg-red-500/10 text-red-300">Logout</button>
+</div>
+
+</div>
+
 </div>
 
 </div>
@@ -281,31 +379,19 @@ GU
 <!-- TOP -->
 <div class="glass rounded-3xl border border-white/10 px-8 py-5 flex justify-between items-center">
 
-<div class="text-violet-300 tracking-widest text-lg">
-⚡ AI SECURITY CORE
-</div>
+<div class="text-violet-300 tracking-widest text-lg">⚡ AI SECURITY CORE</div>
 
 <div class="flex gap-2">
+<button id="thinkingBtn" onclick="setMode('thinking')"
+class="modeBtn px-5 py-3 rounded-full border border-white/10 text-sm">THINK</button>
 
-<button id="thinkingBtn"
-onclick="setMode('thinking')"
-class="modeBtn px-5 py-3 rounded-full border border-white/10 text-sm">
-THINK
-</button>
+<button id="fastBtn" onclick="setMode('fast')"
+class="modeBtn px-5 py-3 rounded-full border border-violet-500 bg-violet-500/20 text-sm">FAST</button>
 
-<button id="fastBtn"
-onclick="setMode('fast')"
-class="modeBtn px-5 py-3 rounded-full border border-violet-500 bg-violet-500/20 text-sm">
-FAST
-</button>
-
-<button id="codeBtn"
-onclick="setMode('code')"
-class="modeBtn px-5 py-3 rounded-full border border-white/10 text-sm">
-CODE
-</button>
-
+<button id="codeBtn" onclick="setMode('code')"
+class="modeBtn px-5 py-3 rounded-full border border-white/10 text-sm">CODE</button>
 </div>
+
 </div>
 
 <!-- CHAT -->
@@ -330,10 +416,37 @@ class="w-24 h-16 rounded-2xl bg-violet-500 hover:bg-violet-600 text-xl">
 </div>
 </div>
 
+<!-- AUTH MODAL -->
+<div id="authModal" class="modalBg">
+<div class="modalCard">
+
+<div class="flex justify-between items-center mb-4">
+<div id="authTitle" class="text-2xl text-violet-300">Login</div>
+<button onclick="closeAuth()">✕</button>
+</div>
+
+<input id="authName" class="authInput hidden" placeholder="Full Name">
+<input id="authEmail" class="authInput" placeholder="Email">
+<input id="authPass" type="password" class="authInput" placeholder="Password">
+
+<button id="authBtn" onclick="submitAuth()" class="authBtn w-full mt-2">Login</button>
+
+<div class="text-center text-sm text-white/55 mt-4">
+<span id="switchText">Don't have an account?</span>
+<button onclick="switchAuth()" class="text-violet-300 ml-1">Sign Up</button>
+</div>
+
+<div id="authMsg" class="text-red-300 text-sm mt-3"></div>
+
+</div>
+</div>
+
 <script>
 let mode="fast";
 let currentChatId=null;
 let toolCounter=0;
+let authMode="login";
+let loggedUser=null;
 
 function toggleTools(){
 let box=document.getElementById("toolsPanel");
@@ -350,8 +463,114 @@ document.getElementById(m+"Btn").classList.add("bg-violet-500/20","border-violet
 }
 
 function newChat(){
-document.getElementById("chatBox").innerHTML="";
+chatBox.innerHTML="";
 currentChatId=null;
+}
+
+function scrollBottom(){
+chatBox.scrollTop=chatBox.scrollHeight;
+}
+
+function toggleMenu(){
+menu.classList.toggle("hidden");
+}
+
+function openAuth(type){
+authMode=type;
+authModal.style.display="flex";
+
+if(type==="login"){
+authTitle.innerText="Login";
+authBtn.innerText="Login";
+authName.classList.add("hidden");
+switchText.innerText="Don't have an account?";
+}else{
+authTitle.innerText="Sign Up";
+authBtn.innerText="Create Account";
+authName.classList.remove("hidden");
+switchText.innerText="Already have an account?";
+}
+
+authMsg.innerText="";
+menu.classList.add("hidden");
+}
+
+function closeAuth(){
+authModal.style.display="none";
+}
+
+function switchAuth(){
+openAuth(authMode==="login"?"signup":"login");
+}
+
+async function submitAuth(){
+
+let payload={
+email:authEmail.value,
+password:authPass.value
+};
+
+if(authMode==="signup"){
+payload.name=authName.value;
+}
+
+let endpoint=authMode==="login"?"/login":"/signup";
+
+let res=await fetch(endpoint,{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify(payload)
+});
+
+let data=await res.json();
+
+if(data.ok){
+
+loggedUser=data.user || {
+name:payload.name || payload.email.split("@")[0],
+email:payload.email
+};
+
+updateUserUI();
+closeAuth();
+loadHistory();
+
+}else{
+authMsg.innerText=data.message || "Failed.";
+}
+}
+
+function logoutUser(){
+loggedUser=null;
+updateUserUI();
+menu.classList.add("hidden");
+historyBox.innerHTML="";
+chatBox.innerHTML="";
+}
+
+function updateUserUI(){
+
+if(loggedUser){
+
+let name=loggedUser.name || loggedUser.email.split("@")[0];
+let initials=name.split(" ").map(x=>x[0]).join("").slice(0,2).toUpperCase();
+
+avatar.innerText=initials;
+username.innerText=name;
+memberType.innerText="Member";
+
+guestMenu.classList.add("hidden");
+userMenu.classList.remove("hidden");
+
+}else{
+
+avatar.innerText="GU";
+username.innerText="Guest User";
+memberType.innerText="Guest";
+
+guestMenu.classList.remove("hidden");
+userMenu.classList.add("hidden");
+}
 }
 
 async function sendMsg(){
@@ -359,18 +578,14 @@ async function sendMsg(){
 let prompt=document.getElementById("prompt").value.trim();
 if(!prompt)return;
 
-let chat=document.getElementById("chatBox");
-
-chat.innerHTML+=`
+chatBox.innerHTML+=`
 <div class="text-right">
-<div class="inline-block bg-[#101844] px-4 py-3 rounded-2xl max-w-[75%]">
-${prompt}
-</div>
+<div class="inline-block bg-[#101844] px-4 py-3 rounded-2xl max-w-[75%]">${prompt}</div>
 </div>`;
 
 document.getElementById("prompt").value="";
 
-chat.innerHTML+=`
+chatBox.innerHTML+=`
 <div id="typingBox" class="msgbox">
 <div class="text-[11px] text-white/55 mb-2">Generating...</div>
 <div class="typing"><span>.</span><span>.</span><span>.</span></div>
@@ -390,17 +605,61 @@ chat_id:currentChatId
 
 let data=await res.json();
 
-document.getElementById("typingBox")?.remove();
+typingBox?.remove();
 
 if(data.ok){
+
 currentChatId=data.chat_id;
 
-chat.innerHTML+=`
+chatBox.innerHTML+=`
 <div class="msgbox">
 <div class="text-[11px] text-white/55 mb-2">${data.label}</div>
 <div>${data.response.replace(/\n/g,"<br>")}</div>
 </div>`;
+
+loadHistory();
 }
+
+scrollBottom();
+}
+
+async function loadHistory(){
+
+let res=await fetch("/history");
+let data=await res.json();
+
+historyBox.innerHTML="";
+
+(data.items||[]).forEach(c=>{
+historyBox.innerHTML+=`
+<div onclick="loadChat('${c.id}')"
+class="p-3 rounded-2xl border border-white/10 hover:border-violet-500 cursor-pointer text-sm">
+${c.title}
+</div>`;
+});
+}
+
+async function loadChat(id){
+
+let res=await fetch("/chat/"+id);
+let data=await res.json();
+
+chatBox.innerHTML="";
+currentChatId=id;
+
+(data.items||[]).forEach(m=>{
+
+if(m.role==="user"){
+chatBox.innerHTML+=`
+<div class="text-right">
+<div class="inline-block bg-[#101844] px-4 py-3 rounded-2xl max-w-[75%]">${m.content}</div>
+</div>`;
+}else{
+chatBox.innerHTML+=`
+<div class="msgbox">${m.content.replace(/\n/g,"<br>")}</div>`;
+}
+
+});
 
 scrollBottom();
 }
@@ -412,14 +671,12 @@ let uid="tool_"+toolCounter;
 let html="";
 
 if(tool==="hash"){
-html=`
-<input id="${uid}_text" class="toolInput" placeholder="Enter text">
+html=`<input id="${uid}_text" class="toolInput" placeholder="Enter text">
 <button class="toolBtn" onclick="runTool('hash','${uid}')">Generate</button>`;
 }
 
 if(tool==="base64"){
-html=`
-<input id="${uid}_text" class="toolInput" placeholder="Enter text">
+html=`<input id="${uid}_text" class="toolInput" placeholder="Enter text">
 <select id="${uid}_mode" class="toolInput">
 <option value="encode">Encode</option>
 <option value="decode">Decode</option>
@@ -428,14 +685,12 @@ html=`
 }
 
 if(tool==="password" || tool==="jwt" || tool==="whois"){
-html=`
-<input id="${uid}_text" class="toolInput" placeholder="Enter value">
+html=`<input id="${uid}_text" class="toolInput" placeholder="Enter value">
 <button class="toolBtn" onclick="runTool('${tool}','${uid}')">Run</button>`;
 }
 
 if(tool==="dns"){
-html=`
-<input id="${uid}_text" class="toolInput" placeholder="Domain">
+html=`<input id="${uid}_text" class="toolInput" placeholder="Domain">
 <select id="${uid}_mode" class="toolInput">
 <option value="A">A</option>
 <option value="AAAA">AAAA</option>
@@ -447,7 +702,7 @@ html=`
 <button class="toolBtn" onclick="runTool('dns','${uid}')">Lookup</button>`;
 }
 
-document.getElementById("chatBox").innerHTML+=`
+chatBox.innerHTML+=`
 <div class="msgbox">
 <div class="text-violet-300 mb-3">TOOL PANEL • ${tool.toUpperCase()}</div>
 ${html}
@@ -481,10 +736,10 @@ result.innerHTML=`<pre>${JSON.stringify(data,null,2)}</pre>`;
 scrollBottom();
 }
 
-function scrollBottom(){
-let box=document.getElementById("chatBox");
-box.scrollTop=box.scrollHeight;
-}
+window.onload=()=>{
+updateUserUI();
+loadHistory();
+};
 </script>
 
 </body>
