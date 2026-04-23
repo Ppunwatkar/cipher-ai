@@ -9,7 +9,9 @@
 
 <style>
 body{
-margin:0;padding:0;overflow:hidden;
+margin:0;
+padding:0;
+overflow:hidden;
 font-family:Consolas,monospace;
 color:#fff;
 background:linear-gradient(135deg,#020617,#07113b,#020617);
@@ -20,15 +22,18 @@ backdrop-filter:blur(18px);
 }
 .scrollbar::-webkit-scrollbar{width:5px;height:5px}
 .scrollbar::-webkit-scrollbar-thumb{
-background:#7c3aed;border-radius:10px;
+background:#7c3aed;
+border-radius:10px;
 }
 
-.inputbox,.toolInput,.authInput{
+.inputbox,.toolInput{
 background:#020617;
 border:1px solid rgba(255,255,255,.08);
-color:#fff;outline:none;
+color:#fff;
+outline:none;
 }
-.inputbox:focus,.toolInput:focus,.authInput:focus{
+
+.inputbox:focus,.toolInput:focus{
 border-color:#8b5cf6;
 }
 
@@ -39,20 +44,21 @@ border-radius:16px;
 padding:14px;
 }
 
-.toolInput,.authInput{
+.toolInput{
 width:100%;
 padding:12px;
 border-radius:14px;
 margin-bottom:10px;
 }
 
-.toolBtn,.authBtn{
+.toolBtn{
 padding:10px 16px;
 border-radius:14px;
 background:#7c3aed;
 transition:.2s;
 }
-.toolBtn:hover,.authBtn:hover{
+
+.toolBtn:hover{
 background:#6d28d9;
 }
 
@@ -71,6 +77,7 @@ font-size:24px;
 }
 .typing span:nth-child(2){animation-delay:.2s}
 .typing span:nth-child(3){animation-delay:.4s}
+
 @keyframes blink{
 0%,80%,100%{opacity:.2}
 40%{opacity:1}
@@ -78,7 +85,7 @@ font-size:24px;
 
 /* TOOLS */
 #toolsPanel{
-max-height:220px;
+max-height:230px;
 overflow-y:auto;
 overflow-x:hidden;
 padding-right:6px;
@@ -159,30 +166,12 @@ font-size:11px;
 color:#fca5a5;
 text-align:right;
 }
-
-/* MODAL */
-.modalBg{
-position:fixed;
-inset:0;
-background:rgba(0,0,0,.55);
-display:none;
-align-items:center;
-justify-content:center;
-z-index:99999;
-}
-.modalCard{
-width:380px;
-background:#070d2c;
-border:1px solid rgba(255,255,255,.08);
-border-radius:24px;
-padding:24px;
-}
 </style>
 </head>
 
 <body>
 
-<!-- GLOBAL TOOL POPUP -->
+<!-- TOOL POPUP -->
 <div id="toolPopup"></div>
 
 <div class="h-screen flex gap-3 p-3">
@@ -192,7 +181,7 @@ padding:24px;
 
 <!-- LOGO -->
 <div class="flex items-center gap-3 mb-4">
-<img src="/static/logo.png" class="w-12 h-12 rounded-xl object-contain">
+<img src="/static/logo.png" class="w-12 h-12 object-contain rounded-xl">
 <div>
 <div class="text-3xl tracking-[6px] text-violet-300">CIPHER</div>
 <div class="text-xs text-white/55 mt-1">AI Cyber Assistant</div>
@@ -219,38 +208,32 @@ class="flex-1 overflow-y-auto scrollbar pr-1 space-y-2 min-h-0 mb-4"></div>
 
 <button onclick="openTool('hash')" class="toolCard">
 <div class="toolName">🔐 Hash Tool</div>
-<div class="infoBtn"
-onclick="showInfo(event,'Hash Tool','Creates MD5 / SHA1 / SHA256 hashes.','cipher123')">i</div>
+<div class="infoBtn" onclick="showInfo(event,'Hash Tool','Creates MD5 / SHA1 / SHA256 hashes.','cipher123')">i</div>
 </button>
 
 <button onclick="openTool('base64')" class="toolCard">
 <div class="toolName">📦 Base64 Tool</div>
-<div class="infoBtn"
-onclick="showInfo(event,'Base64 Tool','Encode / Decode text safely.','hello → aGVsbG8=')">i</div>
+<div class="infoBtn" onclick="showInfo(event,'Base64 Tool','Encode / Decode text safely.','hello → aGVsbG8=')">i</div>
 </button>
 
 <button onclick="openTool('password')" class="toolCard">
 <div class="toolName">🔑 Password Check</div>
-<div class="infoBtn"
-onclick="showInfo(event,'Password Checker','Checks password strength.','Cipher@2026')">i</div>
+<div class="infoBtn" onclick="showInfo(event,'Password Checker','Checks password strength.','Cipher@2026')">i</div>
 </button>
 
 <button onclick="openTool('jwt')" class="toolCard">
 <div class="toolName">🪪 JWT Decoder</div>
-<div class="infoBtn"
-onclick="showInfo(event,'JWT Decoder','Reads JWT token claims.','Paste token')">i</div>
+<div class="infoBtn" onclick="showInfo(event,'JWT Decoder','Reads JWT token claims.','Paste token')">i</div>
 </button>
 
 <button onclick="openTool('whois')" class="toolCard">
 <div class="toolName">🌐 WHOIS Lookup</div>
-<div class="infoBtn"
-onclick="showInfo(event,'WHOIS Lookup','Shows registrar / expiry / owner.','google.com')">i</div>
+<div class="infoBtn" onclick="showInfo(event,'WHOIS Lookup','Shows registrar / expiry / owner.','google.com')">i</div>
 </button>
 
 <button onclick="openTool('dns')" class="toolCard">
 <div class="toolName">📡 DNS Lookup</div>
-<div class="infoBtn"
-onclick="showInfo(event,'DNS Lookup','A, AAAA, MX, TXT, NS, CNAME records.','google.com MX')">i</div>
+<div class="infoBtn" onclick="showInfo(event,'DNS Lookup','A / AAAA / MX / TXT / NS / CNAME records.','google.com MX')">i</div>
 </button>
 
 </div>
@@ -259,9 +242,7 @@ onclick="showInfo(event,'DNS Lookup','A, AAAA, MX, TXT, NS, CNAME records.','goo
 <!-- USER -->
 <div class="mt-auto bg-[#0d153d] rounded-2xl border border-white/10 px-4 py-3">
 <div class="flex items-center gap-3">
-<div class="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center text-sm font-bold">
-GU
-</div>
+<div class="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center text-sm font-bold">GU</div>
 <div class="flex-1">
 <div class="text-sm">Guest User</div>
 <div class="text-[11px] text-white/45">Guest</div>
@@ -294,9 +275,7 @@ rows="2"
 placeholder="Ask anything..."
 class="inputbox flex-1 rounded-2xl resize-none px-5 py-4 text-base placeholder-white/25"></textarea>
 
-<button class="w-24 h-16 rounded-2xl bg-violet-500 hover:bg-violet-600 text-xl">
-➤
-</button>
+<button class="w-24 h-16 rounded-2xl bg-violet-500 hover:bg-violet-600 text-xl">➤</button>
 
 </div>
 
@@ -307,8 +286,9 @@ class="inputbox flex-1 rounded-2xl resize-none px-5 py-4 text-base placeholder-w
 let popupTimer=null;
 let popupCount=10;
 let paused=false;
+let toolCounter=0;
 
-/* TOOL POPUP */
+/* INFO POPUP */
 function showInfo(e,title,text,example){
 
 e.stopPropagation();
@@ -336,12 +316,12 @@ popupTimer=setInterval(()=>{
 if(paused)return;
 
 popupCount--;
+
 let t=document.getElementById("timerNum");
 if(t)t.innerText=popupCount;
 
-if(popupCount<=0){
-closePopup();
-}
+if(popupCount<=0)closePopup();
+
 },1000);
 
 popup.onmouseenter=()=>paused=true;
@@ -350,13 +330,11 @@ popup.onmouseleave=()=>paused=false;
 
 function closePopup(){
 clearInterval(popupTimer);
-document.getElementById("toolPopup").style.display="none";
+toolPopup.style.display="none";
 }
 
 document.addEventListener("click",function(e){
-if(!e.target.classList.contains("infoBtn")){
-closePopup();
-}
+if(!e.target.classList.contains("infoBtn")) closePopup();
 });
 
 function toggleTools(){
@@ -365,17 +343,101 @@ box.style.display=box.style.display==="none"?"block":"none";
 }
 
 function newChat(){
-document.getElementById("chatBox").innerHTML="";
+chatBox.innerHTML="";
 }
 
+/* REAL TOOL FORMS */
 async function openTool(tool){
 
-let html=`<div class="msgbox">
+toolCounter++;
+let uid="tool_"+toolCounter;
+let html="";
+
+if(tool==="hash"){
+html=`
+<input id="${uid}_text" class="toolInput" placeholder="Enter text">
+<select id="${uid}_mode" class="toolInput">
+<option value="md5">MD5</option>
+<option value="sha1">SHA1</option>
+<option value="sha256">SHA256</option>
+</select>
+<button class="toolBtn" onclick="runTool('hash','${uid}')">Generate</button>`;
+}
+
+if(tool==="base64"){
+html=`
+<input id="${uid}_text" class="toolInput" placeholder="Enter text">
+<select id="${uid}_mode" class="toolInput">
+<option value="encode">Encode</option>
+<option value="decode">Decode</option>
+</select>
+<button class="toolBtn" onclick="runTool('base64','${uid}')">Run</button>`;
+}
+
+if(tool==="password"){
+html=`
+<input id="${uid}_text" class="toolInput" placeholder="Enter password">
+<button class="toolBtn" onclick="runTool('password','${uid}')">Check</button>`;
+}
+
+if(tool==="jwt"){
+html=`
+<textarea id="${uid}_text" class="toolInput" placeholder="Paste JWT Token"></textarea>
+<button class="toolBtn" onclick="runTool('jwt','${uid}')">Decode</button>`;
+}
+
+if(tool==="whois"){
+html=`
+<input id="${uid}_text" class="toolInput" placeholder="Enter domain">
+<button class="toolBtn" onclick="runTool('whois','${uid}')">Lookup</button>`;
+}
+
+if(tool==="dns"){
+html=`
+<input id="${uid}_text" class="toolInput" placeholder="Enter domain">
+<select id="${uid}_mode" class="toolInput">
+<option value="A">A</option>
+<option value="AAAA">AAAA</option>
+<option value="MX">MX</option>
+<option value="TXT">TXT</option>
+<option value="NS">NS</option>
+<option value="CNAME">CNAME</option>
+</select>
+<button class="toolBtn" onclick="runTool('dns','${uid}')">Lookup</button>`;
+}
+
+chatBox.innerHTML+=`
+<div class="msgbox">
 <div class="text-violet-300 mb-3">TOOL PANEL • ${tool.toUpperCase()}</div>
-Tool Opened
+${html}
+<div id="${uid}_result" class="mt-3 text-sm text-white/80"></div>
 </div>`;
 
-chatBox.innerHTML+=html;
+chatBox.scrollTop=chatBox.scrollHeight;
+}
+
+/* RUN TOOL */
+async function runTool(name,uid){
+
+let text=document.getElementById(uid+"_text").value;
+let mode=document.getElementById(uid+"_mode")?.value || "";
+let result=document.getElementById(uid+"_result");
+
+result.innerHTML="Running...";
+
+let res=await fetch("/tool/"+name,{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({
+text:text,
+mode:mode,
+rtype:mode
+})
+});
+
+let data=await res.json();
+
+result.innerHTML=`<pre>${JSON.stringify(data,null,2)}</pre>`;
 chatBox.scrollTop=chatBox.scrollHeight;
 }
 </script>
