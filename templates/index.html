@@ -60,22 +60,22 @@ display:inline-block;
 max-width:75%;
 }
 
+/* ACCOUNT MENU */
 #menu{
 display:none;
 position:absolute;
 left:0;
 bottom:65px;
-width:250px;
-background:#1a1a1a;
+width:290px;
+background:#222;
 border:1px solid rgba(255,255,255,.08);
-border-radius:20px;
+border-radius:22px;
 padding:8px;
 z-index:9999;
 box-shadow:0 20px 40px rgba(0,0,0,.45);
 }
-
 .menuItem{
-padding:11px 14px;
+padding:12px 14px;
 border-radius:14px;
 cursor:pointer;
 transition:.2s;
@@ -134,7 +134,7 @@ z-index:99999;
 }
 
 .modalCard{
-width:390px;
+width:420px;
 background:#070d2c;
 border:1px solid rgba(255,255,255,.08);
 border-radius:24px;
@@ -198,7 +198,7 @@ font-size:22px;
 </div>
 </div>
 
-<!-- PANEL -->
+<!-- SETTINGS / PROFILE PANELS -->
 <div id="panelModal">
 <div class="modalCard" id="panelContent"></div>
 </div>
@@ -383,19 +383,16 @@ ${(data.response || "No response").replace(/\n/g,"<br>")}
 if(data.chat_id) currentChatId=data.chat_id;
 
 }catch(err){
-
 document.getElementById("typingBox")?.remove();
 
 chatBox.innerHTML+=`
-<div class="msgbox text-red-300">
-Server Error
-</div>`;
+<div class="msgbox text-red-300">Server Error</div>`;
 }
 
 chatBox.scrollTop=chatBox.scrollHeight;
 }
 
-/* MENU */
+/* ACCOUNT MENU ONLY IMPROVED */
 function toggleMenu(){
 
 menu.style.display = menu.style.display==="block" ? "none":"block";
@@ -403,16 +400,21 @@ menu.style.display = menu.style.display==="block" ? "none":"block";
 if(loggedUser){
 
 menu.innerHTML=`
-<div class="px-3 py-2">
+<div class="px-3 py-2 flex gap-3 items-center">
+<div class="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center font-bold">
+${loggedUser.name.slice(0,2).toUpperCase()}
+</div>
+<div class="flex-1">
 <div class="font-semibold">${loggedUser.name}</div>
-<div class="text-xs text-white/45">${loggedUser.email}</div>
+<div class="text-xs text-white/45 truncate">${loggedUser.email}</div>
+</div>
 </div>
 
 <div class="sep"></div>
 
-<div class="menuItem" onclick="openPanel('personal')">Personalization</div>
 <div class="menuItem" onclick="openPanel('profile')">Profile</div>
 <div class="menuItem" onclick="openPanel('settings')">Settings</div>
+<div class="menuItem" onclick="openPanel('personalization')">Personalization</div>
 
 <div class="sep"></div>
 
@@ -434,10 +436,10 @@ menu.innerHTML=`
 
 /* AUTH */
 function openAuth(type){
-
 authMode=type;
 authModal.style.display="flex";
 menu.style.display="none";
+authMsg.innerText="";
 
 if(type==="login"){
 authTitle.innerText="Login";
@@ -474,7 +476,6 @@ if(authMode==="signup") payload.name=authName.value;
 let url=authMode==="login"?"/login":"/signup";
 
 try{
-
 let res=await fetch(url,{
 method:"POST",
 headers:{"Content-Type":"application/json"},
@@ -521,7 +522,7 @@ memberType.innerText="Guest";
 }
 }
 
-/* PANELS */
+/* ACCOUNT PANELS */
 function openPanel(type){
 
 panelModal.style.display="flex";
@@ -532,7 +533,8 @@ panelContent.innerHTML=`
 <div class="text-2xl text-violet-300 mb-4">Profile</div>
 <input class="authInput" value="${loggedUser.name}">
 <input class="authInput" value="${loggedUser.email}">
-<button class="btn">Save</button>
+<input class="authInput" value="${loggedUser.email.split('@')[0]}">
+<button class="btn">Save Changes</button>
 `;
 }
 
@@ -540,16 +542,19 @@ if(type==="settings"){
 panelContent.innerHTML=`
 <div class="text-2xl text-violet-300 mb-4">Settings</div>
 <div class="menuItem">Appearance</div>
+<div class="menuItem">Accent Color</div>
 <div class="menuItem">Language</div>
+<div class="menuItem">Notifications</div>
 <div class="menuItem">Security</div>
 `;
 }
 
-if(type==="personal"){
+if(type==="personalization"){
 panelContent.innerHTML=`
 <div class="text-2xl text-violet-300 mb-4">Personalization</div>
-<div class="menuItem">Response Style</div>
 <div class="menuItem">Memory</div>
+<div class="menuItem">Response Style</div>
+<div class="menuItem">Theme Behavior</div>
 `;
 }
 
@@ -558,6 +563,8 @@ panelContent.innerHTML=`
 <div class="text-2xl text-violet-300 mb-4">Help</div>
 <div class="menuItem">FAQ</div>
 <div class="menuItem">Support</div>
+<div class="menuItem">About CIPHER</div>
+<div class="menuItem">Version 1.0</div>
 `;
 }
 }
@@ -566,7 +573,7 @@ panelModal.onclick=function(e){
 if(e.target===panelModal) panelModal.style.display="none";
 };
 
-/* TOOLS */
+/* TOOLS (UNCHANGED) */
 function openTool(name){
 
 toolCounter++;
@@ -635,7 +642,6 @@ rtype:mode
 });
 
 let data=await res.json();
-
 result.innerHTML=`<pre>${JSON.stringify(data,null,2)}</pre>`;
 
 }catch{
@@ -663,9 +669,13 @@ toolPopup.style.display="none";
 },10000);
 }
 
-document.addEventListener("click",()=>{
+document.addEventListener("click",(e)=>{
+if(!menu.contains(e.target) && !e.target.closest(".relative")){
 menu.style.display="none";
+}
+if(!toolPopup.contains(e.target)){
 toolPopup.style.display="none";
+}
 });
 
 /* INIT */
