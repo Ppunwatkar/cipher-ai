@@ -1,14 +1,10 @@
-<!-- FINAL WHOLE index.html -->
-<!-- Direct Copy Paste Ready -->
-<!-- Production Ready CIPHER -->
-
+<!-- templates/index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>CIPHER AI</title>
-
 <script src="https://cdn.tailwindcss.com"></script>
 
 <style>
@@ -20,37 +16,33 @@ font-family:Consolas,monospace;
 color:#fff;
 background:linear-gradient(135deg,#020617,#07113b,#020617);
 }
-
 .glass{
 background:rgba(8,12,35,.72);
 backdrop-filter:blur(18px);
 }
-
 .scrollbar::-webkit-scrollbar{width:5px}
 .scrollbar::-webkit-scrollbar-thumb{
-background:#7c3aed;
-border-radius:20px;
+background:#7c3aed;border-radius:20px;
 }
 
-.inputbox,.toolInput{
+.inputbox,.toolInput,.authInput{
 background:#020617;
 border:1px solid rgba(255,255,255,.08);
-outline:none;
 color:#fff;
+outline:none;
 }
 
-.inputbox:focus,.toolInput:focus{
+.inputbox:focus,.toolInput:focus,.authInput:focus{
 border-color:#8b5cf6;
 }
 
 .modeBtn{
-transition:.2s;
 border:1px solid rgba(255,255,255,.08);
+transition:.2s;
 }
-
 .modeActive{
-background:rgba(124,58,237,.16);
-border-color:#8b5cf6;
+background:rgba(124,58,237,.18);
+border-color:#8b5cf6 !important;
 }
 
 .msgbox{
@@ -74,7 +66,7 @@ position:absolute;
 left:0;
 bottom:65px;
 width:250px;
-background:#1b1b1b;
+background:#1a1a1a;
 border:1px solid rgba(255,255,255,.08);
 border-radius:20px;
 padding:8px;
@@ -88,11 +80,9 @@ border-radius:14px;
 cursor:pointer;
 transition:.2s;
 }
-
 .menuItem:hover{
 background:rgba(255,255,255,.08);
 }
-
 .sep{
 height:1px;
 background:rgba(255,255,255,.08);
@@ -116,7 +106,6 @@ background:rgba(255,255,255,.02);
 transition:.2s;
 cursor:pointer;
 }
-
 .toolCard:hover{
 border-color:#8b5cf6;
 background:rgba(124,58,237,.08);
@@ -152,13 +141,10 @@ border-radius:24px;
 padding:24px;
 }
 
-.modalInput{
+.authInput,.toolInput{
 width:100%;
 padding:12px;
 border-radius:14px;
-background:#020617;
-border:1px solid rgba(255,255,255,.08);
-color:#fff;
 margin-bottom:10px;
 }
 
@@ -175,6 +161,7 @@ font-size:22px;
 }
 .typing span:nth-child(2){animation-delay:.2s}
 .typing span:nth-child(3){animation-delay:.4s}
+
 @keyframes blink{
 0%,80%,100%{opacity:.2}
 40%{opacity:1}
@@ -186,7 +173,7 @@ font-size:22px;
 
 <div id="toolPopup"></div>
 
-<!-- AUTH MODAL -->
+<!-- AUTH -->
 <div id="authModal">
 <div class="modalCard">
 
@@ -195,15 +182,15 @@ font-size:22px;
 <button onclick="closeAuth()">✕</button>
 </div>
 
-<input id="authName" class="modalInput hidden" placeholder="Full Name">
-<input id="authEmail" class="modalInput" placeholder="Email">
-<input id="authPass" class="modalInput" type="password" placeholder="Password">
+<input id="authName" class="authInput hidden" placeholder="Full Name">
+<input id="authEmail" class="authInput" placeholder="Email">
+<input id="authPass" type="password" class="authInput" placeholder="Password">
 
-<button onclick="submitAuth()" class="btn" id="authBtn">Login</button>
+<button class="btn" onclick="submitAuth()" id="authBtn">Login</button>
 
 <div class="text-center mt-4 text-sm text-white/60">
 <span id="switchText">Don't have an account?</span>
-<button onclick="switchAuth()" class="text-violet-300 ml-1">Sign Up</button>
+<button onclick="switchAuth()" class="text-violet-300 ml-1" id="switchBtn">Sign Up</button>
 </div>
 
 <div id="authMsg" class="text-red-300 text-sm mt-3"></div>
@@ -211,7 +198,7 @@ font-size:22px;
 </div>
 </div>
 
-<!-- PANEL MODAL -->
+<!-- PANEL -->
 <div id="panelModal">
 <div class="modalCard" id="panelContent"></div>
 </div>
@@ -238,14 +225,13 @@ font-size:22px;
 <div class="mb-4">
 <div class="flex justify-between mb-2 px-1">
 <div class="text-[11px] tracking-[4px] text-white/40">SECURITY TOOLS</div>
-<div class="text-xs text-violet-300">Hide</div>
 </div>
 
 <div id="toolsPanel" class="space-y-2 scrollbar">
 
 <div class="toolCard" onclick="openTool('hash')">
 <div>🔐 Hash Tool</div>
-<div onclick="showInfo(event,'Hash Tool','Creates MD5 / SHA256 hashes','cipher123')">i</div>
+<div onclick="showInfo(event,'Hash Tool','Generate MD5 / SHA256 hashes','cipher123')">i</div>
 </div>
 
 <div class="toolCard" onclick="openTool('base64')">
@@ -255,7 +241,7 @@ font-size:22px;
 
 <div class="toolCard" onclick="openTool('password')">
 <div>🔑 Password Check</div>
-<div onclick="showInfo(event,'Password Tool','Checks password strength','Cipher@2026')">i</div>
+<div onclick="showInfo(event,'Password Tool','Check password strength','Cipher@2026')">i</div>
 </div>
 
 <div class="toolCard" onclick="openTool('jwt')">
@@ -266,13 +252,18 @@ font-size:22px;
 </div>
 </div>
 
-<!-- USER -->
+<!-- ACCOUNT -->
 <div class="relative mt-auto">
 
-<div onclick="toggleMenu()" class="bg-[#0d153d] rounded-2xl border border-white/10 px-4 py-3 cursor-pointer">
+<div onclick="toggleMenu()"
+class="bg-[#0d153d] rounded-2xl border border-white/10 px-4 py-3 cursor-pointer">
+
 <div class="flex gap-3 items-center">
 
-<div id="avatar" class="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center font-bold">GU</div>
+<div id="avatar"
+class="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center font-bold">
+GU
+</div>
 
 <div class="flex-1">
 <div id="username">Guest User</div>
@@ -305,14 +296,19 @@ font-size:22px;
 
 </div>
 
-<div id="chatBox" class="flex-1 glass rounded-3xl border border-white/10 p-5 overflow-y-auto scrollbar space-y-4"></div>
+<div id="chatBox"
+class="flex-1 glass rounded-3xl border border-white/10 p-5 overflow-y-auto scrollbar space-y-4"></div>
 
 <div class="glass rounded-3xl border border-white/10 p-3 flex gap-3">
 
-<textarea id="prompt" rows="2" placeholder="Ask anything..."
+<textarea id="prompt"
+rows="2"
+placeholder="Ask anything..."
 class="inputbox flex-1 rounded-2xl px-5 py-4 resize-none"></textarea>
 
-<button onclick="sendMsg()" class="w-24 rounded-2xl bg-violet-500 text-xl">➤</button>
+<button onclick="sendMsg()" class="w-24 rounded-2xl bg-violet-500 text-xl">
+➤
+</button>
 
 </div>
 
@@ -324,6 +320,7 @@ let mode="fast";
 let authMode="login";
 let loggedUser=null;
 let currentChatId=null;
+let toolCounter=0;
 
 /* MODE */
 function setMode(m){
@@ -333,7 +330,7 @@ document.getElementById(m+"Btn").classList.add("modeActive");
 }
 
 /* ENTER SEND */
-prompt.addEventListener("keydown",e=>{
+document.getElementById("prompt").addEventListener("keydown",function(e){
 if(e.key==="Enter" && !e.shiftKey){
 e.preventDefault();
 sendMsg();
@@ -343,7 +340,9 @@ sendMsg();
 /* CHAT */
 async function sendMsg(){
 
-let text=prompt.value.trim();
+let box=document.getElementById("prompt");
+let text=box.value.trim();
+
 if(!text)return;
 
 chatBox.innerHTML+=`
@@ -351,7 +350,7 @@ chatBox.innerHTML+=`
 <div class="userBubble">${text}</div>
 </div>`;
 
-prompt.value="";
+box.value="";
 
 chatBox.innerHTML+=`
 <div id="typingBox" class="msgbox">
@@ -372,7 +371,8 @@ chat_id:currentChatId
 });
 
 let data=await res.json();
-typingBox.remove();
+
+document.getElementById("typingBox")?.remove();
 
 chatBox.innerHTML+=`
 <div class="msgbox">
@@ -383,14 +383,19 @@ ${(data.response || "No response").replace(/\n/g,"<br>")}
 if(data.chat_id) currentChatId=data.chat_id;
 
 }catch(err){
-typingBox.remove();
-chatBox.innerHTML+=`<div class="msgbox text-red-300">Server Error</div>`;
+
+document.getElementById("typingBox")?.remove();
+
+chatBox.innerHTML+=`
+<div class="msgbox text-red-300">
+Server Error
+</div>`;
 }
 
 chatBox.scrollTop=chatBox.scrollHeight;
 }
 
-/* ACCOUNT MENU */
+/* MENU */
 function toggleMenu(){
 
 menu.style.display = menu.style.display==="block" ? "none":"block";
@@ -429,6 +434,7 @@ menu.innerHTML=`
 
 /* AUTH */
 function openAuth(type){
+
 authMode=type;
 authModal.style.display="flex";
 menu.style.display="none";
@@ -438,11 +444,13 @@ authTitle.innerText="Login";
 authBtn.innerText="Login";
 authName.classList.add("hidden");
 switchText.innerText="Don't have an account?";
+switchBtn.innerText="Sign Up";
 }else{
 authTitle.innerText="Sign Up";
 authBtn.innerText="Create Account";
 authName.classList.remove("hidden");
 switchText.innerText="Already have an account?";
+switchBtn.innerText="Log In";
 }
 }
 
@@ -466,23 +474,29 @@ if(authMode==="signup") payload.name=authName.value;
 let url=authMode==="login"?"/login":"/signup";
 
 try{
+
 let res=await fetch(url,{
 method:"POST",
 headers:{"Content-Type":"application/json"},
 body:JSON.stringify(payload)
 });
+
 let data=await res.json();
 
 if(data.ok){
+
 loggedUser=data.user || {
 name:payload.name || payload.email.split("@")[0],
 email:payload.email
 };
+
 updateUserUI();
 closeAuth();
+
 }else{
 authMsg.innerText=data.message || "Failed";
 }
+
 }catch{
 authMsg.innerText="Server Error";
 }
@@ -516,9 +530,8 @@ menu.style.display="none";
 if(type==="profile"){
 panelContent.innerHTML=`
 <div class="text-2xl text-violet-300 mb-4">Profile</div>
-<input class="modalInput" value="${loggedUser.name}">
-<input class="modalInput" value="${loggedUser.email}">
-<input class="modalInput" value="${loggedUser.email.split('@')[0]}">
+<input class="authInput" value="${loggedUser.name}">
+<input class="authInput" value="${loggedUser.email}">
 <button class="btn">Save</button>
 `;
 }
@@ -528,7 +541,6 @@ panelContent.innerHTML=`
 <div class="text-2xl text-violet-300 mb-4">Settings</div>
 <div class="menuItem">Appearance</div>
 <div class="menuItem">Language</div>
-<div class="menuItem">Notifications</div>
 <div class="menuItem">Security</div>
 `;
 }
@@ -538,7 +550,6 @@ panelContent.innerHTML=`
 <div class="text-2xl text-violet-300 mb-4">Personalization</div>
 <div class="menuItem">Response Style</div>
 <div class="menuItem">Memory</div>
-<div class="menuItem">Theme Behavior</div>
 `;
 }
 
@@ -547,34 +558,109 @@ panelContent.innerHTML=`
 <div class="text-2xl text-violet-300 mb-4">Help</div>
 <div class="menuItem">FAQ</div>
 <div class="menuItem">Support</div>
-<div class="menuItem">About CIPHER</div>
 `;
 }
 }
 
-panelModal.onclick=(e)=>{
+panelModal.onclick=function(e){
 if(e.target===panelModal) panelModal.style.display="none";
 };
 
 /* TOOLS */
 function openTool(name){
+
+toolCounter++;
+let id="tool_"+toolCounter;
+let html="";
+
+if(name==="hash"){
+html=`
+<input id="${id}_text" class="toolInput" placeholder="Enter text">
+<select id="${id}_mode" class="toolInput">
+<option value="md5">MD5</option>
+<option value="sha256">SHA256</option>
+</select>
+<button class="btn" onclick="runTool('hash','${id}')">Run</button>`;
+}
+
+if(name==="base64"){
+html=`
+<input id="${id}_text" class="toolInput" placeholder="Enter text">
+<select id="${id}_mode" class="toolInput">
+<option value="encode">Encode</option>
+<option value="decode">Decode</option>
+</select>
+<button class="btn" onclick="runTool('base64','${id}')">Run</button>`;
+}
+
+if(name==="password"){
+html=`
+<input id="${id}_text" class="toolInput" placeholder="Enter password">
+<button class="btn" onclick="runTool('password','${id}')">Check</button>`;
+}
+
+if(name==="jwt"){
+html=`
+<textarea id="${id}_text" class="toolInput" placeholder="Paste JWT"></textarea>
+<button class="btn" onclick="runTool('jwt','${id}')">Decode</button>`;
+}
+
 chatBox.innerHTML+=`
-<div class="msgbox">TOOL PANEL • ${name.toUpperCase()}</div>`;
+<div class="msgbox">
+<div class="text-violet-300 mb-3">TOOL PANEL • ${name.toUpperCase()}</div>
+${html}
+<div id="${id}_result" class="mt-3"></div>
+</div>`;
+
 chatBox.scrollTop=chatBox.scrollHeight;
 }
 
-function showInfo(e,t,d,x){
+async function runTool(name,id){
+
+let text=document.getElementById(id+"_text").value;
+let mode=document.getElementById(id+"_mode")?.value || "";
+
+let result=document.getElementById(id+"_result");
+result.innerHTML="Running...";
+
+try{
+let res=await fetch("/tool/"+name,{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({
+text:text,
+mode:mode,
+rtype:mode
+})
+});
+
+let data=await res.json();
+
+result.innerHTML=`<pre>${JSON.stringify(data,null,2)}</pre>`;
+
+}catch{
+result.innerHTML="<div class='text-red-300'>Tool Error</div>";
+}
+}
+
+/* TOOL INFO */
+function showInfo(e,title,desc,example){
+
 e.stopPropagation();
+
 toolPopup.style.display="block";
 toolPopup.innerHTML=`
-<div class="text-violet-300 font-bold mb-2">${t}</div>
-<div>${d}</div>
-<div class="mt-3 text-cyan-300 text-sm">${x}</div>
+<div class="text-violet-300 font-bold mb-2">${title}</div>
+<div>${desc}</div>
+<div class="mt-3 text-cyan-300 text-sm">${example}</div>
 `;
+
 toolPopup.style.left=(e.clientX+10)+"px";
 toolPopup.style.top=(e.clientY+10)+"px";
 
-setTimeout(()=>toolPopup.style.display="none",10000);
+setTimeout(()=>{
+toolPopup.style.display="none";
+},10000);
 }
 
 document.addEventListener("click",()=>{
