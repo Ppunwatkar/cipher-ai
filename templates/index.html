@@ -60,7 +60,6 @@ display:inline-block;
 max-width:75%;
 }
 
-/* ACCOUNT MENU */
 #menu{
 display:none;
 position:absolute;
@@ -90,7 +89,7 @@ margin:8px 0;
 }
 
 #toolsPanel{
-max-height:230px;
+max-height:320px;
 overflow-y:auto;
 padding-right:4px;
 }
@@ -173,7 +172,6 @@ font-size:22px;
 
 <div id="toolPopup"></div>
 
-<!-- AUTH -->
 <div id="authModal">
 <div class="modalCard">
 
@@ -198,14 +196,12 @@ font-size:22px;
 </div>
 </div>
 
-<!-- SETTINGS / PROFILE PANELS -->
 <div id="panelModal">
 <div class="modalCard" id="panelContent"></div>
 </div>
 
 <div class="h-screen flex gap-3 p-3">
 
-<!-- LEFT -->
 <div class="w-[300px] glass rounded-3xl border border-white/10 p-4 flex flex-col h-full overflow-hidden">
 
 <div class="flex gap-3 items-center mb-4">
@@ -249,10 +245,31 @@ font-size:22px;
 <div onclick="showInfo(event,'JWT Decoder','Decode JWT token','paste token')">i</div>
 </div>
 
+<!-- NEW TOOLS ADDED -->
+
+<div class="toolCard" onclick="openTool('url')">
+<div>🌐 URL Encoder</div>
+<div onclick="showInfo(event,'URL Tool','Encode / Decode URL strings','hello world')">i</div>
+</div>
+
+<div class="toolCard" onclick="openTool('headers')">
+<div>🛡 Header Scan</div>
+<div onclick="showInfo(event,'Header Scanner','Check HTTP security headers','https://example.com')">i</div>
+</div>
+
+<div class="toolCard" onclick="openTool('whois')">
+<div>🌍 Whois Lookup</div>
+<div onclick="showInfo(event,'Whois Lookup','Lookup domain registration info','openai.com')">i</div>
+</div>
+
+<div class="toolCard" onclick="openTool('logs')">
+<div>📜 Log Analyzer</div>
+<div onclick="showInfo(event,'Log Analyzer','Detect suspicious log entries','failed login from IP')">i</div>
+</div>
+
 </div>
 </div>
 
-<!-- ACCOUNT -->
 <div class="relative mt-auto">
 
 <div onclick="toggleMenu()"
@@ -281,7 +298,6 @@ GU
 
 </div>
 
-<!-- RIGHT -->
 <div class="flex-1 flex flex-col gap-3">
 
 <div class="glass rounded-3xl border border-white/10 px-8 py-5 flex justify-between items-center">
@@ -317,32 +333,17 @@ class="inputbox flex-1 rounded-2xl px-5 py-4 resize-none"></textarea>
 
 <script>
 let mode="fast";
-let authMode="login";
-let loggedUser=null;
-let currentChatId=null;
 let toolCounter=0;
 
-/* MODE */
 function setMode(m){
 mode=m;
 document.querySelectorAll(".modeBtn").forEach(x=>x.classList.remove("modeActive"));
 document.getElementById(m+"Btn").classList.add("modeActive");
 }
 
-/* ENTER SEND */
-document.getElementById("prompt").addEventListener("keydown",function(e){
-if(e.key==="Enter" && !e.shiftKey){
-e.preventDefault();
-sendMsg();
-}
-});
-
-/* CHAT */
 async function sendMsg(){
-
 let box=document.getElementById("prompt");
 let text=box.value.trim();
-
 if(!text)return;
 
 chatBox.innerHTML+=`
@@ -365,8 +366,7 @@ method:"POST",
 headers:{"Content-Type":"application/json"},
 body:JSON.stringify({
 message:text,
-mode:mode,
-chat_id:currentChatId
+mode:mode
 })
 });
 
@@ -376,204 +376,17 @@ document.getElementById("typingBox")?.remove();
 
 chatBox.innerHTML+=`
 <div class="msgbox">
-<div class="text-xs text-white/50 mb-2">${data.label || mode.toUpperCase()}</div>
 ${(data.response || "No response").replace(/\n/g,"<br>")}
 </div>`;
 
-if(data.chat_id) currentChatId=data.chat_id;
-
-}catch(err){
+}catch{
 document.getElementById("typingBox")?.remove();
-
-chatBox.innerHTML+=`
-<div class="msgbox text-red-300">Server Error</div>`;
+chatBox.innerHTML+=`<div class="msgbox text-red-300">Server Error</div>`;
 }
 
 chatBox.scrollTop=chatBox.scrollHeight;
 }
 
-/* ACCOUNT MENU ONLY IMPROVED */
-function toggleMenu(){
-
-menu.style.display = menu.style.display==="block" ? "none":"block";
-
-if(loggedUser){
-
-menu.innerHTML=`
-<div class="px-3 py-2 flex gap-3 items-center">
-<div class="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center font-bold">
-${loggedUser.name.slice(0,2).toUpperCase()}
-</div>
-<div class="flex-1">
-<div class="font-semibold">${loggedUser.name}</div>
-<div class="text-xs text-white/45 truncate">${loggedUser.email}</div>
-</div>
-</div>
-
-<div class="sep"></div>
-
-<div class="menuItem" onclick="openPanel('profile')">Profile</div>
-<div class="menuItem" onclick="openPanel('settings')">Settings</div>
-<div class="menuItem" onclick="openPanel('personalization')">Personalization</div>
-
-<div class="sep"></div>
-
-<div class="menuItem" onclick="openPanel('help')">Help</div>
-
-<div class="sep"></div>
-
-<div class="menuItem text-red-300" onclick="logoutUser()">Log out</div>
-`;
-
-}else{
-
-menu.innerHTML=`
-<div class="menuItem" onclick="openAuth('login')">Login</div>
-<div class="menuItem" onclick="openAuth('signup')">Sign Up</div>
-`;
-}
-}
-
-/* AUTH */
-function openAuth(type){
-authMode=type;
-authModal.style.display="flex";
-menu.style.display="none";
-authMsg.innerText="";
-
-if(type==="login"){
-authTitle.innerText="Login";
-authBtn.innerText="Login";
-authName.classList.add("hidden");
-switchText.innerText="Don't have an account?";
-switchBtn.innerText="Sign Up";
-}else{
-authTitle.innerText="Sign Up";
-authBtn.innerText="Create Account";
-authName.classList.remove("hidden");
-switchText.innerText="Already have an account?";
-switchBtn.innerText="Log In";
-}
-}
-
-function closeAuth(){
-authModal.style.display="none";
-}
-
-function switchAuth(){
-openAuth(authMode==="login"?"signup":"login");
-}
-
-async function submitAuth(){
-
-let payload={
-email:authEmail.value,
-password:authPass.value
-};
-
-if(authMode==="signup") payload.name=authName.value;
-
-let url=authMode==="login"?"/login":"/signup";
-
-try{
-let res=await fetch(url,{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify(payload)
-});
-
-let data=await res.json();
-
-if(data.ok){
-
-loggedUser=data.user || {
-name:payload.name || payload.email.split("@")[0],
-email:payload.email
-};
-
-updateUserUI();
-closeAuth();
-
-}else{
-authMsg.innerText=data.message || "Failed";
-}
-
-}catch{
-authMsg.innerText="Server Error";
-}
-}
-
-function logoutUser(){
-loggedUser=null;
-updateUserUI();
-menu.style.display="none";
-}
-
-function updateUserUI(){
-
-if(loggedUser){
-avatar.innerText=loggedUser.name.slice(0,2).toUpperCase();
-username.innerText=loggedUser.name;
-memberType.innerText="Member";
-}else{
-avatar.innerText="GU";
-username.innerText="Guest User";
-memberType.innerText="Guest";
-}
-}
-
-/* ACCOUNT PANELS */
-function openPanel(type){
-
-panelModal.style.display="flex";
-menu.style.display="none";
-
-if(type==="profile"){
-panelContent.innerHTML=`
-<div class="text-2xl text-violet-300 mb-4">Profile</div>
-<input class="authInput" value="${loggedUser.name}">
-<input class="authInput" value="${loggedUser.email}">
-<input class="authInput" value="${loggedUser.email.split('@')[0]}">
-<button class="btn">Save Changes</button>
-`;
-}
-
-if(type==="settings"){
-panelContent.innerHTML=`
-<div class="text-2xl text-violet-300 mb-4">Settings</div>
-<div class="menuItem">Appearance</div>
-<div class="menuItem">Accent Color</div>
-<div class="menuItem">Language</div>
-<div class="menuItem">Notifications</div>
-<div class="menuItem">Security</div>
-`;
-}
-
-if(type==="personalization"){
-panelContent.innerHTML=`
-<div class="text-2xl text-violet-300 mb-4">Personalization</div>
-<div class="menuItem">Memory</div>
-<div class="menuItem">Response Style</div>
-<div class="menuItem">Theme Behavior</div>
-`;
-}
-
-if(type==="help"){
-panelContent.innerHTML=`
-<div class="text-2xl text-violet-300 mb-4">Help</div>
-<div class="menuItem">FAQ</div>
-<div class="menuItem">Support</div>
-<div class="menuItem">About CIPHER</div>
-<div class="menuItem">Version 1.0</div>
-`;
-}
-}
-
-panelModal.onclick=function(e){
-if(e.target===panelModal) panelModal.style.display="none";
-};
-
-/* TOOLS (UNCHANGED) */
 function openTool(name){
 
 toolCounter++;
@@ -612,6 +425,34 @@ html=`
 <button class="btn" onclick="runTool('jwt','${id}')">Decode</button>`;
 }
 
+if(name==="url"){
+html=`
+<input id="${id}_text" class="toolInput" placeholder="Enter text">
+<select id="${id}_mode" class="toolInput">
+<option value="encode">Encode</option>
+<option value="decode">Decode</option>
+</select>
+<button class="btn" onclick="runTool('url','${id}')">Run</button>`;
+}
+
+if(name==="headers"){
+html=`
+<input id="${id}_text" class="toolInput" placeholder="https://example.com">
+<button class="btn" onclick="runTool('headers','${id}')">Scan</button>`;
+}
+
+if(name==="whois"){
+html=`
+<input id="${id}_text" class="toolInput" placeholder="openai.com">
+<button class="btn" onclick="runTool('whois','${id}')">Lookup</button>`;
+}
+
+if(name==="logs"){
+html=`
+<textarea id="${id}_text" class="toolInput" placeholder="Paste logs"></textarea>
+<button class="btn" onclick="runTool('logs','${id}')">Analyze</button>`;
+}
+
 chatBox.innerHTML+=`
 <div class="msgbox">
 <div class="text-violet-300 mb-3">TOOL PANEL • ${name.toUpperCase()}</div>
@@ -626,19 +467,15 @@ async function runTool(name,id){
 
 let text=document.getElementById(id+"_text").value;
 let mode=document.getElementById(id+"_mode")?.value || "";
-
 let result=document.getElementById(id+"_result");
+
 result.innerHTML="Running...";
 
 try{
 let res=await fetch("/tool/"+name,{
 method:"POST",
 headers:{"Content-Type":"application/json"},
-body:JSON.stringify({
-text:text,
-mode:mode,
-rtype:mode
-})
+body:JSON.stringify({text:text,mode:mode})
 });
 
 let data=await res.json();
@@ -649,9 +486,7 @@ result.innerHTML="<div class='text-red-300'>Tool Error</div>";
 }
 }
 
-/* TOOL INFO */
 function showInfo(e,title,desc,example){
-
 e.stopPropagation();
 
 toolPopup.style.display="block";
@@ -668,18 +503,6 @@ setTimeout(()=>{
 toolPopup.style.display="none";
 },10000);
 }
-
-document.addEventListener("click",(e)=>{
-if(!menu.contains(e.target) && !e.target.closest(".relative")){
-menu.style.display="none";
-}
-if(!toolPopup.contains(e.target)){
-toolPopup.style.display="none";
-}
-});
-
-/* INIT */
-updateUserUI();
 </script>
 
 </body>
