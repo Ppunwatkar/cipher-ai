@@ -8,11 +8,9 @@
 <script src="https://cdn.tailwindcss.com"></script>
 
 <style>
-*{box-sizing:border-box}
-html,body{
+body{
 margin:0;
 padding:0;
-height:100%;
 overflow:hidden;
 font-family:Consolas,monospace;
 color:#fff;
@@ -22,137 +20,65 @@ background:linear-gradient(135deg,#020617,#07113b,#020617);
 background:rgba(8,12,35,.72);
 backdrop-filter:blur(18px);
 }
-.scrollbar::-webkit-scrollbar{width:5px;height:5px}
+.scrollbar::-webkit-scrollbar{width:5px}
 .scrollbar::-webkit-scrollbar-thumb{
-background:#7c3aed;
-border-radius:20px;
+background:#7c3aed;border-radius:20px;
 }
-.inputbox{
+
+.inputbox,.toolInput,.authInput{
 background:#020617;
 border:1px solid rgba(255,255,255,.08);
 color:#fff;
 outline:none;
 }
-.inputbox:focus{
+
+.inputbox:focus,.toolInput:focus,.authInput:focus{
 border-color:#8b5cf6;
-box-shadow:0 0 0 1px #8b5cf6;
 }
+
 .modeBtn{
 border:1px solid rgba(255,255,255,.08);
 transition:.2s;
 }
-.modeBtn:hover{border-color:#8b5cf6}
 .modeActive{
 background:rgba(124,58,237,.18);
-border-color:#8b5cf6!important;
+border-color:#8b5cf6 !important;
 }
-.userBubble{
-background:#101844;
-padding:14px 16px;
-border-radius:18px;
-display:inline-block;
-max-width:75%;
-word-break:break-word;
-}
+
 .msgbox{
 background:rgba(72,55,170,.12);
 border-left:2px solid #8b5cf6;
+border-radius:18px;
 padding:16px;
-border-radius:18px;
 }
-.toolCard{
-padding:12px 14px;
-border-radius:18px;
-border:1px solid rgba(255,255,255,.06);
-background:rgba(255,255,255,.02);
-display:flex;
-justify-content:space-between;
-align-items:center;
-cursor:pointer;
-transition:.2s;
-}
-.toolCard:hover{
-border-color:#8b5cf6;
-background:rgba(124,58,237,.08);
-}
-.toolInfoBtn{
-width:24px;
-height:24px;
-display:flex;
-align-items:center;
-justify-content:center;
-border-radius:999px;
-font-size:12px;
-background:rgba(255,255,255,.06);
-}
-.toolInfoBtn:hover{
-background:rgba(124,58,237,.35);
-}
-.chatRow{
+
+.userBubble{
 background:#101844;
-border-radius:14px;
-padding:10px;
-display:flex;
-align-items:center;
-gap:8px;
-cursor:pointer;
-position:relative;
+border-radius:18px;
+padding:14px 16px;
+display:inline-block;
+max-width:75%;
 }
-.chatRow:hover{background:#162055}
-.chatTitle{
-flex:1;
-white-space:nowrap;
-overflow:hidden;
-text-overflow:ellipsis;
-font-size:14px;
-}
-.chatDots{
-width:28px;
-height:28px;
-display:flex;
-align-items:center;
-justify-content:center;
-border-radius:10px;
-cursor:pointer;
-}
-.chatDots:hover{background:rgba(255,255,255,.08)}
-.chatMenu{
-position:absolute;
-right:8px;
-top:42px;
-width:180px;
-background:#11162f;
-border:1px solid rgba(255,255,255,.08);
-border-radius:16px;
-padding:6px;
-z-index:999;
-display:none;
-}
-.chatMenuItem{
-padding:10px 12px;
-border-radius:12px;
-font-size:13px;
-cursor:pointer;
-}
-.chatMenuItem:hover{
-background:rgba(255,255,255,.08);
-}
+
+/* ACCOUNT MENU */
 #menu{
 display:none;
 position:absolute;
 left:0;
-bottom:72px;
+bottom:65px;
 width:290px;
-background:#11162f;
+background:#222;
 border:1px solid rgba(255,255,255,.08);
 border-radius:22px;
 padding:8px;
-z-index:999;
+z-index:9999;
+box-shadow:0 20px 40px rgba(0,0,0,.45);
 }
 .menuItem{
 padding:12px 14px;
 border-radius:14px;
 cursor:pointer;
+transition:.2s;
 }
 .menuItem:hover{
 background:rgba(255,255,255,.08);
@@ -162,74 +88,128 @@ height:1px;
 background:rgba(255,255,255,.08);
 margin:8px 0;
 }
-.modal{
+
+#toolsPanel{
+max-height:230px;
+overflow-y:auto;
+padding-right:4px;
+}
+
+.toolCard{
+display:flex;
+justify-content:space-between;
+align-items:center;
+padding:12px 14px;
+border-radius:18px;
+border:1px solid rgba(255,255,255,.06);
+background:rgba(255,255,255,.02);
+transition:.2s;
+cursor:pointer;
+}
+.toolCard:hover{
+border-color:#8b5cf6;
+background:rgba(124,58,237,.08);
+}
+
+#toolPopup{
+position:fixed;
+width:280px;
 display:none;
+z-index:99999;
+background:#090f25;
+border:1px solid rgba(139,92,246,.55);
+border-radius:18px;
+padding:14px;
+box-shadow:0 20px 45px rgba(0,0,0,.55);
+}
+
+#authModal,#panelModal{
 position:fixed;
 inset:0;
-background:rgba(0,0,0,.65);
-z-index:99999;
+display:none;
 align-items:center;
 justify-content:center;
-padding:16px;
+background:rgba(0,0,0,.55);
+z-index:99999;
 }
+
 .modalCard{
-width:520px;
-max-width:100%;
+width:420px;
 background:#070d2c;
 border:1px solid rgba(255,255,255,.08);
 border-radius:24px;
 padding:24px;
 }
-#chatBox pre{
-margin:0;
-white-space:pre;
-overflow:auto;
+
+.authInput,.toolInput{
+width:100%;
+padding:12px;
+border-radius:14px;
+margin-bottom:10px;
 }
-@media(max-width:900px){
-#layout{flex-direction:column;height:auto}
-#sidebar{
-display:none;
-position:fixed;
-left:0;top:0;bottom:0;
-width:290px;
-z-index:99999;
-border-radius:0;
+
+.btn{
+padding:11px 16px;
+border-radius:14px;
+background:#7c3aed;
+width:100%;
 }
-#sidebar.show{display:flex}
-#chatBox{height:58vh}
+
+.typing span{
+animation:blink 1.1s infinite;
+font-size:22px;
+}
+.typing span:nth-child(2){animation-delay:.2s}
+.typing span:nth-child(3){animation-delay:.4s}
+
+@keyframes blink{
+0%,80%,100%{opacity:.2}
+40%{opacity:1}
 }
 </style>
 </head>
 
 <body>
 
-<!-- TOOL MODAL -->
-<div id="toolModal" class="modal">
+<div id="toolPopup"></div>
+
+<!-- AUTH -->
+<div id="authModal">
 <div class="modalCard">
+
 <div class="flex justify-between items-center mb-4">
-<div id="toolTitle" class="text-2xl text-violet-300">Tool</div>
-<button onclick="closeTool()">✕</button>
+<div id="authTitle" class="text-2xl text-violet-300">Login</div>
+<button onclick="closeAuth()">✕</button>
 </div>
 
-<textarea id="toolInput" rows="5"
-placeholder="Enter input..."
-class="inputbox w-full rounded-2xl px-4 py-4 resize-none mb-4"></textarea>
+<input id="authName" class="authInput hidden" placeholder="Full Name">
+<input id="authEmail" class="authInput" placeholder="Email">
+<input id="authPass" type="password" class="authInput" placeholder="Password">
 
-<button onclick="runTool()" class="w-full py-3 rounded-2xl bg-violet-500 mb-4">
-Run Tool
-</button>
+<button class="btn" onclick="submitAuth()" id="authBtn">Login</button>
 
-<div id="toolResult" class="msgbox hidden"></div>
+<div class="text-center mt-4 text-sm text-white/60">
+<span id="switchText">Don't have an account?</span>
+<button onclick="switchAuth()" class="text-violet-300 ml-1" id="switchBtn">Sign Up</button>
+</div>
+
+<div id="authMsg" class="text-red-300 text-sm mt-3"></div>
+
 </div>
 </div>
 
-<div id="layout" class="h-screen flex gap-3 p-3">
+<!-- SETTINGS / PROFILE PANELS -->
+<div id="panelModal">
+<div class="modalCard" id="panelContent"></div>
+</div>
 
-<!-- SIDEBAR -->
-<div id="sidebar" class="w-[300px] glass rounded-3xl border border-white/10 p-4 flex flex-col h-full overflow-hidden">
+<div class="h-screen flex gap-3 p-3">
+
+<!-- LEFT -->
+<div class="w-[300px] glass rounded-3xl border border-white/10 p-4 flex flex-col h-full overflow-hidden">
 
 <div class="flex gap-3 items-center mb-4">
-<img src="/static/logo.png" class="w-12 h-12 rounded-xl">
+<img src="/static/logo.png" class="w-12 h-12 rounded-xl object-contain">
 <div>
 <div class="text-3xl tracking-[6px] text-violet-300">CIPHER</div>
 <div class="text-xs text-white/55">AI Cyber Assistant</div>
@@ -240,77 +220,72 @@ Run Tool
 + NEW CHAT
 </button>
 
-<input id="historySearch"
-placeholder="Search chats..."
-class="inputbox rounded-xl px-3 py-2 mb-3 text-sm">
+<div id="historyBox" class="flex-1 overflow-y-auto scrollbar space-y-2 mb-4"></div>
 
-<div id="historyBox" class="flex-1 overflow-y-auto scrollbar space-y-2 mb-3"></div>
-
-<div class="mb-2 flex justify-between items-center px-1">
+<div class="mb-4">
+<div class="flex justify-between mb-2 px-1">
 <div class="text-[11px] tracking-[4px] text-white/40">SECURITY TOOLS</div>
-<button onclick="toggleTools()" id="toolBtn" class="text-xs text-violet-300">HIDE</button>
 </div>
 
-<div id="toolsPanel" class="space-y-2 overflow-y-auto scrollbar h-[250px]">
+<div id="toolsPanel" class="space-y-2 scrollbar">
 
 <div class="toolCard" onclick="openTool('hash')">
-<span>🔐 Hash Tool</span>
-<span class="toolInfoBtn" onclick="event.stopPropagation();toolInfo('hash')">i</span>
+<div>🔐 Hash Tool</div>
+<div onclick="showInfo(event,'Hash Tool','Generate MD5 / SHA256 hashes','cipher123')">i</div>
 </div>
 
 <div class="toolCard" onclick="openTool('base64')">
-<span>📦 Base64 Tool</span>
-<span class="toolInfoBtn" onclick="event.stopPropagation();toolInfo('base64')">i</span>
+<div>📦 Base64 Tool</div>
+<div onclick="showInfo(event,'Base64 Tool','Encode / Decode text','hello')">i</div>
 </div>
 
 <div class="toolCard" onclick="openTool('password')">
-<span>🔑 Password Check</span>
-<span class="toolInfoBtn" onclick="event.stopPropagation();toolInfo('password')">i</span>
+<div>🔑 Password Check</div>
+<div onclick="showInfo(event,'Password Tool','Check password strength','Cipher@2026')">i</div>
 </div>
 
 <div class="toolCard" onclick="openTool('jwt')">
-<span>🪪 JWT Decoder</span>
-<span class="toolInfoBtn" onclick="event.stopPropagation();toolInfo('jwt')">i</span>
-</div>
-
-<div class="toolCard" onclick="openTool('headers')">
-<span>🛡 Header Scan</span>
-<span class="toolInfoBtn" onclick="event.stopPropagation();toolInfo('headers')">i</span>
-</div>
-
-<div class="toolCard" onclick="openTool('logs')">
-<span>📜 Log Analyzer</span>
-<span class="toolInfoBtn" onclick="event.stopPropagation();toolInfo('logs')">i</span>
+<div>🪪 JWT Decoder</div>
+<div onclick="showInfo(event,'JWT Decoder','Decode JWT token','paste token')">i</div>
 </div>
 
 </div>
+</div>
 
-<div class="relative mt-3">
-<div onclick="toggleMenu()" class="bg-[#0d153d] rounded-2xl border border-white/10 px-4 py-3 cursor-pointer">
+<!-- ACCOUNT -->
+<div class="relative mt-auto">
+
+<div onclick="toggleMenu()"
+class="bg-[#0d153d] rounded-2xl border border-white/10 px-4 py-3 cursor-pointer">
+
 <div class="flex gap-3 items-center">
-<div class="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center font-bold">GU</div>
+
+<div id="avatar"
+class="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center font-bold">
+GU
+</div>
+
 <div class="flex-1">
-<div>Guest User</div>
-<div class="text-xs text-white/45">Guest</div>
+<div id="username">Guest User</div>
+<div id="memberType" class="text-xs text-white/45">Guest</div>
 </div>
+
 <div>›</div>
+
 </div>
 </div>
 
-<div id="menu">
-<div class="menuItem">Login</div>
-<div class="menuItem">Sign Up</div>
-<div class="sep"></div>
-<div class="menuItem">Settings</div>
-</div>
+<div id="menu"></div>
+
 </div>
 
 </div>
 
-<!-- MAIN -->
-<div class="flex-1 flex flex-col gap-3 min-w-0">
+<!-- RIGHT -->
+<div class="flex-1 flex flex-col gap-3">
 
-<div class="glass rounded-3xl border border-white/10 px-6 py-5 flex justify-between items-center">
+<div class="glass rounded-3xl border border-white/10 px-8 py-5 flex justify-between items-center">
+
 <div class="text-violet-300 tracking-widest text-lg">⚡ AI SECURITY CORE</div>
 
 <div class="flex gap-2">
@@ -318,20 +293,23 @@ class="inputbox rounded-xl px-3 py-2 mb-3 text-sm">
 <button id="fastBtn" onclick="setMode('fast')" class="modeBtn modeActive px-5 py-3 rounded-full">FAST</button>
 <button id="codeBtn" onclick="setMode('code')" class="modeBtn px-5 py-3 rounded-full">CODE</button>
 </div>
+
 </div>
 
-<div id="chatBox" class="flex-1 glass rounded-3xl border border-white/10 p-5 overflow-y-auto scrollbar space-y-4"></div>
+<div id="chatBox"
+class="flex-1 glass rounded-3xl border border-white/10 p-5 overflow-y-auto scrollbar space-y-4"></div>
 
 <div class="glass rounded-3xl border border-white/10 p-3 flex gap-3">
+
 <textarea id="prompt"
 rows="2"
 placeholder="Ask anything..."
-class="inputbox flex-1 rounded-2xl px-5 py-4 resize-none"
-style="min-height:60px;max-height:160px;"></textarea>
+class="inputbox flex-1 rounded-2xl px-5 py-4 resize-none"></textarea>
 
 <button onclick="sendMsg()" class="w-24 rounded-2xl bg-violet-500 text-xl">
 ➤
 </button>
+
 </div>
 
 </div>
@@ -339,26 +317,10 @@ style="min-height:60px;max-height:160px;"></textarea>
 
 <script>
 let mode="fast";
-let chats=[];
-let currentChat=null;
-let activeTool="";
-
-/* INIT */
-document.addEventListener("DOMContentLoaded",()=>{
-
-prompt.focus();
-
-prompt.addEventListener("keydown",(e)=>{
-if(e.key==="Enter" && !e.shiftKey){
-e.preventDefault();
-sendMsg();
-}
-});
-
-historySearch.addEventListener("input",renderHistory);
-
-loadChats();
-});
+let authMode="login";
+let loggedUser=null;
+let currentChatId=null;
+let toolCounter=0;
 
 /* MODE */
 function setMode(m){
@@ -367,383 +329,357 @@ document.querySelectorAll(".modeBtn").forEach(x=>x.classList.remove("modeActive"
 document.getElementById(m+"Btn").classList.add("modeActive");
 }
 
-/* THINK=GPT FAST=GROQ CODE=CLAUDE */
-function modelLabel(){
-if(mode==="thinking") return "🧠 GPT";
-if(mode==="code") return "💻 Claude";
-return "⚡ Groq";
-}
-
-/* ACCOUNT MENU */
-function toggleMenu(){
-menu.style.display = menu.style.display==="block" ? "none":"block";
-}
-
-/* TOOLS COLLAPSE */
-function toggleTools(){
-if(toolsPanel.style.display==="none"){
-toolsPanel.style.display="block";
-toolBtn.innerText="HIDE";
-}else{
-toolsPanel.style.display="none";
-toolBtn.innerText="SHOW";
-}
-}
-
-/* TOOL INFO */
-function toolInfo(name){
-const info={
-hash:"Generate MD5 / SHA1 / SHA256 / SHA512 hashes from text.",
-base64:"Encode plain text to Base64 or decode Base64 to text.",
-password:"Checks password strength using length and complexity.",
-jwt:"Decode JWT token header and payload instantly.",
-headers:"Analyze website security headers like CSP, HSTS, XFO.",
-logs:"Analyze logs for suspicious patterns or failed attempts."
-};
-alert(info[name] || "Tool information unavailable.");
-}
-
-/* TOOL MODAL */
-function openTool(name){
-activeTool=name;
-toolModal.style.display="flex";
-toolInput.value="";
-toolResult.classList.add("hidden");
-toolResult.innerHTML="";
-
-const titles={
-hash:"🔐 Hash Tool",
-base64:"📦 Base64 Tool",
-password:"🔑 Password Checker",
-jwt:"🪪 JWT Decoder",
-headers:"🛡 Header Scanner",
-logs:"📜 Log Analyzer"
-};
-
-toolTitle.innerText=titles[name] || "Tool";
-toolInput.focus();
-}
-
-function closeTool(){
-toolModal.style.display="none";
-}
-
-toolModal.onclick=function(e){
-if(e.target===toolModal) closeTool();
-};
-
-async function runTool(){
-
-let text=toolInput.value.trim();
-if(!text)return;
-
-toolResult.classList.remove("hidden");
-toolResult.innerHTML="Running...";
-
-try{
-const res=await fetch("/tool/"+activeTool,{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({input:text})
-});
-
-const data=await res.json();
-toolResult.innerHTML=(data.result || "No result").replace(/\n/g,"<br>");
-
-}catch(err){
-toolResult.innerHTML=localToolFallback(activeTool,text).replace(/\n/g,"<br>");
-}
-}
-
-function localToolFallback(tool,text){
-
-if(tool==="base64"){
-try{
-return "Encoded:\n"+btoa(text);
-}catch{
-return "Unable to encode.";
-}
-}
-
-if(tool==="password"){
-let score=0;
-if(text.length>=8)score++;
-if(/[A-Z]/.test(text))score++;
-if(/[0-9]/.test(text))score++;
-if(/[^A-Za-z0-9]/.test(text))score++;
-const lvl=["Weak","Weak","Medium","Strong","Very Strong"];
-return "Password Strength: "+lvl[score];
-}
-
-if(tool==="jwt"){
-return "JWT Decoder ready. Add backend route for full payload decode.";
-}
-
-if(tool==="headers"){
-return "Enter URL. Backend scanner required.";
-}
-
-if(tool==="logs"){
-return "Log scan complete. Suspicious keyword check finished.";
-}
-
-if(tool==="hash"){
-return "Hash backend route required.";
-}
-
-return "Tool ready.";
-}
-
-/* CHAT HISTORY */
-function newChat(){
-currentChat={
-id:Date.now(),
-title:"New Chat",
-messages:[],
-pinned:false,
-archived:false
-};
-chats.unshift(currentChat);
-renderHistory();
-chatBox.innerHTML="";
-saveChats();
-prompt.focus();
-}
-
-function renderHistory(){
-
-historyBox.innerHTML="";
-let search=historySearch.value.toLowerCase();
-
-let visible=chats
-.filter(x=>!x.archived)
-.filter(x=>x.title.toLowerCase().includes(search))
-.sort((a,b)=>(b.pinned-a.pinned));
-
-visible.forEach(chat=>{
-
-let row=document.createElement("div");
-row.className="chatRow";
-
-row.innerHTML=`
-<div class="chatTitle">${chat.pinned?'📌 ':''}${chat.title}</div>
-<div class="chatDots">⋯</div>
-<div class="chatMenu">
-<div class="chatMenuItem" onclick="shareChat(${chat.id})">Share</div>
-<div class="chatMenuItem" onclick="renameChat(${chat.id})">Rename</div>
-<div class="chatMenuItem" onclick="pinChat(${chat.id})">${chat.pinned?'Unpin':'Pin'} Chat</div>
-<div class="chatMenuItem" onclick="archiveChat(${chat.id})">Archive</div>
-<div class="chatMenuItem text-red-300" onclick="deleteChat(${chat.id})">Delete</div>
-</div>
-`;
-
-row.onclick=(e)=>{
-if(!e.target.closest(".chatDots") && !e.target.closest(".chatMenu")){
-loadChat(chat.id);
-}
-};
-
-row.querySelector(".chatDots").onclick=(e)=>{
-e.stopPropagation();
-document.querySelectorAll(".chatMenu").forEach(m=>m.style.display="none");
-row.querySelector(".chatMenu").style.display="block";
-};
-
-historyBox.appendChild(row);
-});
-}
-
-document.addEventListener("click",()=>{
-document.querySelectorAll(".chatMenu").forEach(m=>m.style.display="none");
-});
-
-function loadChat(id){
-currentChat=chats.find(x=>x.id===id);
-chatBox.innerHTML="";
-
-currentChat.messages.forEach(m=>{
-if(m.role==="user"){
-chatBox.innerHTML+=`
-<div class="text-right">
-<div class="userBubble">${m.text}</div>
-</div>`;
-}else{
-chatBox.innerHTML+=`
-<div class="msgbox">
-<div class="text-xs text-violet-300 mb-2">${m.model}</div>
-${m.text}
-</div>`;
+/* ENTER SEND */
+document.getElementById("prompt").addEventListener("keydown",function(e){
+if(e.key==="Enter" && !e.shiftKey){
+e.preventDefault();
+sendMsg();
 }
 });
-chatBox.scrollTop=chatBox.scrollHeight;
-}
 
-function renameChat(id){
-let c=chats.find(x=>x.id===id);
-let name=prompt("Rename chat:",c.title);
-if(name){
-c.title=name;
-saveChats();
-renderHistory();
-}
-}
-
-function pinChat(id){
-let c=chats.find(x=>x.id===id);
-c.pinned=!c.pinned;
-saveChats();
-renderHistory();
-}
-
-function archiveChat(id){
-let c=chats.find(x=>x.id===id);
-c.archived=true;
-saveChats();
-renderHistory();
-}
-
-function deleteChat(id){
-if(confirm("Delete chat?")){
-chats=chats.filter(x=>x.id!==id);
-saveChats();
-renderHistory();
-chatBox.innerHTML="";
-}
-}
-
-function shareChat(id){
-let c=chats.find(x=>x.id===id);
-navigator.clipboard.writeText(c.title);
-alert("Chat title copied.");
-}
-
-function saveChats(){
-localStorage.setItem("cipher_chats",JSON.stringify(chats));
-}
-
-function loadChats(){
-let d=localStorage.getItem("cipher_chats");
-if(d){
-chats=JSON.parse(d);
-renderHistory();
-}
-}
-
-/* CODE BLOCK */
-function copyCode(id){
-navigator.clipboard.writeText(document.getElementById(id).innerText);
-}
-
-function formatReply(text){
-
-const regex=/```([\s\S]*?)```/g;
-
-if(!regex.test(text)){
-return text.replace(/\n/g,"<br>");
-}
-
-regex.lastIndex=0;
-
-return text.replace(regex,(match,code)=>{
-
-let clean=code.trim()
-.replace(/</g,"&lt;")
-.replace(/>/g,"&gt;");
-
-let id="code_"+Date.now()+Math.floor(Math.random()*9999);
-
-return `
-<div class="mt-4 border border-white/10 rounded-2xl overflow-hidden bg-[#05091f]">
-<div class="flex justify-between items-center px-4 py-2 bg-[#0c1438] text-sm text-violet-300">
-<span>Code</span>
-<button onclick="copyCode('${id}')" class="text-xs px-3 py-1 rounded-lg bg-violet-600">
-Copy
-</button>
-</div>
-<pre id="${id}" class="p-4 scrollbar">${clean}</pre>
-</div>
-`;
-
-}).replace(/\n/g,"<br>");
-}
-
-/* SEND */
+/* CHAT */
 async function sendMsg(){
 
-let text=prompt.value.trim();
-if(!text)return;
+let box=document.getElementById("prompt");
+let text=box.value.trim();
 
-if(!currentChat)newChat();
+if(!text)return;
 
 chatBox.innerHTML+=`
 <div class="text-right">
 <div class="userBubble">${text}</div>
 </div>`;
 
-currentChat.messages.push({
-role:"user",
-text:text
-});
-
-if(currentChat.title==="New Chat"){
-currentChat.title=text.slice(0,30);
-renderHistory();
-}
-
-prompt.value="";
-prompt.focus();
+box.value="";
 
 chatBox.innerHTML+=`
 <div id="typingBox" class="msgbox">
-<div class="text-xs text-violet-300 mb-2">${modelLabel()}</div>
-Thinking...
+<div class="typing"><span>.</span><span>.</span><span>.</span></div>
 </div>`;
 
 chatBox.scrollTop=chatBox.scrollHeight;
 
 try{
-
-const res=await fetch("/chat",{
+let res=await fetch("/chat",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
 body:JSON.stringify({
 message:text,
-mode:mode
+mode:mode,
+chat_id:currentChatId
 })
 });
 
-const data=await res.json();
+let data=await res.json();
 
 document.getElementById("typingBox")?.remove();
-
-let reply=formatReply(data.response || "No response");
 
 chatBox.innerHTML+=`
 <div class="msgbox">
-<div class="text-xs text-violet-300 mb-2">${modelLabel()}</div>
-${reply}
+<div class="text-xs text-white/50 mb-2">${data.label || mode.toUpperCase()}</div>
+${(data.response || "No response").replace(/\n/g,"<br>")}
 </div>`;
 
-currentChat.messages.push({
-role:"ai",
-text:reply,
-model:modelLabel()
-});
-
-saveChats();
+if(data.chat_id) currentChatId=data.chat_id;
 
 }catch(err){
-
 document.getElementById("typingBox")?.remove();
 
 chatBox.innerHTML+=`
-<div class="msgbox text-red-300">
-Backend /chat route not responding
-</div>`;
+<div class="msgbox text-red-300">Server Error</div>`;
 }
 
 chatBox.scrollTop=chatBox.scrollHeight;
 }
+
+/* ACCOUNT MENU ONLY IMPROVED */
+function toggleMenu(){
+
+menu.style.display = menu.style.display==="block" ? "none":"block";
+
+if(loggedUser){
+
+menu.innerHTML=`
+<div class="px-3 py-2 flex gap-3 items-center">
+<div class="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center font-bold">
+${loggedUser.name.slice(0,2).toUpperCase()}
+</div>
+<div class="flex-1">
+<div class="font-semibold">${loggedUser.name}</div>
+<div class="text-xs text-white/45 truncate">${loggedUser.email}</div>
+</div>
+</div>
+
+<div class="sep"></div>
+
+<div class="menuItem" onclick="openPanel('profile')">Profile</div>
+<div class="menuItem" onclick="openPanel('settings')">Settings</div>
+<div class="menuItem" onclick="openPanel('personalization')">Personalization</div>
+
+<div class="sep"></div>
+
+<div class="menuItem" onclick="openPanel('help')">Help</div>
+
+<div class="sep"></div>
+
+<div class="menuItem text-red-300" onclick="logoutUser()">Log out</div>
+`;
+
+}else{
+
+menu.innerHTML=`
+<div class="menuItem" onclick="openAuth('login')">Login</div>
+<div class="menuItem" onclick="openAuth('signup')">Sign Up</div>
+`;
+}
+}
+
+/* AUTH */
+function openAuth(type){
+authMode=type;
+authModal.style.display="flex";
+menu.style.display="none";
+authMsg.innerText="";
+
+if(type==="login"){
+authTitle.innerText="Login";
+authBtn.innerText="Login";
+authName.classList.add("hidden");
+switchText.innerText="Don't have an account?";
+switchBtn.innerText="Sign Up";
+}else{
+authTitle.innerText="Sign Up";
+authBtn.innerText="Create Account";
+authName.classList.remove("hidden");
+switchText.innerText="Already have an account?";
+switchBtn.innerText="Log In";
+}
+}
+
+function closeAuth(){
+authModal.style.display="none";
+}
+
+function switchAuth(){
+openAuth(authMode==="login"?"signup":"login");
+}
+
+async function submitAuth(){
+
+let payload={
+email:authEmail.value,
+password:authPass.value
+};
+
+if(authMode==="signup") payload.name=authName.value;
+
+let url=authMode==="login"?"/login":"/signup";
+
+try{
+let res=await fetch(url,{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify(payload)
+});
+
+let data=await res.json();
+
+if(data.ok){
+
+loggedUser=data.user || {
+name:payload.name || payload.email.split("@")[0],
+email:payload.email
+};
+
+updateUserUI();
+closeAuth();
+
+}else{
+authMsg.innerText=data.message || "Failed";
+}
+
+}catch{
+authMsg.innerText="Server Error";
+}
+}
+
+function logoutUser(){
+loggedUser=null;
+updateUserUI();
+menu.style.display="none";
+}
+
+function updateUserUI(){
+
+if(loggedUser){
+avatar.innerText=loggedUser.name.slice(0,2).toUpperCase();
+username.innerText=loggedUser.name;
+memberType.innerText="Member";
+}else{
+avatar.innerText="GU";
+username.innerText="Guest User";
+memberType.innerText="Guest";
+}
+}
+
+/* ACCOUNT PANELS */
+function openPanel(type){
+
+panelModal.style.display="flex";
+menu.style.display="none";
+
+if(type==="profile"){
+panelContent.innerHTML=`
+<div class="text-2xl text-violet-300 mb-4">Profile</div>
+<input class="authInput" value="${loggedUser.name}">
+<input class="authInput" value="${loggedUser.email}">
+<input class="authInput" value="${loggedUser.email.split('@')[0]}">
+<button class="btn">Save Changes</button>
+`;
+}
+
+if(type==="settings"){
+panelContent.innerHTML=`
+<div class="text-2xl text-violet-300 mb-4">Settings</div>
+<div class="menuItem">Appearance</div>
+<div class="menuItem">Accent Color</div>
+<div class="menuItem">Language</div>
+<div class="menuItem">Notifications</div>
+<div class="menuItem">Security</div>
+`;
+}
+
+if(type==="personalization"){
+panelContent.innerHTML=`
+<div class="text-2xl text-violet-300 mb-4">Personalization</div>
+<div class="menuItem">Memory</div>
+<div class="menuItem">Response Style</div>
+<div class="menuItem">Theme Behavior</div>
+`;
+}
+
+if(type==="help"){
+panelContent.innerHTML=`
+<div class="text-2xl text-violet-300 mb-4">Help</div>
+<div class="menuItem">FAQ</div>
+<div class="menuItem">Support</div>
+<div class="menuItem">About CIPHER</div>
+<div class="menuItem">Version 1.0</div>
+`;
+}
+}
+
+panelModal.onclick=function(e){
+if(e.target===panelModal) panelModal.style.display="none";
+};
+
+/* TOOLS (UNCHANGED) */
+function openTool(name){
+
+toolCounter++;
+let id="tool_"+toolCounter;
+let html="";
+
+if(name==="hash"){
+html=`
+<input id="${id}_text" class="toolInput" placeholder="Enter text">
+<select id="${id}_mode" class="toolInput">
+<option value="md5">MD5</option>
+<option value="sha256">SHA256</option>
+</select>
+<button class="btn" onclick="runTool('hash','${id}')">Run</button>`;
+}
+
+if(name==="base64"){
+html=`
+<input id="${id}_text" class="toolInput" placeholder="Enter text">
+<select id="${id}_mode" class="toolInput">
+<option value="encode">Encode</option>
+<option value="decode">Decode</option>
+</select>
+<button class="btn" onclick="runTool('base64','${id}')">Run</button>`;
+}
+
+if(name==="password"){
+html=`
+<input id="${id}_text" class="toolInput" placeholder="Enter password">
+<button class="btn" onclick="runTool('password','${id}')">Check</button>`;
+}
+
+if(name==="jwt"){
+html=`
+<textarea id="${id}_text" class="toolInput" placeholder="Paste JWT"></textarea>
+<button class="btn" onclick="runTool('jwt','${id}')">Decode</button>`;
+}
+
+chatBox.innerHTML+=`
+<div class="msgbox">
+<div class="text-violet-300 mb-3">TOOL PANEL • ${name.toUpperCase()}</div>
+${html}
+<div id="${id}_result" class="mt-3"></div>
+</div>`;
+
+chatBox.scrollTop=chatBox.scrollHeight;
+}
+
+async function runTool(name,id){
+
+let text=document.getElementById(id+"_text").value;
+let mode=document.getElementById(id+"_mode")?.value || "";
+
+let result=document.getElementById(id+"_result");
+result.innerHTML="Running...";
+
+try{
+let res=await fetch("/tool/"+name,{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({
+text:text,
+mode:mode,
+rtype:mode
+})
+});
+
+let data=await res.json();
+result.innerHTML=`<pre>${JSON.stringify(data,null,2)}</pre>`;
+
+}catch{
+result.innerHTML="<div class='text-red-300'>Tool Error</div>";
+}
+}
+
+/* TOOL INFO */
+function showInfo(e,title,desc,example){
+
+e.stopPropagation();
+
+toolPopup.style.display="block";
+toolPopup.innerHTML=`
+<div class="text-violet-300 font-bold mb-2">${title}</div>
+<div>${desc}</div>
+<div class="mt-3 text-cyan-300 text-sm">${example}</div>
+`;
+
+toolPopup.style.left=(e.clientX+10)+"px";
+toolPopup.style.top=(e.clientY+10)+"px";
+
+setTimeout(()=>{
+toolPopup.style.display="none";
+},10000);
+}
+
+document.addEventListener("click",(e)=>{
+if(!menu.contains(e.target) && !e.target.closest(".relative")){
+menu.style.display="none";
+}
+if(!toolPopup.contains(e.target)){
+toolPopup.style.display="none";
+}
+});
+
+/* INIT */
+updateUserUI();
 </script>
 
 </body>
