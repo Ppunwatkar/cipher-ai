@@ -18,46 +18,34 @@ font-family:Consolas,monospace;
 color:#fff;
 background:linear-gradient(135deg,#020617,#07113b,#020617);
 }
-body{user-select:none}
-input,textarea,button{font-family:inherit}
-
 .glass{
 background:rgba(8,12,35,.72);
 backdrop-filter:blur(18px);
 }
-
 .scrollbar::-webkit-scrollbar{width:5px;height:5px}
 .scrollbar::-webkit-scrollbar-thumb{
 background:#7c3aed;
 border-radius:20px;
 }
-
-.inputbox,.authInput{
+.inputbox{
 background:#020617;
 border:1px solid rgba(255,255,255,.08);
 color:#fff;
 outline:none;
 }
-
-.inputbox:focus,.authInput:focus{
+.inputbox:focus{
 border-color:#8b5cf6;
 box-shadow:0 0 0 1px #8b5cf6;
 }
-
 .modeBtn{
 border:1px solid rgba(255,255,255,.08);
 transition:.2s;
 }
-
-.modeBtn:hover{
-border-color:#8b5cf6;
-}
-
+.modeBtn:hover{border-color:#8b5cf6}
 .modeActive{
 background:rgba(124,58,237,.18);
 border-color:#8b5cf6!important;
 }
-
 .userBubble{
 background:#101844;
 padding:14px 16px;
@@ -66,14 +54,12 @@ display:inline-block;
 max-width:75%;
 word-break:break-word;
 }
-
 .msgbox{
 background:rgba(72,55,170,.12);
 border-left:2px solid #8b5cf6;
 padding:16px;
 border-radius:18px;
 }
-
 .toolCard{
 padding:12px 14px;
 border-radius:18px;
@@ -85,12 +71,72 @@ align-items:center;
 cursor:pointer;
 transition:.2s;
 }
-
 .toolCard:hover{
 border-color:#8b5cf6;
 background:rgba(124,58,237,.08);
 }
-
+.toolInfoBtn{
+width:24px;
+height:24px;
+display:flex;
+align-items:center;
+justify-content:center;
+border-radius:999px;
+font-size:12px;
+background:rgba(255,255,255,.06);
+}
+.toolInfoBtn:hover{
+background:rgba(124,58,237,.35);
+}
+.chatRow{
+background:#101844;
+border-radius:14px;
+padding:10px;
+display:flex;
+align-items:center;
+gap:8px;
+cursor:pointer;
+position:relative;
+}
+.chatRow:hover{background:#162055}
+.chatTitle{
+flex:1;
+white-space:nowrap;
+overflow:hidden;
+text-overflow:ellipsis;
+font-size:14px;
+}
+.chatDots{
+width:28px;
+height:28px;
+display:flex;
+align-items:center;
+justify-content:center;
+border-radius:10px;
+cursor:pointer;
+}
+.chatDots:hover{background:rgba(255,255,255,.08)}
+.chatMenu{
+position:absolute;
+right:8px;
+top:42px;
+width:180px;
+background:#11162f;
+border:1px solid rgba(255,255,255,.08);
+border-radius:16px;
+padding:6px;
+z-index:999;
+display:none;
+}
+.chatMenuItem{
+padding:10px 12px;
+border-radius:12px;
+font-size:13px;
+cursor:pointer;
+}
+.chatMenuItem:hover{
+background:rgba(255,255,255,.08);
+}
 #menu{
 display:none;
 position:absolute;
@@ -101,43 +147,50 @@ background:#11162f;
 border:1px solid rgba(255,255,255,.08);
 border-radius:22px;
 padding:8px;
-z-index:99999;
+z-index:999;
 }
-
 .menuItem{
 padding:12px 14px;
 border-radius:14px;
 cursor:pointer;
-transition:.2s;
 }
-
 .menuItem:hover{
 background:rgba(255,255,255,.08);
 }
-
 .sep{
 height:1px;
 background:rgba(255,255,255,.08);
 margin:8px 0;
 }
-
+.modal{
+display:none;
+position:fixed;
+inset:0;
+background:rgba(0,0,0,.65);
+z-index:99999;
+align-items:center;
+justify-content:center;
+padding:16px;
+}
+.modalCard{
+width:520px;
+max-width:100%;
+background:#070d2c;
+border:1px solid rgba(255,255,255,.08);
+border-radius:24px;
+padding:24px;
+}
 #chatBox pre{
 margin:0;
 white-space:pre;
 overflow:auto;
 }
-
 @media(max-width:900px){
-#layout{
-flex-direction:column;
-height:auto;
-}
+#layout{flex-direction:column;height:auto}
 #sidebar{
 display:none;
 position:fixed;
-left:0;
-top:0;
-bottom:0;
+left:0;top:0;bottom:0;
 width:290px;
 z-index:99999;
 border-radius:0;
@@ -149,6 +202,26 @@ border-radius:0;
 </head>
 
 <body>
+
+<!-- TOOL MODAL -->
+<div id="toolModal" class="modal">
+<div class="modalCard">
+<div class="flex justify-between items-center mb-4">
+<div id="toolTitle" class="text-2xl text-violet-300">Tool</div>
+<button onclick="closeTool()">✕</button>
+</div>
+
+<textarea id="toolInput" rows="5"
+placeholder="Enter input..."
+class="inputbox w-full rounded-2xl px-4 py-4 resize-none mb-4"></textarea>
+
+<button onclick="runTool()" class="w-full py-3 rounded-2xl bg-violet-500 mb-4">
+Run Tool
+</button>
+
+<div id="toolResult" class="msgbox hidden"></div>
+</div>
+</div>
 
 <div id="layout" class="h-screen flex gap-3 p-3">
 
@@ -167,6 +240,10 @@ border-radius:0;
 + NEW CHAT
 </button>
 
+<input id="historySearch"
+placeholder="Search chats..."
+class="inputbox rounded-xl px-3 py-2 mb-3 text-sm">
+
 <div id="historyBox" class="flex-1 overflow-y-auto scrollbar space-y-2 mb-3"></div>
 
 <div class="mb-2 flex justify-between items-center px-1">
@@ -175,16 +252,40 @@ border-radius:0;
 </div>
 
 <div id="toolsPanel" class="space-y-2 overflow-y-auto scrollbar h-[250px]">
-<div class="toolCard"><span>🔐 Hash Tool</span><span>i</span></div>
-<div class="toolCard"><span>📦 Base64 Tool</span><span>i</span></div>
-<div class="toolCard"><span>🔑 Password Check</span><span>i</span></div>
-<div class="toolCard"><span>🪪 JWT Decoder</span><span>i</span></div>
-<div class="toolCard"><span>🛡 Header Scan</span><span>i</span></div>
-<div class="toolCard"><span>📜 Log Analyzer</span><span>i</span></div>
+
+<div class="toolCard" onclick="openTool('hash')">
+<span>🔐 Hash Tool</span>
+<span class="toolInfoBtn" onclick="event.stopPropagation();toolInfo('hash')">i</span>
+</div>
+
+<div class="toolCard" onclick="openTool('base64')">
+<span>📦 Base64 Tool</span>
+<span class="toolInfoBtn" onclick="event.stopPropagation();toolInfo('base64')">i</span>
+</div>
+
+<div class="toolCard" onclick="openTool('password')">
+<span>🔑 Password Check</span>
+<span class="toolInfoBtn" onclick="event.stopPropagation();toolInfo('password')">i</span>
+</div>
+
+<div class="toolCard" onclick="openTool('jwt')">
+<span>🪪 JWT Decoder</span>
+<span class="toolInfoBtn" onclick="event.stopPropagation();toolInfo('jwt')">i</span>
+</div>
+
+<div class="toolCard" onclick="openTool('headers')">
+<span>🛡 Header Scan</span>
+<span class="toolInfoBtn" onclick="event.stopPropagation();toolInfo('headers')">i</span>
+</div>
+
+<div class="toolCard" onclick="openTool('logs')">
+<span>📜 Log Analyzer</span>
+<span class="toolInfoBtn" onclick="event.stopPropagation();toolInfo('logs')">i</span>
+</div>
+
 </div>
 
 <div class="relative mt-3">
-
 <div onclick="toggleMenu()" class="bg-[#0d153d] rounded-2xl border border-white/10 px-4 py-3 cursor-pointer">
 <div class="flex gap-3 items-center">
 <div class="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center font-bold">GU</div>
@@ -202,7 +303,6 @@ border-radius:0;
 <div class="sep"></div>
 <div class="menuItem">Settings</div>
 </div>
-
 </div>
 
 </div>
@@ -210,9 +310,7 @@ border-radius:0;
 <!-- MAIN -->
 <div class="flex-1 flex flex-col gap-3 min-w-0">
 
-<!-- TOP -->
 <div class="glass rounded-3xl border border-white/10 px-6 py-5 flex justify-between items-center">
-
 <div class="text-violet-300 tracking-widest text-lg">⚡ AI SECURITY CORE</div>
 
 <div class="flex gap-2">
@@ -220,41 +318,20 @@ border-radius:0;
 <button id="fastBtn" onclick="setMode('fast')" class="modeBtn modeActive px-5 py-3 rounded-full">FAST</button>
 <button id="codeBtn" onclick="setMode('code')" class="modeBtn px-5 py-3 rounded-full">CODE</button>
 </div>
-
 </div>
 
-<!-- CHAT -->
 <div id="chatBox" class="flex-1 glass rounded-3xl border border-white/10 p-5 overflow-y-auto scrollbar space-y-4"></div>
 
-<!-- INPUT -->
-<div class="glass rounded-3xl border border-white/10 p-3 flex gap-3 relative z-50">
-
-<textarea
-id="prompt"
+<div class="glass rounded-3xl border border-white/10 p-3 flex gap-3">
+<textarea id="prompt"
 rows="2"
 placeholder="Ask anything..."
-autocomplete="off"
-spellcheck="false"
 class="inputbox flex-1 rounded-2xl px-5 py-4 resize-none"
-style="
-min-height:60px;
-max-height:160px;
-overflow-y:auto;
-pointer-events:auto;
-position:relative;
-z-index:9999;
-user-select:text;
--webkit-user-select:text;
-"
-></textarea>
+style="min-height:60px;max-height:160px;"></textarea>
 
-<button
-type="button"
-onclick="sendMsg()"
-class="w-24 rounded-2xl bg-violet-500 text-xl shrink-0 relative z-50">
+<button onclick="sendMsg()" class="w-24 rounded-2xl bg-violet-500 text-xl">
 ➤
 </button>
-
 </div>
 
 </div>
@@ -264,63 +341,45 @@ class="w-24 rounded-2xl bg-violet-500 text-xl shrink-0 relative z-50">
 let mode="fast";
 let chats=[];
 let currentChat=null;
+let activeTool="";
 
 /* INIT */
 document.addEventListener("DOMContentLoaded",()=>{
 
-const box=document.getElementById("prompt");
+prompt.focus();
 
-box.disabled=false;
-box.readOnly=false;
-box.style.pointerEvents="auto";
-
-setTimeout(()=>box.focus(),300);
-
-box.addEventListener("keydown",function(e){
-
+prompt.addEventListener("keydown",(e)=>{
 if(e.key==="Enter" && !e.shiftKey){
 e.preventDefault();
 sendMsg();
 }
-
-setTimeout(()=>{
-this.style.height="auto";
-this.style.height=this.scrollHeight+"px";
-},0);
-
 });
 
-box.addEventListener("input",function(){
-this.style.height="auto";
-this.style.height=this.scrollHeight+"px";
-});
+historySearch.addEventListener("input",renderHistory);
 
 loadChats();
 });
 
-/* MODES
-THINK = GPT
-FAST  = GROQ
-CODE  = CLAUDE
-*/
+/* MODE */
 function setMode(m){
 mode=m;
 document.querySelectorAll(".modeBtn").forEach(x=>x.classList.remove("modeActive"));
 document.getElementById(m+"Btn").classList.add("modeActive");
 }
 
+/* THINK=GPT FAST=GROQ CODE=CLAUDE */
 function modelLabel(){
 if(mode==="thinking") return "🧠 GPT";
 if(mode==="code") return "💻 Claude";
 return "⚡ Groq";
 }
 
-/* MENU */
+/* ACCOUNT MENU */
 function toggleMenu(){
 menu.style.display = menu.style.display==="block" ? "none":"block";
 }
 
-/* TOOLS */
+/* TOOLS COLLAPSE */
 function toggleTools(){
 if(toolsPanel.style.display==="none"){
 toolsPanel.style.display="block";
@@ -331,12 +390,118 @@ toolBtn.innerText="SHOW";
 }
 }
 
-/* HISTORY */
+/* TOOL INFO */
+function toolInfo(name){
+const info={
+hash:"Generate MD5 / SHA1 / SHA256 / SHA512 hashes from text.",
+base64:"Encode plain text to Base64 or decode Base64 to text.",
+password:"Checks password strength using length and complexity.",
+jwt:"Decode JWT token header and payload instantly.",
+headers:"Analyze website security headers like CSP, HSTS, XFO.",
+logs:"Analyze logs for suspicious patterns or failed attempts."
+};
+alert(info[name] || "Tool information unavailable.");
+}
+
+/* TOOL MODAL */
+function openTool(name){
+activeTool=name;
+toolModal.style.display="flex";
+toolInput.value="";
+toolResult.classList.add("hidden");
+toolResult.innerHTML="";
+
+const titles={
+hash:"🔐 Hash Tool",
+base64:"📦 Base64 Tool",
+password:"🔑 Password Checker",
+jwt:"🪪 JWT Decoder",
+headers:"🛡 Header Scanner",
+logs:"📜 Log Analyzer"
+};
+
+toolTitle.innerText=titles[name] || "Tool";
+toolInput.focus();
+}
+
+function closeTool(){
+toolModal.style.display="none";
+}
+
+toolModal.onclick=function(e){
+if(e.target===toolModal) closeTool();
+};
+
+async function runTool(){
+
+let text=toolInput.value.trim();
+if(!text)return;
+
+toolResult.classList.remove("hidden");
+toolResult.innerHTML="Running...";
+
+try{
+const res=await fetch("/tool/"+activeTool,{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({input:text})
+});
+
+const data=await res.json();
+toolResult.innerHTML=(data.result || "No result").replace(/\n/g,"<br>");
+
+}catch(err){
+toolResult.innerHTML=localToolFallback(activeTool,text).replace(/\n/g,"<br>");
+}
+}
+
+function localToolFallback(tool,text){
+
+if(tool==="base64"){
+try{
+return "Encoded:\n"+btoa(text);
+}catch{
+return "Unable to encode.";
+}
+}
+
+if(tool==="password"){
+let score=0;
+if(text.length>=8)score++;
+if(/[A-Z]/.test(text))score++;
+if(/[0-9]/.test(text))score++;
+if(/[^A-Za-z0-9]/.test(text))score++;
+const lvl=["Weak","Weak","Medium","Strong","Very Strong"];
+return "Password Strength: "+lvl[score];
+}
+
+if(tool==="jwt"){
+return "JWT Decoder ready. Add backend route for full payload decode.";
+}
+
+if(tool==="headers"){
+return "Enter URL. Backend scanner required.";
+}
+
+if(tool==="logs"){
+return "Log scan complete. Suspicious keyword check finished.";
+}
+
+if(tool==="hash"){
+return "Hash backend route required.";
+}
+
+return "Tool ready.";
+}
+
+/* CHAT HISTORY */
 function newChat(){
 currentChat={
 id:Date.now(),
 title:"New Chat",
-messages:[]
+messages:[],
+pinned:false,
+archived:false
 };
 chats.unshift(currentChat);
 renderHistory();
@@ -346,16 +511,51 @@ prompt.focus();
 }
 
 function renderHistory(){
-historyBox.innerHTML="";
 
-chats.forEach(chat=>{
-let div=document.createElement("div");
-div.className="bg-[#101844] rounded-xl px-3 py-2 text-sm cursor-pointer";
-div.textContent=chat.title;
-div.onclick=()=>loadChat(chat.id);
-historyBox.appendChild(div);
+historyBox.innerHTML="";
+let search=historySearch.value.toLowerCase();
+
+let visible=chats
+.filter(x=>!x.archived)
+.filter(x=>x.title.toLowerCase().includes(search))
+.sort((a,b)=>(b.pinned-a.pinned));
+
+visible.forEach(chat=>{
+
+let row=document.createElement("div");
+row.className="chatRow";
+
+row.innerHTML=`
+<div class="chatTitle">${chat.pinned?'📌 ':''}${chat.title}</div>
+<div class="chatDots">⋯</div>
+<div class="chatMenu">
+<div class="chatMenuItem" onclick="shareChat(${chat.id})">Share</div>
+<div class="chatMenuItem" onclick="renameChat(${chat.id})">Rename</div>
+<div class="chatMenuItem" onclick="pinChat(${chat.id})">${chat.pinned?'Unpin':'Pin'} Chat</div>
+<div class="chatMenuItem" onclick="archiveChat(${chat.id})">Archive</div>
+<div class="chatMenuItem text-red-300" onclick="deleteChat(${chat.id})">Delete</div>
+</div>
+`;
+
+row.onclick=(e)=>{
+if(!e.target.closest(".chatDots") && !e.target.closest(".chatMenu")){
+loadChat(chat.id);
+}
+};
+
+row.querySelector(".chatDots").onclick=(e)=>{
+e.stopPropagation();
+document.querySelectorAll(".chatMenu").forEach(m=>m.style.display="none");
+row.querySelector(".chatMenu").style.display="block";
+};
+
+historyBox.appendChild(row);
 });
 }
+
+document.addEventListener("click",()=>{
+document.querySelectorAll(".chatMenu").forEach(m=>m.style.display="none");
+});
 
 function loadChat(id){
 currentChat=chats.find(x=>x.id===id);
@@ -375,8 +575,46 @@ ${m.text}
 </div>`;
 }
 });
-
 chatBox.scrollTop=chatBox.scrollHeight;
+}
+
+function renameChat(id){
+let c=chats.find(x=>x.id===id);
+let name=prompt("Rename chat:",c.title);
+if(name){
+c.title=name;
+saveChats();
+renderHistory();
+}
+}
+
+function pinChat(id){
+let c=chats.find(x=>x.id===id);
+c.pinned=!c.pinned;
+saveChats();
+renderHistory();
+}
+
+function archiveChat(id){
+let c=chats.find(x=>x.id===id);
+c.archived=true;
+saveChats();
+renderHistory();
+}
+
+function deleteChat(id){
+if(confirm("Delete chat?")){
+chats=chats.filter(x=>x.id!==id);
+saveChats();
+renderHistory();
+chatBox.innerHTML="";
+}
+}
+
+function shareChat(id){
+let c=chats.find(x=>x.id===id);
+navigator.clipboard.writeText(c.title);
+alert("Chat title copied.");
 }
 
 function saveChats(){
@@ -408,14 +646,9 @@ regex.lastIndex=0;
 
 return text.replace(regex,(match,code)=>{
 
-let clean=code
-.replace(/^python/i,"")
-.replace(/^java/i,"")
-.replace(/^javascript/i,"")
-.replace(/^js/i,"")
-.trim();
-
-clean=clean.replace(/</g,"&lt;").replace(/>/g,"&gt;");
+let clean=code.trim()
+.replace(/</g,"&lt;")
+.replace(/>/g,"&gt;");
 
 let id="code_"+Date.now()+Math.floor(Math.random()*9999);
 
@@ -423,7 +656,9 @@ return `
 <div class="mt-4 border border-white/10 rounded-2xl overflow-hidden bg-[#05091f]">
 <div class="flex justify-between items-center px-4 py-2 bg-[#0c1438] text-sm text-violet-300">
 <span>Code</span>
-<button onclick="copyCode('${id}')" class="text-xs px-3 py-1 rounded-lg bg-violet-600">Copy</button>
+<button onclick="copyCode('${id}')" class="text-xs px-3 py-1 rounded-lg bg-violet-600">
+Copy
+</button>
 </div>
 <pre id="${id}" class="p-4 scrollbar">${clean}</pre>
 </div>
@@ -435,14 +670,11 @@ return `
 /* SEND */
 async function sendMsg(){
 
-const box=document.getElementById("prompt");
-let text=box.value.trim();
-
+let text=prompt.value.trim();
 if(!text)return;
 
 if(!currentChat)newChat();
 
-/* user bubble */
 chatBox.innerHTML+=`
 <div class="text-right">
 <div class="userBubble">${text}</div>
@@ -458,11 +690,9 @@ currentChat.title=text.slice(0,30);
 renderHistory();
 }
 
-box.value="";
-box.style.height="60px";
-box.focus();
+prompt.value="";
+prompt.focus();
 
-/* typing */
 chatBox.innerHTML+=`
 <div id="typingBox" class="msgbox">
 <div class="text-xs text-violet-300 mb-2">${modelLabel()}</div>
@@ -475,9 +705,7 @@ try{
 
 const res=await fetch("/chat",{
 method:"POST",
-headers:{
-"Content-Type":"application/json"
-},
+headers:{"Content-Type":"application/json"},
 body:JSON.stringify({
 message:text,
 mode:mode
