@@ -8,6 +8,7 @@
 <script src="https://cdn.tailwindcss.com"></script>
 
 <style>
+*{box-sizing:border-box}
 body{
 margin:0;
 padding:0;
@@ -106,6 +107,7 @@ z-index:99999;
 }
 .modalCard{
 width:420px;
+max-width:95%;
 background:#070d2c;
 border:1px solid rgba(255,255,255,.08);
 border-radius:24px;
@@ -122,6 +124,11 @@ padding:11px 16px;
 border-radius:14px;
 background:#7c3aed;
 width:100%;
+}
+#prompt{
+pointer-events:auto;
+position:relative;
+z-index:5;
 }
 @media(max-width:900px){
 body{overflow:auto}
@@ -157,9 +164,7 @@ border-radius:0;
 
 <div class="relative">
 <input id="authPass" type="password" class="authInput pr-12" placeholder="Password">
-<button onclick="togglePassword()" class="absolute right-3 top-3 text-sm text-violet-300">
-👁
-</button>
+<button onclick="togglePassword()" class="absolute right-3 top-3 text-violet-300">👁</button>
 </div>
 
 <button class="btn" onclick="submitAuth()" id="authBtn">Login</button>
@@ -181,7 +186,7 @@ border-radius:0;
 
 <div id="layout" class="h-screen flex gap-3 p-3">
 
-<!-- LEFT -->
+<!-- SIDEBAR -->
 <div id="sidebar" class="w-[300px] glass rounded-3xl border border-white/10 p-4 flex flex-col h-full overflow-hidden">
 
 <div class="flex gap-3 items-center mb-4">
@@ -212,7 +217,6 @@ border-radius:0;
 <div class="toolCard"><div>📜 Log Analyzer</div><div>i</div></div>
 </div>
 
-<!-- ACCOUNT -->
 <div class="relative mt-3">
 
 <div onclick="toggleMenu()"
@@ -241,7 +245,7 @@ GU
 
 </div>
 
-<!-- RIGHT -->
+<!-- MAIN -->
 <div class="flex-1 flex flex-col gap-3">
 
 <div class="glass rounded-3xl border border-white/10 px-6 py-5 flex justify-between items-center">
@@ -261,21 +265,24 @@ GU
 
 <div id="chatBox" class="flex-1 glass rounded-3xl border border-white/10 p-5 overflow-y-auto scrollbar space-y-4"></div>
 
+<!-- INPUT -->
 <div class="glass rounded-3xl border border-white/10 p-3 flex gap-3">
 
-<textarea id="prompt"
+<textarea
+id="prompt"
 rows="2"
 placeholder="Ask anything..."
 class="inputbox flex-1 rounded-2xl px-5 py-4 resize-none"></textarea>
 
-<button onclick="sendMsg()" class="w-24 rounded-2xl bg-violet-500 text-xl">
+<button type="button"
+onclick="sendMsg()"
+class="w-24 rounded-2xl bg-violet-500 text-xl shrink-0">
 ➤
 </button>
 
 </div>
 
 </div>
-
 </div>
 
 <script>
@@ -284,6 +291,22 @@ let authMode="login";
 let loggedUser=null;
 let chats=[];
 let currentChat=null;
+
+/* INIT INPUT FIX */
+document.addEventListener("DOMContentLoaded",()=>{
+
+const box=document.getElementById("prompt");
+
+box.addEventListener("keydown",function(e){
+if(e.key==="Enter" && !e.shiftKey){
+e.preventDefault();
+sendMsg();
+}
+});
+
+box.focus();
+
+});
 
 /* MODE */
 function setMode(m){
@@ -300,7 +323,7 @@ return "⚡ Groq";
 
 /* PASSWORD */
 function togglePassword(){
-authPass.type = authPass.type==="password" ? "text":"password";
+authPass.type=authPass.type==="password"?"text":"password";
 }
 
 /* SIDEBAR */
@@ -330,6 +353,7 @@ chats.unshift(currentChat);
 renderHistory();
 chatBox.innerHTML="";
 saveChats();
+prompt.focus();
 }
 
 function renderHistory(){
@@ -348,7 +372,6 @@ currentChat=chats.find(x=>x.id===id);
 chatBox.innerHTML="";
 
 currentChat.messages.forEach(m=>{
-
 if(m.role==="user"){
 chatBox.innerHTML+=`
 <div class="text-right">
@@ -361,7 +384,6 @@ chatBox.innerHTML+=`
 ${m.text}
 </div>`;
 }
-
 });
 }
 
@@ -377,10 +399,12 @@ renderHistory();
 }
 }
 
-/* SEND */
+/* SEND FIXED */
 async function sendMsg(){
 
-let text=prompt.value.trim();
+const box=document.getElementById("prompt");
+let text=box.value.trim();
+
 if(!text)return;
 
 if(!currentChat)newChat();
@@ -390,14 +414,18 @@ chatBox.innerHTML+=`
 <div class="userBubble">${text}</div>
 </div>`;
 
-currentChat.messages.push({role:"user",text:text});
+currentChat.messages.push({
+role:"user",
+text:text
+});
 
 if(currentChat.title==="New Chat"){
 currentChat.title=text.slice(0,28);
 renderHistory();
 }
 
-prompt.value="";
+box.value="";
+box.focus();
 
 chatBox.innerHTML+=`
 <div id="typingBox" class="msgbox">
@@ -409,18 +437,20 @@ chatBox.scrollTop=chatBox.scrollHeight;
 
 try{
 
-let res=await fetch("/chat",{
+const res=await fetch("/chat",{
 method:"POST",
-headers:{"Content-Type":"application/json"},
+headers:{
+"Content-Type":"application/json"
+},
 body:JSON.stringify({
 message:text,
 mode:mode
 })
 });
 
-let data=await res.json();
+const data=await res.json();
 
-typingBox.remove();
+document.getElementById("typingBox")?.remove();
 
 let reply=(data.response || "No response").replace(/\n/g,"<br>");
 
@@ -440,11 +470,11 @@ saveChats();
 
 }catch(err){
 
-typingBox.remove();
+document.getElementById("typingBox")?.remove();
 
 chatBox.innerHTML+=`
 <div class="msgbox text-red-300">
-Server Error / Backend Not Running
+Backend /chat route not responding
 </div>`;
 }
 
@@ -479,7 +509,6 @@ menu.innerHTML=`
 
 /* AUTH */
 function openAuth(type){
-
 authMode=type;
 authModal.style.display="flex";
 authMsg.innerText="";
@@ -531,7 +560,6 @@ return;
 
 users.push({name,email,pass});
 localStorage.setItem("cipher_users",JSON.stringify(users));
-
 loggedUser={name,email};
 
 }else{
@@ -550,7 +578,6 @@ email:found.email
 }
 
 localStorage.setItem("cipher_user",JSON.stringify(loggedUser));
-
 updateUserUI();
 closeAuth();
 }
@@ -601,7 +628,7 @@ updateUserUI();
 menu.style.display="none";
 }
 
-/* UI */
+/* USER UI */
 function updateUserUI(){
 
 let saved=localStorage.getItem("cipher_user");
