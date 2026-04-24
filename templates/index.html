@@ -19,7 +19,7 @@ color:#fff;
 background:linear-gradient(135deg,#020617,#07113b,#020617);
 }
 body{user-select:none}
-input,textarea,button{font-family:inherit}
+input,textarea,button,select{font-family:inherit}
 
 .glass{
 background:rgba(8,12,35,.72);
@@ -32,14 +32,14 @@ background:#7c3aed;
 border-radius:20px;
 }
 
-.inputbox,.authInput{
+.inputbox,.authInput,.toolInput{
 background:#020617;
 border:1px solid rgba(255,255,255,.08);
 color:#fff;
 outline:none;
 }
 
-.inputbox:focus,.authInput:focus{
+.inputbox:focus,.authInput:focus,.toolInput:focus{
 border-color:#8b5cf6;
 box-shadow:0 0 0 1px #8b5cf6;
 }
@@ -48,11 +48,7 @@ box-shadow:0 0 0 1px #8b5cf6;
 border:1px solid rgba(255,255,255,.08);
 transition:.2s;
 }
-
-.modeBtn:hover{
-border-color:#8b5cf6;
-}
-
+.modeBtn:hover{border-color:#8b5cf6}
 .modeActive{
 background:rgba(124,58,237,.18);
 border-color:#8b5cf6!important;
@@ -85,7 +81,6 @@ align-items:center;
 cursor:pointer;
 transition:.2s;
 }
-
 .toolCard:hover{
 border-color:#8b5cf6;
 background:rgba(124,58,237,.08);
@@ -110,7 +105,6 @@ border-radius:14px;
 cursor:pointer;
 transition:.2s;
 }
-
 .menuItem:hover{
 background:rgba(255,255,255,.08);
 }
@@ -123,8 +117,34 @@ margin:8px 0;
 
 #chatBox pre{
 margin:0;
-white-space:pre;
+white-space:pre-wrap;
 overflow:auto;
+}
+
+#authModal,#panelModal{
+position:fixed;
+inset:0;
+display:none;
+align-items:center;
+justify-content:center;
+background:rgba(0,0,0,.55);
+z-index:999999;
+}
+
+.modalCard{
+width:420px;
+max-width:92%;
+background:#070d2c;
+border:1px solid rgba(255,255,255,.08);
+border-radius:24px;
+padding:24px;
+}
+
+.btn{
+padding:12px;
+border-radius:14px;
+background:#7c3aed;
+width:100%;
 }
 
 @media(max-width:900px){
@@ -149,6 +169,36 @@ border-radius:0;
 </head>
 
 <body>
+
+<!-- AUTH MODAL -->
+<div id="authModal">
+<div class="modalCard">
+
+<div class="flex justify-between items-center mb-4">
+<div id="authTitle" class="text-3xl text-violet-300">Login</div>
+<button onclick="closeAuth()">✕</button>
+</div>
+
+<input id="authName" class="authInput w-full px-4 py-3 rounded-xl mb-3 hidden" placeholder="Full Name">
+<input id="authEmail" class="authInput w-full px-4 py-3 rounded-xl mb-3" placeholder="Email">
+<input id="authPass" type="password" class="authInput w-full px-4 py-3 rounded-xl mb-3" placeholder="Password">
+
+<button onclick="submitAuth()" id="authBtn" class="btn">Login</button>
+
+<div class="text-center mt-4 text-sm text-white/60">
+<span id="switchText">Don't have an account?</span>
+<button onclick="switchAuth()" id="switchBtn" class="text-violet-300 ml-1">Sign Up</button>
+</div>
+
+<div id="authMsg" class="text-red-300 text-sm mt-3"></div>
+
+</div>
+</div>
+
+<!-- SETTINGS PANEL -->
+<div id="panelModal">
+<div class="modalCard" id="panelContent"></div>
+</div>
 
 <div id="layout" class="h-screen flex gap-3 p-3">
 
@@ -175,33 +225,35 @@ border-radius:0;
 </div>
 
 <div id="toolsPanel" class="space-y-2 overflow-y-auto scrollbar h-[250px]">
-<div class="toolCard"><span>🔐 Hash Tool</span><span>i</span></div>
-<div class="toolCard"><span>📦 Base64 Tool</span><span>i</span></div>
-<div class="toolCard"><span>🔑 Password Check</span><span>i</span></div>
-<div class="toolCard"><span>🪪 JWT Decoder</span><span>i</span></div>
-<div class="toolCard"><span>🛡 Header Scan</span><span>i</span></div>
-<div class="toolCard"><span>📜 Log Analyzer</span><span>i</span></div>
+
+<div class="toolCard" onclick="openTool('hash')"><span>🔐 Hash Tool</span><span>i</span></div>
+<div class="toolCard" onclick="openTool('base64')"><span>📦 Base64 Tool</span><span>i</span></div>
+<div class="toolCard" onclick="openTool('password')"><span>🔑 Password Check</span><span>i</span></div>
+<div class="toolCard" onclick="openTool('jwt')"><span>🪪 JWT Decoder</span><span>i</span></div>
+<div class="toolCard" onclick="openTool('headers')"><span>🛡 Header Scan</span><span>i</span></div>
+<div class="toolCard" onclick="openTool('logs')"><span>📜 Log Analyzer</span><span>i</span></div>
+
 </div>
 
+<!-- ACCOUNT -->
 <div class="relative mt-3">
 
 <div onclick="toggleMenu()" class="bg-[#0d153d] rounded-2xl border border-white/10 px-4 py-3 cursor-pointer">
 <div class="flex gap-3 items-center">
-<div class="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center font-bold">GU</div>
+
+<div id="avatar" class="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center font-bold">GU</div>
+
 <div class="flex-1">
-<div>Guest User</div>
-<div class="text-xs text-white/45">Guest</div>
+<div id="username">Guest User</div>
+<div id="memberType" class="text-xs text-white/45">Guest</div>
 </div>
+
 <div>›</div>
+
 </div>
 </div>
 
-<div id="menu">
-<div class="menuItem">Login</div>
-<div class="menuItem">Sign Up</div>
-<div class="sep"></div>
-<div class="menuItem">Settings</div>
-</div>
+<div id="menu"></div>
 
 </div>
 
@@ -236,22 +288,9 @@ placeholder="Ask anything..."
 autocomplete="off"
 spellcheck="false"
 class="inputbox flex-1 rounded-2xl px-5 py-4 resize-none"
-style="
-min-height:60px;
-max-height:160px;
-overflow-y:auto;
-pointer-events:auto;
-position:relative;
-z-index:9999;
-user-select:text;
--webkit-user-select:text;
-"
-></textarea>
+style="min-height:60px;max-height:160px;overflow-y:auto;"></textarea>
 
-<button
-type="button"
-onclick="sendMsg()"
-class="w-24 rounded-2xl bg-violet-500 text-xl shrink-0 relative z-50">
+<button type="button" onclick="sendMsg()" class="w-24 rounded-2xl bg-violet-500 text-xl shrink-0">
 ➤
 </button>
 
@@ -265,44 +304,35 @@ let mode="fast";
 let chats=[];
 let currentChat=null;
 
+let authMode="login";
+let loggedUser=null;
+
 /* INIT */
 document.addEventListener("DOMContentLoaded",()=>{
 
 const box=document.getElementById("prompt");
 
-box.disabled=false;
-box.readOnly=false;
-box.style.pointerEvents="auto";
-
-setTimeout(()=>box.focus(),300);
-
 box.addEventListener("keydown",function(e){
-
 if(e.key==="Enter" && !e.shiftKey){
 e.preventDefault();
 sendMsg();
 }
-
-setTimeout(()=>{
-this.style.height="auto";
-this.style.height=this.scrollHeight+"px";
-},0);
-
+setTimeout(autoGrow,0);
 });
 
-box.addEventListener("input",function(){
-this.style.height="auto";
-this.style.height=this.scrollHeight+"px";
-});
+box.addEventListener("input",autoGrow);
 
 loadChats();
+updateUserUI();
 });
 
-/* MODES
-THINK = GPT
-FAST  = GROQ
-CODE  = CLAUDE
-*/
+function autoGrow(){
+const box=document.getElementById("prompt");
+box.style.height="auto";
+box.style.height=box.scrollHeight+"px";
+}
+
+/* MODE */
 function setMode(m){
 mode=m;
 document.querySelectorAll(".modeBtn").forEach(x=>x.classList.remove("modeActive"));
@@ -315,10 +345,171 @@ if(mode==="code") return "💻 Claude";
 return "⚡ Groq";
 }
 
-/* MENU */
+/* ACCOUNT */
 function toggleMenu(){
+
 menu.style.display = menu.style.display==="block" ? "none":"block";
+
+if(loggedUser){
+
+menu.innerHTML=`
+<div class="px-3 py-2">
+<div class="font-semibold">${loggedUser.name}</div>
+<div class="text-xs text-white/45">${loggedUser.email}</div>
+</div>
+
+<div class="sep"></div>
+
+<div class="menuItem" onclick="openPanel('profile')">Profile</div>
+<div class="menuItem" onclick="openPanel('settings')">Settings</div>
+<div class="menuItem" onclick="openPanel('personal')">Personalization</div>
+
+<div class="sep"></div>
+
+<div class="menuItem" onclick="openPanel('help')">Help</div>
+
+<div class="sep"></div>
+
+<div class="menuItem text-red-300" onclick="logoutUser()">Log out</div>
+`;
+
+}else{
+
+menu.innerHTML=`
+<div class="menuItem" onclick="openAuth('login')">Login</div>
+<div class="menuItem" onclick="openAuth('signup')">Sign Up</div>
+`;
 }
+}
+
+function openAuth(type){
+authMode=type;
+authModal.style.display="flex";
+menu.style.display="none";
+authMsg.innerText="";
+
+if(type==="login"){
+authTitle.innerText="Login";
+authBtn.innerText="Login";
+authName.classList.add("hidden");
+switchText.innerText="Don't have an account?";
+switchBtn.innerText="Sign Up";
+}else{
+authTitle.innerText="Sign Up";
+authBtn.innerText="Create Account";
+authName.classList.remove("hidden");
+switchText.innerText="Already have an account?";
+switchBtn.innerText="Log In";
+}
+}
+
+function closeAuth(){
+authModal.style.display="none";
+}
+
+function switchAuth(){
+openAuth(authMode==="login"?"signup":"login");
+}
+
+async function submitAuth(){
+
+let payload={
+email:authEmail.value,
+password:authPass.value
+};
+
+if(authMode==="signup"){
+payload.name=authName.value;
+}
+
+let url=authMode==="login" ? "/login" : "/signup";
+
+try{
+let res=await fetch(url,{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify(payload)
+});
+
+let data=await res.json();
+
+if(data.ok){
+
+loggedUser=data.user || {
+name:payload.name || payload.email.split("@")[0],
+email:payload.email
+};
+
+updateUserUI();
+closeAuth();
+
+}else{
+authMsg.innerText=data.message || "Failed";
+}
+
+}catch{
+authMsg.innerText="Server Error";
+}
+}
+
+function logoutUser(){
+loggedUser=null;
+updateUserUI();
+menu.style.display="none";
+}
+
+function updateUserUI(){
+
+if(loggedUser){
+avatar.innerText=loggedUser.name.slice(0,2).toUpperCase();
+username.innerText=loggedUser.name;
+memberType.innerText="Member";
+}else{
+avatar.innerText="GU";
+username.innerText="Guest User";
+memberType.innerText="Guest";
+}
+}
+
+function openPanel(type){
+
+panelModal.style.display="flex";
+
+if(type==="profile"){
+panelContent.innerHTML=`
+<div class="text-2xl text-violet-300 mb-4">Profile</div>
+<input class="authInput w-full px-4 py-3 rounded-xl mb-3" value="${loggedUser.name}">
+<input class="authInput w-full px-4 py-3 rounded-xl mb-3" value="${loggedUser.email}">
+<button class="btn">Save</button>`;
+}
+
+if(type==="settings"){
+panelContent.innerHTML=`
+<div class="text-2xl text-violet-300 mb-4">Settings</div>
+<div class="menuItem">Appearance</div>
+<div class="menuItem">Language</div>
+<div class="menuItem">Security</div>`;
+}
+
+if(type==="personal"){
+panelContent.innerHTML=`
+<div class="text-2xl text-violet-300 mb-4">Personalization</div>
+<div class="menuItem">Memory</div>
+<div class="menuItem">Response Style</div>`;
+}
+
+if(type==="help"){
+panelContent.innerHTML=`
+<div class="text-2xl text-violet-300 mb-4">Help</div>
+<div class="menuItem">FAQ</div>
+<div class="menuItem">Support</div>
+<div class="menuItem">About CIPHER</div>`;
+}
+}
+
+panelModal.onclick=(e)=>{
+if(e.target===panelModal) panelModal.style.display="none";
+};
 
 /* TOOLS */
 function toggleTools(){
@@ -328,6 +519,90 @@ toolBtn.innerText="HIDE";
 }else{
 toolsPanel.style.display="none";
 toolBtn.innerText="SHOW";
+}
+}
+
+function openTool(type){
+
+let html="";
+
+if(type==="hash"){
+html=`
+<input id="toolInput" class="toolInput w-full px-4 py-3 rounded-xl mb-3" placeholder="Enter text">
+<select id="toolMode" class="toolInput w-full px-4 py-3 rounded-xl mb-3">
+<option value="md5">MD5</option>
+<option value="sha256">SHA256</option>
+</select>
+<button onclick="runTool('hash')" class="btn">Run</button>`;
+}
+
+if(type==="base64"){
+html=`
+<input id="toolInput" class="toolInput w-full px-4 py-3 rounded-xl mb-3" placeholder="Enter text">
+<select id="toolMode" class="toolInput w-full px-4 py-3 rounded-xl mb-3">
+<option value="encode">Encode</option>
+<option value="decode">Decode</option>
+</select>
+<button onclick="runTool('base64')" class="btn">Run</button>`;
+}
+
+if(type==="password"){
+html=`
+<input id="toolInput" class="toolInput w-full px-4 py-3 rounded-xl mb-3" placeholder="Enter password">
+<button onclick="runTool('password')" class="btn">Check</button>`;
+}
+
+if(type==="jwt"){
+html=`
+<textarea id="toolInput" class="toolInput w-full px-4 py-3 rounded-xl mb-3" placeholder="Paste JWT"></textarea>
+<button onclick="runTool('jwt')" class="btn">Decode</button>`;
+}
+
+if(type==="headers"){
+html=`
+<input id="toolInput" class="toolInput w-full px-4 py-3 rounded-xl mb-3" placeholder="Enter URL">
+<button onclick="runTool('headers')" class="btn">Scan</button>`;
+}
+
+if(type==="logs"){
+html=`
+<textarea id="toolInput" class="toolInput w-full px-4 py-3 rounded-xl mb-3" placeholder="Paste logs"></textarea>
+<button onclick="runTool('logs')" class="btn">Analyze</button>`;
+}
+
+chatBox.innerHTML+=`
+<div class="msgbox">
+<div class="text-violet-300 mb-3">TOOL PANEL • ${type.toUpperCase()}</div>
+${html}
+<div id="toolResult" class="mt-4"></div>
+</div>`;
+
+chatBox.scrollTop=chatBox.scrollHeight;
+}
+
+async function runTool(type){
+
+let text=document.getElementById("toolInput").value;
+let mode=document.getElementById("toolMode")?.value || "";
+
+toolResult.innerHTML="Running...";
+
+try{
+let res=await fetch("/tool/"+type,{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({
+text:text,
+mode:mode
+})
+});
+
+let data=await res.json();
+
+toolResult.innerHTML=`<pre>${JSON.stringify(data,null,2)}</pre>`;
+
+}catch{
+toolResult.innerHTML="Tool Error";
 }
 }
 
@@ -391,7 +666,7 @@ renderHistory();
 }
 }
 
-/* CODE BLOCK */
+/* CODE FORMAT */
 function copyCode(id){
 navigator.clipboard.writeText(document.getElementById(id).innerText);
 }
@@ -408,14 +683,9 @@ regex.lastIndex=0;
 
 return text.replace(regex,(match,code)=>{
 
-let clean=code
-.replace(/^python/i,"")
-.replace(/^java/i,"")
-.replace(/^javascript/i,"")
-.replace(/^js/i,"")
-.trim();
-
-clean=clean.replace(/</g,"&lt;").replace(/>/g,"&gt;");
+let clean=code.trim()
+.replace(/</g,"&lt;")
+.replace(/>/g,"&gt;");
 
 let id="code_"+Date.now()+Math.floor(Math.random()*9999);
 
@@ -428,11 +698,10 @@ return `
 <pre id="${id}" class="p-4 scrollbar">${clean}</pre>
 </div>
 `;
-
 }).replace(/\n/g,"<br>");
 }
 
-/* SEND */
+/* SEND CHAT */
 async function sendMsg(){
 
 const box=document.getElementById("prompt");
@@ -442,7 +711,6 @@ if(!text)return;
 
 if(!currentChat)newChat();
 
-/* user bubble */
 chatBox.innerHTML+=`
 <div class="text-right">
 <div class="userBubble">${text}</div>
@@ -462,7 +730,6 @@ box.value="";
 box.style.height="60px";
 box.focus();
 
-/* typing */
 chatBox.innerHTML+=`
 <div id="typingBox" class="msgbox">
 <div class="text-xs text-violet-300 mb-2">${modelLabel()}</div>
@@ -475,9 +742,7 @@ try{
 
 const res=await fetch("/chat",{
 method:"POST",
-headers:{
-"Content-Type":"application/json"
-},
+headers:{"Content-Type":"application/json"},
 body:JSON.stringify({
 message:text,
 mode:mode
