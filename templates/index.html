@@ -1,7 +1,4 @@
 <!-- templates/index.html -->
-<!-- FINAL UPDATED CIPHER AI FRONTEND -->
-<!-- COPY PASTE DIRECT -->
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,6 +8,7 @@
 <script src="https://cdn.tailwindcss.com"></script>
 
 <style>
+*{box-sizing:border-box}
 body{
 margin:0;
 padding:0;
@@ -51,6 +49,7 @@ padding:14px 16px;
 border-radius:18px;
 display:inline-block;
 max-width:75%;
+word-break:break-word;
 }
 .msgbox{
 background:rgba(72,55,170,.12);
@@ -63,10 +62,10 @@ padding:12px 14px;
 border-radius:18px;
 border:1px solid rgba(255,255,255,.06);
 background:rgba(255,255,255,.02);
-cursor:pointer;
-transition:.2s;
 display:flex;
 justify-content:space-between;
+cursor:pointer;
+transition:.2s;
 }
 .toolCard:hover{
 border-color:#8b5cf6;
@@ -108,6 +107,7 @@ z-index:99999;
 }
 .modalCard{
 width:420px;
+max-width:95%;
 background:#070d2c;
 border:1px solid rgba(255,255,255,.08);
 border-radius:24px;
@@ -124,6 +124,11 @@ padding:11px 16px;
 border-radius:14px;
 background:#7c3aed;
 width:100%;
+}
+#prompt{
+pointer-events:auto;
+position:relative;
+z-index:5;
 }
 @media(max-width:900px){
 body{overflow:auto}
@@ -145,7 +150,7 @@ border-radius:0;
 
 <body>
 
-<!-- AUTH MODAL -->
+<!-- AUTH -->
 <div id="authModal">
 <div class="modalCard">
 
@@ -156,7 +161,11 @@ border-radius:0;
 
 <input id="authName" class="authInput hidden" placeholder="Full Name">
 <input id="authEmail" class="authInput" placeholder="Email">
-<input id="authPass" type="password" class="authInput" placeholder="Password">
+
+<div class="relative">
+<input id="authPass" type="password" class="authInput pr-12" placeholder="Password">
+<button onclick="togglePassword()" class="absolute right-3 top-3 text-violet-300">👁</button>
+</div>
 
 <button class="btn" onclick="submitAuth()" id="authBtn">Login</button>
 
@@ -170,7 +179,7 @@ border-radius:0;
 </div>
 </div>
 
-<!-- SETTINGS PANEL -->
+<!-- PANEL -->
 <div id="panelModal">
 <div class="modalCard" id="panelContent"></div>
 </div>
@@ -192,27 +201,22 @@ border-radius:0;
 + NEW CHAT
 </button>
 
-<!-- CHAT HISTORY -->
 <div id="historyBox" class="flex-1 overflow-y-auto scrollbar space-y-2 mb-3"></div>
 
-<!-- TOOLS -->
 <div class="mb-2 flex justify-between items-center px-1">
 <div class="text-[11px] tracking-[4px] text-white/40">SECURITY TOOLS</div>
 <button onclick="toggleTools()" id="toolBtn" class="text-xs text-violet-300">HIDE</button>
 </div>
 
 <div id="toolsPanel" class="space-y-2 overflow-y-auto scrollbar h-[250px]">
-
 <div class="toolCard"><div>🔐 Hash Tool</div><div>i</div></div>
 <div class="toolCard"><div>📦 Base64 Tool</div><div>i</div></div>
 <div class="toolCard"><div>🔑 Password Check</div><div>i</div></div>
 <div class="toolCard"><div>🪪 JWT Decoder</div><div>i</div></div>
 <div class="toolCard"><div>🛡 Header Scan</div><div>i</div></div>
 <div class="toolCard"><div>📜 Log Analyzer</div><div>i</div></div>
-
 </div>
 
-<!-- ACCOUNT -->
 <div class="relative mt-3">
 
 <div onclick="toggleMenu()"
@@ -259,25 +263,26 @@ GU
 
 </div>
 
-<!-- CHAT -->
 <div id="chatBox" class="flex-1 glass rounded-3xl border border-white/10 p-5 overflow-y-auto scrollbar space-y-4"></div>
 
 <!-- INPUT -->
 <div class="glass rounded-3xl border border-white/10 p-3 flex gap-3">
 
-<textarea id="prompt"
+<textarea
+id="prompt"
 rows="2"
 placeholder="Ask anything..."
 class="inputbox flex-1 rounded-2xl px-5 py-4 resize-none"></textarea>
 
-<button onclick="sendMsg()" class="w-24 rounded-2xl bg-violet-500 text-xl">
+<button type="button"
+onclick="sendMsg()"
+class="w-24 rounded-2xl bg-violet-500 text-xl shrink-0">
 ➤
 </button>
 
 </div>
 
 </div>
-
 </div>
 
 <script>
@@ -287,6 +292,22 @@ let loggedUser=null;
 let chats=[];
 let currentChat=null;
 
+/* INIT INPUT FIX */
+document.addEventListener("DOMContentLoaded",()=>{
+
+const box=document.getElementById("prompt");
+
+box.addEventListener("keydown",function(e){
+if(e.key==="Enter" && !e.shiftKey){
+e.preventDefault();
+sendMsg();
+}
+});
+
+box.focus();
+
+});
+
 /* MODE */
 function setMode(m){
 mode=m;
@@ -294,14 +315,18 @@ document.querySelectorAll(".modeBtn").forEach(x=>x.classList.remove("modeActive"
 document.getElementById(m+"Btn").classList.add("modeActive");
 }
 
-/* MODEL LABEL */
 function modelLabel(){
 if(mode==="thinking") return "🧠 Claude";
 if(mode==="code") return "💻 Mixtral";
 return "⚡ Groq";
 }
 
-/* SIDEBAR MOBILE */
+/* PASSWORD */
+function togglePassword(){
+authPass.type=authPass.type==="password"?"text":"password";
+}
+
+/* SIDEBAR */
 function toggleSidebar(){
 sidebar.classList.toggle("show");
 }
@@ -317,7 +342,7 @@ toolBtn.innerText="SHOW";
 }
 }
 
-/* CHATGPT STYLE HISTORY */
+/* HISTORY */
 function newChat(){
 currentChat={
 id:Date.now(),
@@ -328,6 +353,7 @@ chats.unshift(currentChat);
 renderHistory();
 chatBox.innerHTML="";
 saveChats();
+prompt.focus();
 }
 
 function renderHistory(){
@@ -344,6 +370,7 @@ historyBox.appendChild(div);
 function loadChat(id){
 currentChat=chats.find(x=>x.id===id);
 chatBox.innerHTML="";
+
 currentChat.messages.forEach(m=>{
 if(m.role==="user"){
 chatBox.innerHTML+=`
@@ -372,10 +399,12 @@ renderHistory();
 }
 }
 
-/* SEND */
+/* SEND FIXED */
 async function sendMsg(){
 
-let text=prompt.value.trim();
+const box=document.getElementById("prompt");
+let text=box.value.trim();
+
 if(!text)return;
 
 if(!currentChat)newChat();
@@ -385,33 +414,43 @@ chatBox.innerHTML+=`
 <div class="userBubble">${text}</div>
 </div>`;
 
-currentChat.messages.push({role:"user",text:text});
+currentChat.messages.push({
+role:"user",
+text:text
+});
 
 if(currentChat.title==="New Chat"){
 currentChat.title=text.slice(0,28);
 renderHistory();
 }
 
-prompt.value="";
+box.value="";
+box.focus();
 
 chatBox.innerHTML+=`
-<div id="typingBox" class="msgbox">Thinking...</div>`;
+<div id="typingBox" class="msgbox">
+<div class="text-xs text-violet-300 mb-2">${modelLabel()}</div>
+Thinking...
+</div>`;
 
 chatBox.scrollTop=chatBox.scrollHeight;
 
 try{
-let res=await fetch("/chat",{
+
+const res=await fetch("/chat",{
 method:"POST",
-headers:{"Content-Type":"application/json"},
+headers:{
+"Content-Type":"application/json"
+},
 body:JSON.stringify({
 message:text,
 mode:mode
 })
 });
 
-let data=await res.json();
+const data=await res.json();
 
-typingBox.remove();
+document.getElementById("typingBox")?.remove();
 
 let reply=(data.response || "No response").replace(/\n/g,"<br>");
 
@@ -429,16 +468,20 @@ model:modelLabel()
 
 saveChats();
 
-}catch{
-typingBox.remove();
+}catch(err){
+
+document.getElementById("typingBox")?.remove();
+
 chatBox.innerHTML+=`
-<div class="msgbox text-red-300">Server Error</div>`;
+<div class="msgbox text-red-300">
+Backend /chat route not responding
+</div>`;
 }
 
 chatBox.scrollTop=chatBox.scrollHeight;
 }
 
-/* ACCOUNT MENU */
+/* ACCOUNT */
 function toggleMenu(){
 
 menu.style.display=menu.style.display==="block"?"none":"block";
@@ -468,15 +511,20 @@ menu.innerHTML=`
 function openAuth(type){
 authMode=type;
 authModal.style.display="flex";
+authMsg.innerText="";
 
 if(type==="login"){
 authTitle.innerText="Login";
 authBtn.innerText="Login";
 authName.classList.add("hidden");
+switchText.innerText="Don't have an account?";
+switchBtn.innerText="Sign Up";
 }else{
 authTitle.innerText="Sign Up";
 authBtn.innerText="Create Account";
 authName.classList.remove("hidden");
+switchText.innerText="Already have an account?";
+switchBtn.innerText="Login";
 }
 }
 
@@ -490,24 +538,29 @@ openAuth(authMode==="login"?"signup":"login");
 
 function submitAuth(){
 
-let email=authEmail.value.trim();
+let users=JSON.parse(localStorage.getItem("cipher_users") || "[]");
+
+let email=authEmail.value.trim().toLowerCase();
 let pass=authPass.value.trim();
 let name=authName.value.trim();
 
-let users=JSON.parse(localStorage.getItem("cipher_users") || "[]");
-
 if(authMode==="signup"){
 
-if(!email || !pass || !name){
+if(!name || !email || !pass){
 authMsg.innerText="Fill all fields";
+return;
+}
+
+let exists=users.find(x=>x.email===email);
+
+if(exists){
+authMsg.innerText="Email already exists";
 return;
 }
 
 users.push({name,email,pass});
 localStorage.setItem("cipher_users",JSON.stringify(users));
-
 loggedUser={name,email};
-localStorage.setItem("cipher_user",JSON.stringify(loggedUser));
 
 }else{
 
@@ -518,10 +571,13 @@ authMsg.innerText="Invalid Login";
 return;
 }
 
-loggedUser={name:found.name,email:found.email};
-localStorage.setItem("cipher_user",JSON.stringify(loggedUser));
+loggedUser={
+name:found.name,
+email:found.email
+};
 }
 
+localStorage.setItem("cipher_user",JSON.stringify(loggedUser));
 updateUserUI();
 closeAuth();
 }
@@ -542,9 +598,9 @@ panelContent.innerHTML=`
 if(type==="settings"){
 panelContent.innerHTML=`
 <div class="text-2xl text-violet-300 mb-4">Settings</div>
-<div class="menuItem">Dark Mode</div>
-<div class="menuItem">Notifications</div>
+<div class="menuItem">Theme</div>
 <div class="menuItem">Language</div>
+<div class="menuItem">Notifications</div>
 `;
 }
 
@@ -552,14 +608,16 @@ if(type==="personalization"){
 panelContent.innerHTML=`
 <div class="text-2xl text-violet-300 mb-4">Personalization</div>
 <div class="menuItem">Memory</div>
-<div class="menuItem">Response Style</div>
 <div class="menuItem">Preferred Model</div>
+<div class="menuItem">Response Style</div>
 `;
 }
 }
 
 panelModal.onclick=function(e){
-if(e.target===panelModal) panelModal.style.display="none";
+if(e.target===panelModal){
+panelModal.style.display="none";
+}
 }
 
 /* LOGOUT */
@@ -570,11 +628,11 @@ updateUserUI();
 menu.style.display="none";
 }
 
-/* UPDATE UI */
+/* USER UI */
 function updateUserUI(){
 
-let user=localStorage.getItem("cipher_user");
-if(user) loggedUser=JSON.parse(user);
+let saved=localStorage.getItem("cipher_user");
+if(saved) loggedUser=JSON.parse(saved);
 
 if(loggedUser){
 avatar.innerText=loggedUser.name.slice(0,2).toUpperCase();
