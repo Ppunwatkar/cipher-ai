@@ -11,10 +11,10 @@
 body{
 margin:0;
 padding:0;
+overflow:hidden;
 font-family:Consolas,monospace;
 color:#fff;
 background:linear-gradient(135deg,#020617,#07113b,#020617);
-overflow:hidden;
 }
 
 .glass{
@@ -24,7 +24,8 @@ backdrop-filter:blur(18px);
 
 .scrollbar::-webkit-scrollbar{width:5px}
 .scrollbar::-webkit-scrollbar-thumb{
-background:#7c3aed;border-radius:20px;
+background:#7c3aed;
+border-radius:20px;
 }
 
 .inputbox,.toolInput,.authInput{
@@ -34,7 +35,7 @@ color:#fff;
 outline:none;
 }
 
-.inputbox:focus,.toolInput:focus{
+.inputbox:focus,.toolInput:focus,.authInput:focus{
 border-color:#8b5cf6;
 }
 
@@ -42,6 +43,7 @@ border-color:#8b5cf6;
 border:1px solid rgba(255,255,255,.08);
 transition:.2s;
 }
+
 .modeActive{
 background:rgba(124,58,237,.18);
 border-color:#8b5cf6 !important;
@@ -74,9 +76,41 @@ background:rgba(255,255,255,.02);
 transition:.2s;
 cursor:pointer;
 }
+
 .toolCard:hover{
 border-color:#8b5cf6;
 background:rgba(124,58,237,.08);
+}
+
+#menu{
+display:none;
+position:absolute;
+left:0;
+bottom:68px;
+width:290px;
+background:#11162f;
+border:1px solid rgba(255,255,255,.08);
+border-radius:22px;
+padding:8px;
+z-index:9999;
+box-shadow:0 20px 40px rgba(0,0,0,.45);
+}
+
+.menuItem{
+padding:12px 14px;
+border-radius:14px;
+cursor:pointer;
+transition:.2s;
+}
+
+.menuItem:hover{
+background:rgba(255,255,255,.08);
+}
+
+.sep{
+height:1px;
+background:rgba(255,255,255,.08);
+margin:8px 0;
 }
 
 .btn{
@@ -86,15 +120,6 @@ background:#7c3aed;
 width:100%;
 }
 
-#toolsPanel{
-max-height:240px;
-overflow-y:auto;
-}
-
-#mobileSidebar{
-display:none;
-}
-
 #imagePreview{
 display:none;
 max-height:70px;
@@ -102,19 +127,17 @@ border-radius:12px;
 border:1px solid rgba(255,255,255,.08);
 }
 
-@media (max-width:1024px){
-#sidebar{
-width:260px;
-}
+#mobileSidebar{
+display:none;
 }
 
-@media (max-width:768px){
+@media (max-width:900px){
 
 body{
 overflow:auto;
 }
 
-#desktopWrap{
+#layout{
 flex-direction:column;
 height:auto;
 }
@@ -125,8 +148,8 @@ position:fixed;
 left:0;
 top:0;
 bottom:0;
-width:280px;
-z-index:9999;
+width:290px;
+z-index:99999;
 border-radius:0;
 }
 
@@ -138,21 +161,13 @@ display:flex;
 display:block;
 }
 
-#chatSection{
-width:100%;
-}
-
 #chatBox{
-height:60vh;
+height:58vh;
 }
 
 .modeBtn{
 padding:10px 14px;
 font-size:14px;
-}
-
-.userBubble{
-max-width:90%;
 }
 }
 </style>
@@ -160,11 +175,12 @@ max-width:90%;
 
 <body>
 
-<div class="p-3 h-screen flex gap-3" id="desktopWrap">
+<div id="layout" class="h-screen flex gap-3 p-3">
 
-<!-- SIDEBAR -->
-<div id="sidebar" class="w-[300px] glass rounded-3xl border border-white/10 p-4 flex flex-col overflow-hidden">
+<!-- LEFT SIDEBAR -->
+<div id="sidebar" class="w-[300px] glass rounded-3xl border border-white/10 p-4 flex flex-col h-full overflow-hidden">
 
+<!-- LOGO -->
 <div class="flex gap-3 items-center mb-4">
 <img src="/static/logo.png" class="w-12 h-12 rounded-xl object-contain">
 <div>
@@ -173,37 +189,93 @@ max-width:90%;
 </div>
 </div>
 
+<!-- NEW CHAT -->
 <button onclick="newChat()" class="w-full py-3 rounded-2xl border border-violet-500 mb-4">
 + NEW CHAT
 </button>
 
-<div id="historyBox" class="flex-1 overflow-y-auto scrollbar space-y-2 mb-4"></div>
+<!-- CHAT HISTORY -->
+<div id="historyWrap" class="flex-1 min-h-[160px] overflow-y-auto scrollbar space-y-2 mb-3 pr-1">
+<div id="historyBox" class="space-y-2"></div>
+</div>
 
-<!-- TOOLS HEADER -->
+<!-- TOOL HEADER -->
 <div class="mb-2 flex justify-between items-center px-1">
-<div class="text-[11px] tracking-[4px] text-white/40">SECURITY TOOLS</div>
-<button onclick="toggleTools()" class="text-xs text-violet-300">HIDE</button>
+<div class="text-[11px] tracking-[4px] text-white/40">
+SECURITY TOOLS
+</div>
+
+<button id="toolsToggleBtn" onclick="toggleTools()" class="text-xs text-violet-300">
+HIDE
+</button>
 </div>
 
 <!-- TOOLS -->
-<div id="toolsPanel" class="space-y-2 scrollbar mb-4">
+<div id="toolsWrap" class="h-[290px] overflow-hidden transition-all duration-300">
 
-<div class="toolCard" onclick="openTool('hash')"><div>🔐 Hash Tool</div><div>i</div></div>
-<div class="toolCard" onclick="openTool('base64')"><div>📦 Base64 Tool</div><div>i</div></div>
-<div class="toolCard" onclick="openTool('password')"><div>🔑 Password Check</div><div>i</div></div>
-<div class="toolCard" onclick="openTool('jwt')"><div>🪪 JWT Decoder</div><div>i</div></div>
-<div class="toolCard" onclick="openTool('headers')"><div>🛡 Header Scan</div><div>i</div></div>
-<div class="toolCard" onclick="openTool('logs')"><div>📜 Log Analyzer</div><div>i</div></div>
+<div id="toolsPanel" class="space-y-2 overflow-y-auto scrollbar h-full pr-1">
+
+<div class="toolCard" onclick="openTool('hash')">
+<div>🔐 Hash Tool</div><div>i</div>
+</div>
+
+<div class="toolCard" onclick="openTool('base64')">
+<div>📦 Base64 Tool</div><div>i</div>
+</div>
+
+<div class="toolCard" onclick="openTool('password')">
+<div>🔑 Password Check</div><div>i</div>
+</div>
+
+<div class="toolCard" onclick="openTool('jwt')">
+<div>🪪 JWT Decoder</div><div>i</div>
+</div>
+
+<div class="toolCard" onclick="openTool('headers')">
+<div>🛡 Header Scan</div><div>i</div>
+</div>
+
+<div class="toolCard" onclick="openTool('logs')">
+<div>📜 Log Analyzer</div><div>i</div>
+</div>
+
+</div>
+</div>
+
+<!-- ACCOUNT -->
+<div class="relative mt-3">
+
+<div onclick="toggleMenu()"
+class="bg-[#0d153d] rounded-2xl border border-white/10 px-4 py-3 cursor-pointer">
+
+<div class="flex gap-3 items-center">
+
+<div id="avatar"
+class="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center font-bold">
+GU
+</div>
+
+<div class="flex-1">
+<div id="username">Guest User</div>
+<div id="memberType" class="text-xs text-white/45">Guest</div>
+</div>
+
+<div>›</div>
+
+</div>
+</div>
+
+<div id="menu"></div>
 
 </div>
 
 </div>
 
-<!-- MAIN -->
-<div id="chatSection" class="flex-1 flex flex-col gap-3">
+<!-- RIGHT SIDE -->
+<div class="flex-1 flex flex-col gap-3">
 
 <!-- TOP -->
-<div class="glass rounded-3xl border border-white/10 px-5 py-4 flex justify-between items-center">
+<div class="glass rounded-3xl border border-white/10 px-6 py-5 flex justify-between items-center">
 
 <div class="flex items-center gap-3">
 <button id="mobileSidebar" onclick="toggleSidebar()" class="text-xl">☰</button>
@@ -228,10 +300,12 @@ max-width:90%;
 
 <div class="flex gap-3 items-end">
 
-<label for="imageUpload" class="w-14 h-14 rounded-2xl bg-[#101844] flex items-center justify-center cursor-pointer text-xl">
+<label for="imageUpload"
+class="w-14 h-14 rounded-2xl bg-[#101844] flex items-center justify-center cursor-pointer text-xl">
 📎
 </label>
-<input type="file" id="imageUpload" accept="image/*" hidden onchange="previewImage(event)">
+
+<input type="file" id="imageUpload" hidden accept="image/*" onchange="previewImage(event)">
 
 <textarea
 id="prompt"
@@ -244,7 +318,6 @@ class="inputbox flex-1 rounded-2xl px-5 py-4 resize-none"></textarea>
 </button>
 
 </div>
-
 </div>
 
 </div>
@@ -252,44 +325,119 @@ class="inputbox flex-1 rounded-2xl px-5 py-4 resize-none"></textarea>
 
 <script>
 let mode="fast";
+let toolsOpen=true;
+let loggedUser=null;
 
+/* MODE */
 function setMode(m){
 mode=m;
 document.querySelectorAll(".modeBtn").forEach(x=>x.classList.remove("modeActive"));
 document.getElementById(m+"Btn").classList.add("modeActive");
 }
 
+/* MOBILE */
 function toggleSidebar(){
 document.getElementById("sidebar").classList.toggle("show");
 }
 
+/* TOOLS TOGGLE */
 function toggleTools(){
-let panel=document.getElementById("toolsPanel");
-if(panel.style.display==="none"){
-panel.style.display="block";
-event.target.innerText="HIDE";
+
+const wrap=document.getElementById("toolsWrap");
+const btn=document.getElementById("toolsToggleBtn");
+
+toolsOpen=!toolsOpen;
+
+if(toolsOpen){
+wrap.style.height="290px";
+btn.innerText="HIDE";
 }else{
-panel.style.display="none";
-event.target.innerText="SHOW";
+wrap.style.height="0px";
+btn.innerText="SHOW";
 }
 }
 
+/* ACCOUNT MENU */
+function toggleMenu(){
+
+const menu=document.getElementById("menu");
+
+menu.style.display=menu.style.display==="block"?"none":"block";
+
+if(loggedUser){
+
+menu.innerHTML=`
+<div class="menuItem">Profile</div>
+<div class="menuItem">Settings</div>
+<div class="menuItem">Personalization</div>
+<div class="sep"></div>
+<div class="menuItem text-red-300" onclick="logoutUser()">Logout</div>
+`;
+
+}else{
+
+menu.innerHTML=`
+<div class="menuItem" onclick="loginUser()">Login</div>
+<div class="menuItem" onclick="signupUser()">Sign Up</div>
+<div class="sep"></div>
+<div class="menuItem">Help</div>
+`;
+
+}
+}
+
+/* LOGIN DEMO */
+function loginUser(){
+loggedUser={name:"Prasanna",email:"user@mail.com"};
+updateUserUI();
+document.getElementById("menu").style.display="none";
+}
+
+function signupUser(){
+loginUser();
+}
+
+function logoutUser(){
+loggedUser=null;
+updateUserUI();
+document.getElementById("menu").style.display="none";
+}
+
+function updateUserUI(){
+
+if(loggedUser){
+avatar.innerText=loggedUser.name.slice(0,2).toUpperCase();
+username.innerText=loggedUser.name;
+memberType.innerText="Member";
+}else{
+avatar.innerText="GU";
+username.innerText="Guest User";
+memberType.innerText="Guest";
+}
+}
+
+/* IMAGE PREVIEW */
 function previewImage(e){
+
 let file=e.target.files[0];
 if(!file)return;
 
 let reader=new FileReader();
+
 reader.onload=function(x){
-let img=document.getElementById("imagePreview");
-img.src=x.target.result;
-img.style.display="block";
+imagePreview.src=x.target.result;
+imagePreview.style.display="block";
 }
+
 reader.readAsDataURL(file);
 }
 
+/* CHAT */
 async function sendMsg(){
 
-let text=document.getElementById("prompt").value.trim();
+let box=document.getElementById("prompt");
+let text=box.value.trim();
+
 if(!text)return;
 
 chatBox.innerHTML+=`
@@ -297,52 +445,75 @@ chatBox.innerHTML+=`
 <div class="userBubble">${text}</div>
 </div>`;
 
-document.getElementById("prompt").value="";
+saveHistory(text);
+
+box.value="";
 
 chatBox.innerHTML+=`
-<div class="msgbox">Thinking...</div>`;
+<div id="typingBox" class="msgbox">Thinking...</div>`;
 
 chatBox.scrollTop=chatBox.scrollHeight;
 
 try{
 
-let payload={
-message:text,
-mode:mode
-};
-
 let res=await fetch("/chat",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
-body:JSON.stringify(payload)
+body:JSON.stringify({
+message:text,
+mode:mode
+})
 });
 
 let data=await res.json();
 
-chatBox.lastElementChild.remove();
+document.getElementById("typingBox")?.remove();
 
 chatBox.innerHTML+=`
 <div class="msgbox">${(data.response || "No response").replace(/\n/g,"<br>")}</div>`;
 
 }catch{
-chatBox.lastElementChild.remove();
-chatBox.innerHTML+=`<div class="msgbox text-red-300">Server Error</div>`;
+
+document.getElementById("typingBox")?.remove();
+
+chatBox.innerHTML+=`
+<div class="msgbox text-red-300">Server Error</div>`;
 }
 
 chatBox.scrollTop=chatBox.scrollHeight;
 }
 
+/* NEW CHAT */
+function newChat(){
+chatBox.innerHTML="";
+}
+
+/* TOOLS */
 function openTool(name){
 chatBox.innerHTML+=`
 <div class="msgbox">
-<div class="text-violet-300">Opened Tool: ${name.toUpperCase()}</div>
+<div class="text-violet-300">Tool Opened: ${name.toUpperCase()}</div>
 </div>`;
 chatBox.scrollTop=chatBox.scrollHeight;
 }
 
-function newChat(){
-chatBox.innerHTML="";
+/* HISTORY */
+function saveHistory(text){
+
+let box=document.getElementById("historyBox");
+
+let div=document.createElement("div");
+div.className="bg-[#101844] rounded-xl px-3 py-2 text-sm cursor-pointer";
+div.innerText=text.slice(0,28);
+
+div.onclick=function(){
+prompt.value=text;
 }
+
+box.prepend(div);
+}
+
+updateUserUI();
 </script>
 
 </body>
