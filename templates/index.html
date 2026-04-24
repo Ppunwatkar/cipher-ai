@@ -125,11 +125,7 @@ border-radius:14px;
 background:#7c3aed;
 width:100%;
 }
-#prompt{
-pointer-events:auto;
-position:relative;
-z-index:5;
-}
+pre{margin:0}
 @media(max-width:900px){
 body{overflow:auto}
 #layout{flex-direction:column;height:auto}
@@ -150,39 +146,8 @@ border-radius:0;
 
 <body>
 
-<!-- AUTH -->
-<div id="authModal">
-<div class="modalCard">
-
-<div class="flex justify-between items-center mb-4">
-<div id="authTitle" class="text-2xl text-violet-300">Login</div>
-<button onclick="closeAuth()">✕</button>
-</div>
-
-<input id="authName" class="authInput hidden" placeholder="Full Name">
-<input id="authEmail" class="authInput" placeholder="Email">
-
-<div class="relative">
-<input id="authPass" type="password" class="authInput pr-12" placeholder="Password">
-<button onclick="togglePassword()" class="absolute right-3 top-3 text-violet-300">👁</button>
-</div>
-
-<button class="btn" onclick="submitAuth()" id="authBtn">Login</button>
-
-<div class="text-center mt-4 text-sm text-white/60">
-<span id="switchText">Don't have an account?</span>
-<button onclick="switchAuth()" class="text-violet-300 ml-1" id="switchBtn">Sign Up</button>
-</div>
-
-<div id="authMsg" class="text-red-300 text-sm mt-3"></div>
-
-</div>
-</div>
-
-<!-- PANEL -->
-<div id="panelModal">
-<div class="modalCard" id="panelContent"></div>
-</div>
+<div id="authModal"></div>
+<div id="panelModal"></div>
 
 <div id="layout" class="h-screen flex gap-3 p-3">
 
@@ -218,29 +183,17 @@ border-radius:0;
 </div>
 
 <div class="relative mt-3">
-
-<div onclick="toggleMenu()"
-class="bg-[#0d153d] rounded-2xl border border-white/10 px-4 py-3 cursor-pointer">
-
+<div onclick="toggleMenu()" class="bg-[#0d153d] rounded-2xl border border-white/10 px-4 py-3 cursor-pointer">
 <div class="flex gap-3 items-center">
-
-<div id="avatar"
-class="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center font-bold">
-GU
-</div>
-
+<div id="avatar" class="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center font-bold">GU</div>
 <div class="flex-1">
 <div id="username">Guest User</div>
 <div id="memberType" class="text-xs text-white/45">Guest</div>
 </div>
-
 <div>›</div>
-
 </div>
 </div>
-
 <div id="menu"></div>
-
 </div>
 
 </div>
@@ -265,18 +218,14 @@ GU
 
 <div id="chatBox" class="flex-1 glass rounded-3xl border border-white/10 p-5 overflow-y-auto scrollbar space-y-4"></div>
 
-<!-- INPUT -->
 <div class="glass rounded-3xl border border-white/10 p-3 flex gap-3">
 
-<textarea
-id="prompt"
+<textarea id="prompt"
 rows="2"
 placeholder="Ask anything..."
 class="inputbox flex-1 rounded-2xl px-5 py-4 resize-none"></textarea>
 
-<button type="button"
-onclick="sendMsg()"
-class="w-24 rounded-2xl bg-violet-500 text-xl shrink-0">
+<button onclick="sendMsg()" class="w-24 rounded-2xl bg-violet-500 text-xl">
 ➤
 </button>
 
@@ -287,28 +236,28 @@ class="w-24 rounded-2xl bg-violet-500 text-xl shrink-0">
 
 <script>
 let mode="fast";
-let authMode="login";
-let loggedUser=null;
 let chats=[];
 let currentChat=null;
 
-/* INIT INPUT FIX */
+/* ENTER SEND */
 document.addEventListener("DOMContentLoaded",()=>{
 
-const box=document.getElementById("prompt");
+prompt.focus();
 
-box.addEventListener("keydown",function(e){
+prompt.addEventListener("keydown",(e)=>{
 if(e.key==="Enter" && !e.shiftKey){
 e.preventDefault();
 sendMsg();
 }
 });
 
-box.focus();
-
 });
 
-/* MODE */
+/* MODE FIXED
+THINK = GPT
+FAST = GROQ
+CODE = CLAUDE
+*/
 function setMode(m){
 mode=m;
 document.querySelectorAll(".modeBtn").forEach(x=>x.classList.remove("modeActive"));
@@ -316,19 +265,9 @@ document.getElementById(m+"Btn").classList.add("modeActive");
 }
 
 function modelLabel(){
-if(mode==="thinking") return "🧠 Claude";
-if(mode==="code") return "💻 Mixtral";
+if(mode==="thinking") return "🧠 GPT";
+if(mode==="code") return "💻 Claude";
 return "⚡ Groq";
-}
-
-/* PASSWORD */
-function togglePassword(){
-authPass.type=authPass.type==="password"?"text":"password";
-}
-
-/* SIDEBAR */
-function toggleSidebar(){
-sidebar.classList.toggle("show");
 }
 
 /* TOOLS */
@@ -340,6 +279,19 @@ toolBtn.innerText="HIDE";
 toolsPanel.style.display="none";
 toolBtn.innerText="SHOW";
 }
+}
+
+/* MENU */
+function toggleMenu(){
+menu.style.display=menu.style.display==="block"?"none":"block";
+
+menu.innerHTML=`
+<div class="menuItem">Profile</div>
+<div class="menuItem">Settings</div>
+<div class="menuItem">Personalization</div>
+<div class="sep"></div>
+<div class="menuItem text-red-300">Logout</div>
+`;
 }
 
 /* HISTORY */
@@ -392,19 +344,60 @@ localStorage.setItem("cipher_chats",JSON.stringify(chats));
 }
 
 function loadChats(){
-let data=localStorage.getItem("cipher_chats");
-if(data){
-chats=JSON.parse(data);
+let d=localStorage.getItem("cipher_chats");
+if(d){
+chats=JSON.parse(d);
 renderHistory();
 }
 }
 
-/* SEND FIXED */
+/* CODE BLOCK */
+function copyCode(id){
+let text=document.getElementById(id).innerText;
+navigator.clipboard.writeText(text);
+}
+
+function formatReply(text){
+
+const regex=/```([\s\S]*?)```/g;
+
+if(!regex.test(text)){
+return text.replace(/\n/g,"<br>");
+}
+
+regex.lastIndex=0;
+
+return text.replace(regex,function(match,code){
+
+let clean=code
+.replace(/^python/i,"")
+.replace(/^javascript/i,"")
+.replace(/^js/i,"")
+.trim();
+
+clean=clean.replace(/</g,"&lt;").replace(/>/g,"&gt;");
+
+let id="code_"+Date.now()+Math.floor(Math.random()*9999);
+
+return `
+<div class="mt-4 border border-white/10 rounded-2xl overflow-hidden bg-[#05091f]">
+<div class="flex justify-between items-center px-4 py-2 bg-[#0c1438] text-sm text-violet-300">
+<span>Code</span>
+<button onclick="copyCode('${id}')" class="text-xs px-3 py-1 rounded-lg bg-violet-600">
+Copy
+</button>
+</div>
+<pre id="${id}" class="p-4 overflow-x-auto whitespace-pre">${clean}</pre>
+</div>
+`;
+
+}).replace(/\n/g,"<br>");
+}
+
+/* SEND */
 async function sendMsg(){
 
-const box=document.getElementById("prompt");
-let text=box.value.trim();
-
+let text=prompt.value.trim();
 if(!text)return;
 
 if(!currentChat)newChat();
@@ -424,8 +417,8 @@ currentChat.title=text.slice(0,28);
 renderHistory();
 }
 
-box.value="";
-box.focus();
+prompt.value="";
+prompt.focus();
 
 chatBox.innerHTML+=`
 <div id="typingBox" class="msgbox">
@@ -452,7 +445,7 @@ const data=await res.json();
 
 document.getElementById("typingBox")?.remove();
 
-let reply=(data.response || "No response").replace(/\n/g,"<br>");
+let reply=formatReply(data.response || "No response");
 
 chatBox.innerHTML+=`
 <div class="msgbox">
@@ -481,172 +474,7 @@ Backend /chat route not responding
 chatBox.scrollTop=chatBox.scrollHeight;
 }
 
-/* ACCOUNT */
-function toggleMenu(){
-
-menu.style.display=menu.style.display==="block"?"none":"block";
-
-if(loggedUser){
-
-menu.innerHTML=`
-<div class="menuItem" onclick="openPanel('profile')">Profile</div>
-<div class="menuItem" onclick="openPanel('settings')">Settings</div>
-<div class="menuItem" onclick="openPanel('personalization')">Personalization</div>
-<div class="sep"></div>
-<div class="menuItem text-red-300" onclick="logoutUser()">Logout</div>
-`;
-
-}else{
-
-menu.innerHTML=`
-<div class="menuItem" onclick="openAuth('login')">Login</div>
-<div class="menuItem" onclick="openAuth('signup')">Sign Up</div>
-<div class="sep"></div>
-<div class="menuItem">Help</div>
-`;
-}
-}
-
-/* AUTH */
-function openAuth(type){
-authMode=type;
-authModal.style.display="flex";
-authMsg.innerText="";
-
-if(type==="login"){
-authTitle.innerText="Login";
-authBtn.innerText="Login";
-authName.classList.add("hidden");
-switchText.innerText="Don't have an account?";
-switchBtn.innerText="Sign Up";
-}else{
-authTitle.innerText="Sign Up";
-authBtn.innerText="Create Account";
-authName.classList.remove("hidden");
-switchText.innerText="Already have an account?";
-switchBtn.innerText="Login";
-}
-}
-
-function closeAuth(){
-authModal.style.display="none";
-}
-
-function switchAuth(){
-openAuth(authMode==="login"?"signup":"login");
-}
-
-function submitAuth(){
-
-let users=JSON.parse(localStorage.getItem("cipher_users") || "[]");
-
-let email=authEmail.value.trim().toLowerCase();
-let pass=authPass.value.trim();
-let name=authName.value.trim();
-
-if(authMode==="signup"){
-
-if(!name || !email || !pass){
-authMsg.innerText="Fill all fields";
-return;
-}
-
-let exists=users.find(x=>x.email===email);
-
-if(exists){
-authMsg.innerText="Email already exists";
-return;
-}
-
-users.push({name,email,pass});
-localStorage.setItem("cipher_users",JSON.stringify(users));
-loggedUser={name,email};
-
-}else{
-
-let found=users.find(x=>x.email===email && x.pass===pass);
-
-if(!found){
-authMsg.innerText="Invalid Login";
-return;
-}
-
-loggedUser={
-name:found.name,
-email:found.email
-};
-}
-
-localStorage.setItem("cipher_user",JSON.stringify(loggedUser));
-updateUserUI();
-closeAuth();
-}
-
-/* PANELS */
-function openPanel(type){
-
-panelModal.style.display="flex";
-
-if(type==="profile"){
-panelContent.innerHTML=`
-<div class="text-2xl text-violet-300 mb-4">Profile</div>
-<div>Name: ${loggedUser.name}</div>
-<div class="mt-2">Email: ${loggedUser.email}</div>
-`;
-}
-
-if(type==="settings"){
-panelContent.innerHTML=`
-<div class="text-2xl text-violet-300 mb-4">Settings</div>
-<div class="menuItem">Theme</div>
-<div class="menuItem">Language</div>
-<div class="menuItem">Notifications</div>
-`;
-}
-
-if(type==="personalization"){
-panelContent.innerHTML=`
-<div class="text-2xl text-violet-300 mb-4">Personalization</div>
-<div class="menuItem">Memory</div>
-<div class="menuItem">Preferred Model</div>
-<div class="menuItem">Response Style</div>
-`;
-}
-}
-
-panelModal.onclick=function(e){
-if(e.target===panelModal){
-panelModal.style.display="none";
-}
-}
-
-/* LOGOUT */
-function logoutUser(){
-loggedUser=null;
-localStorage.removeItem("cipher_user");
-updateUserUI();
-menu.style.display="none";
-}
-
-/* USER UI */
-function updateUserUI(){
-
-let saved=localStorage.getItem("cipher_user");
-if(saved) loggedUser=JSON.parse(saved);
-
-if(loggedUser){
-avatar.innerText=loggedUser.name.slice(0,2).toUpperCase();
-username.innerText=loggedUser.name;
-memberType.innerText="Member";
-}else{
-avatar.innerText="GU";
-username.innerText="Guest User";
-memberType.innerText="Guest";
-}
-}
-
 loadChats();
-updateUserUI();
 </script>
 
 </body>
