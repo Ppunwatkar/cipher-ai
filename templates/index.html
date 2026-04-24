@@ -1,4 +1,7 @@
 <!-- templates/index.html -->
+<!-- FINAL UPDATED CIPHER AI FRONTEND -->
+<!-- COPY PASTE DIRECT -->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -16,230 +19,197 @@ font-family:Consolas,monospace;
 color:#fff;
 background:linear-gradient(135deg,#020617,#07113b,#020617);
 }
-
 .glass{
 background:rgba(8,12,35,.72);
 backdrop-filter:blur(18px);
 }
-
 .scrollbar::-webkit-scrollbar{width:5px}
 .scrollbar::-webkit-scrollbar-thumb{
 background:#7c3aed;
 border-radius:20px;
 }
-
-.inputbox,.toolInput,.authInput{
+.inputbox,.authInput{
 background:#020617;
 border:1px solid rgba(255,255,255,.08);
 color:#fff;
 outline:none;
 }
-
-.inputbox:focus,.toolInput:focus,.authInput:focus{
+.inputbox:focus,.authInput:focus{
 border-color:#8b5cf6;
 }
-
 .modeBtn{
 border:1px solid rgba(255,255,255,.08);
 transition:.2s;
 }
-
 .modeActive{
 background:rgba(124,58,237,.18);
-border-color:#8b5cf6 !important;
+border-color:#8b5cf6!important;
 }
-
+.userBubble{
+background:#101844;
+padding:14px 16px;
+border-radius:18px;
+display:inline-block;
+max-width:75%;
+}
 .msgbox{
 background:rgba(72,55,170,.12);
 border-left:2px solid #8b5cf6;
-border-radius:18px;
 padding:16px;
-}
-
-.userBubble{
-background:#101844;
 border-radius:18px;
-padding:14px 16px;
-display:inline-block;
-max-width:75%;
-word-break:break-word;
 }
-
 .toolCard{
-display:flex;
-justify-content:space-between;
-align-items:center;
 padding:12px 14px;
 border-radius:18px;
 border:1px solid rgba(255,255,255,.06);
 background:rgba(255,255,255,.02);
-transition:.2s;
 cursor:pointer;
+transition:.2s;
+display:flex;
+justify-content:space-between;
 }
-
 .toolCard:hover{
 border-color:#8b5cf6;
 background:rgba(124,58,237,.08);
 }
-
 #menu{
 display:none;
 position:absolute;
 left:0;
-bottom:68px;
+bottom:70px;
 width:290px;
 background:#11162f;
 border:1px solid rgba(255,255,255,.08);
 border-radius:22px;
 padding:8px;
 z-index:9999;
-box-shadow:0 20px 40px rgba(0,0,0,.45);
 }
-
 .menuItem{
 padding:12px 14px;
 border-radius:14px;
 cursor:pointer;
-transition:.2s;
 }
-
 .menuItem:hover{
 background:rgba(255,255,255,.08);
 }
-
 .sep{
 height:1px;
 background:rgba(255,255,255,.08);
 margin:8px 0;
 }
-
+#authModal,#panelModal{
+position:fixed;
+inset:0;
+display:none;
+align-items:center;
+justify-content:center;
+background:rgba(0,0,0,.55);
+z-index:99999;
+}
+.modalCard{
+width:420px;
+background:#070d2c;
+border:1px solid rgba(255,255,255,.08);
+border-radius:24px;
+padding:24px;
+}
+.authInput{
+width:100%;
+padding:12px;
+border-radius:14px;
+margin-bottom:10px;
+}
 .btn{
 padding:11px 16px;
 border-radius:14px;
 background:#7c3aed;
 width:100%;
 }
-
-#imagePreview{
-display:none;
-max-height:70px;
-border-radius:12px;
-border:1px solid rgba(255,255,255,.08);
-}
-
-#mobileSidebar{
-display:none;
-}
-
-@media (max-width:900px){
-
-body{
-overflow:auto;
-}
-
-#layout{
-flex-direction:column;
-height:auto;
-}
-
+@media(max-width:900px){
+body{overflow:auto}
+#layout{flex-direction:column;height:auto}
 #sidebar{
 display:none;
 position:fixed;
-left:0;
-top:0;
-bottom:0;
+left:0;top:0;bottom:0;
 width:290px;
-z-index:99999;
+z-index:9999;
 border-radius:0;
 }
-
-#sidebar.show{
-display:flex;
-}
-
-#mobileSidebar{
-display:block;
-}
-
-#chatBox{
-height:58vh;
-}
-
-.modeBtn{
-padding:10px 14px;
-font-size:14px;
-}
+#sidebar.show{display:flex}
+#mobileSidebar{display:block}
+#chatBox{height:58vh}
 }
 </style>
 </head>
 
 <body>
 
+<!-- AUTH MODAL -->
+<div id="authModal">
+<div class="modalCard">
+
+<div class="flex justify-between items-center mb-4">
+<div id="authTitle" class="text-2xl text-violet-300">Login</div>
+<button onclick="closeAuth()">✕</button>
+</div>
+
+<input id="authName" class="authInput hidden" placeholder="Full Name">
+<input id="authEmail" class="authInput" placeholder="Email">
+<input id="authPass" type="password" class="authInput" placeholder="Password">
+
+<button class="btn" onclick="submitAuth()" id="authBtn">Login</button>
+
+<div class="text-center mt-4 text-sm text-white/60">
+<span id="switchText">Don't have an account?</span>
+<button onclick="switchAuth()" class="text-violet-300 ml-1" id="switchBtn">Sign Up</button>
+</div>
+
+<div id="authMsg" class="text-red-300 text-sm mt-3"></div>
+
+</div>
+</div>
+
+<!-- SETTINGS PANEL -->
+<div id="panelModal">
+<div class="modalCard" id="panelContent"></div>
+</div>
+
 <div id="layout" class="h-screen flex gap-3 p-3">
 
-<!-- LEFT SIDEBAR -->
+<!-- SIDEBAR -->
 <div id="sidebar" class="w-[300px] glass rounded-3xl border border-white/10 p-4 flex flex-col h-full overflow-hidden">
 
-<!-- LOGO -->
 <div class="flex gap-3 items-center mb-4">
-<img src="/static/logo.png" class="w-12 h-12 rounded-xl object-contain">
+<img src="/static/logo.png" class="w-12 h-12 rounded-xl">
 <div>
 <div class="text-3xl tracking-[6px] text-violet-300">CIPHER</div>
 <div class="text-xs text-white/55">AI Cyber Assistant</div>
 </div>
 </div>
 
-<!-- NEW CHAT -->
 <button onclick="newChat()" class="w-full py-3 rounded-2xl border border-violet-500 mb-4">
 + NEW CHAT
 </button>
 
 <!-- CHAT HISTORY -->
-<div id="historyWrap" class="flex-1 min-h-[160px] overflow-y-auto scrollbar space-y-2 mb-3 pr-1">
-<div id="historyBox" class="space-y-2"></div>
-</div>
-
-<!-- TOOL HEADER -->
-<div class="mb-2 flex justify-between items-center px-1">
-<div class="text-[11px] tracking-[4px] text-white/40">
-SECURITY TOOLS
-</div>
-
-<button id="toolsToggleBtn" onclick="toggleTools()" class="text-xs text-violet-300">
-HIDE
-</button>
-</div>
+<div id="historyBox" class="flex-1 overflow-y-auto scrollbar space-y-2 mb-3"></div>
 
 <!-- TOOLS -->
-<div id="toolsWrap" class="h-[290px] overflow-hidden transition-all duration-300">
-
-<div id="toolsPanel" class="space-y-2 overflow-y-auto scrollbar h-full pr-1">
-
-<div class="toolCard" onclick="openTool('hash')">
-<div>🔐 Hash Tool</div><div>i</div>
+<div class="mb-2 flex justify-between items-center px-1">
+<div class="text-[11px] tracking-[4px] text-white/40">SECURITY TOOLS</div>
+<button onclick="toggleTools()" id="toolBtn" class="text-xs text-violet-300">HIDE</button>
 </div>
 
-<div class="toolCard" onclick="openTool('base64')">
-<div>📦 Base64 Tool</div><div>i</div>
-</div>
+<div id="toolsPanel" class="space-y-2 overflow-y-auto scrollbar h-[250px]">
 
-<div class="toolCard" onclick="openTool('password')">
-<div>🔑 Password Check</div><div>i</div>
-</div>
+<div class="toolCard"><div>🔐 Hash Tool</div><div>i</div></div>
+<div class="toolCard"><div>📦 Base64 Tool</div><div>i</div></div>
+<div class="toolCard"><div>🔑 Password Check</div><div>i</div></div>
+<div class="toolCard"><div>🪪 JWT Decoder</div><div>i</div></div>
+<div class="toolCard"><div>🛡 Header Scan</div><div>i</div></div>
+<div class="toolCard"><div>📜 Log Analyzer</div><div>i</div></div>
 
-<div class="toolCard" onclick="openTool('jwt')">
-<div>🪪 JWT Decoder</div><div>i</div>
-</div>
-
-<div class="toolCard" onclick="openTool('headers')">
-<div>🛡 Header Scan</div><div>i</div>
-</div>
-
-<div class="toolCard" onclick="openTool('logs')">
-<div>📜 Log Analyzer</div><div>i</div>
-</div>
-
-</div>
 </div>
 
 <!-- ACCOUNT -->
@@ -271,14 +241,13 @@ GU
 
 </div>
 
-<!-- RIGHT SIDE -->
+<!-- MAIN -->
 <div class="flex-1 flex flex-col gap-3">
 
-<!-- TOP -->
 <div class="glass rounded-3xl border border-white/10 px-6 py-5 flex justify-between items-center">
 
 <div class="flex items-center gap-3">
-<button id="mobileSidebar" onclick="toggleSidebar()" class="text-xl">☰</button>
+<button id="mobileSidebar" onclick="toggleSidebar()" class="hidden text-xl">☰</button>
 <div class="text-violet-300 tracking-widest text-lg">⚡ AI SECURITY CORE</div>
 </div>
 
@@ -294,39 +263,29 @@ GU
 <div id="chatBox" class="flex-1 glass rounded-3xl border border-white/10 p-5 overflow-y-auto scrollbar space-y-4"></div>
 
 <!-- INPUT -->
-<div class="glass rounded-3xl border border-white/10 p-3 flex flex-col gap-3">
+<div class="glass rounded-3xl border border-white/10 p-3 flex gap-3">
 
-<img id="imagePreview">
-
-<div class="flex gap-3 items-end">
-
-<label for="imageUpload"
-class="w-14 h-14 rounded-2xl bg-[#101844] flex items-center justify-center cursor-pointer text-xl">
-📎
-</label>
-
-<input type="file" id="imageUpload" hidden accept="image/*" onchange="previewImage(event)">
-
-<textarea
-id="prompt"
+<textarea id="prompt"
 rows="2"
 placeholder="Ask anything..."
 class="inputbox flex-1 rounded-2xl px-5 py-4 resize-none"></textarea>
 
-<button onclick="sendMsg()" class="w-20 h-14 rounded-2xl bg-violet-500 text-xl">
+<button onclick="sendMsg()" class="w-24 rounded-2xl bg-violet-500 text-xl">
 ➤
 </button>
 
 </div>
-</div>
 
 </div>
+
 </div>
 
 <script>
 let mode="fast";
-let toolsOpen=true;
+let authMode="login";
 let loggedUser=null;
+let chats=[];
+let currentChat=null;
 
 /* MODE */
 function setMode(m){
@@ -335,41 +294,161 @@ document.querySelectorAll(".modeBtn").forEach(x=>x.classList.remove("modeActive"
 document.getElementById(m+"Btn").classList.add("modeActive");
 }
 
-/* MOBILE */
+/* MODEL LABEL */
+function modelLabel(){
+if(mode==="thinking") return "🧠 Claude";
+if(mode==="code") return "💻 Mixtral";
+return "⚡ Groq";
+}
+
+/* SIDEBAR MOBILE */
 function toggleSidebar(){
-document.getElementById("sidebar").classList.toggle("show");
+sidebar.classList.toggle("show");
 }
 
-/* TOOLS TOGGLE */
+/* TOOLS */
 function toggleTools(){
-
-const wrap=document.getElementById("toolsWrap");
-const btn=document.getElementById("toolsToggleBtn");
-
-toolsOpen=!toolsOpen;
-
-if(toolsOpen){
-wrap.style.height="290px";
-btn.innerText="HIDE";
+if(toolsPanel.style.display==="none"){
+toolsPanel.style.display="block";
+toolBtn.innerText="HIDE";
 }else{
-wrap.style.height="0px";
-btn.innerText="SHOW";
+toolsPanel.style.display="none";
+toolBtn.innerText="SHOW";
 }
+}
+
+/* CHATGPT STYLE HISTORY */
+function newChat(){
+currentChat={
+id:Date.now(),
+title:"New Chat",
+messages:[]
+};
+chats.unshift(currentChat);
+renderHistory();
+chatBox.innerHTML="";
+saveChats();
+}
+
+function renderHistory(){
+historyBox.innerHTML="";
+chats.forEach(chat=>{
+let div=document.createElement("div");
+div.className="bg-[#101844] rounded-xl px-3 py-2 text-sm cursor-pointer";
+div.innerText=chat.title;
+div.onclick=()=>loadChat(chat.id);
+historyBox.appendChild(div);
+});
+}
+
+function loadChat(id){
+currentChat=chats.find(x=>x.id===id);
+chatBox.innerHTML="";
+currentChat.messages.forEach(m=>{
+if(m.role==="user"){
+chatBox.innerHTML+=`
+<div class="text-right">
+<div class="userBubble">${m.text}</div>
+</div>`;
+}else{
+chatBox.innerHTML+=`
+<div class="msgbox">
+<div class="text-xs text-violet-300 mb-2">${m.model}</div>
+${m.text}
+</div>`;
+}
+});
+}
+
+function saveChats(){
+localStorage.setItem("cipher_chats",JSON.stringify(chats));
+}
+
+function loadChats(){
+let data=localStorage.getItem("cipher_chats");
+if(data){
+chats=JSON.parse(data);
+renderHistory();
+}
+}
+
+/* SEND */
+async function sendMsg(){
+
+let text=prompt.value.trim();
+if(!text)return;
+
+if(!currentChat)newChat();
+
+chatBox.innerHTML+=`
+<div class="text-right">
+<div class="userBubble">${text}</div>
+</div>`;
+
+currentChat.messages.push({role:"user",text:text});
+
+if(currentChat.title==="New Chat"){
+currentChat.title=text.slice(0,28);
+renderHistory();
+}
+
+prompt.value="";
+
+chatBox.innerHTML+=`
+<div id="typingBox" class="msgbox">Thinking...</div>`;
+
+chatBox.scrollTop=chatBox.scrollHeight;
+
+try{
+let res=await fetch("/chat",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({
+message:text,
+mode:mode
+})
+});
+
+let data=await res.json();
+
+typingBox.remove();
+
+let reply=(data.response || "No response").replace(/\n/g,"<br>");
+
+chatBox.innerHTML+=`
+<div class="msgbox">
+<div class="text-xs text-violet-300 mb-2">${modelLabel()}</div>
+${reply}
+</div>`;
+
+currentChat.messages.push({
+role:"ai",
+text:reply,
+model:modelLabel()
+});
+
+saveChats();
+
+}catch{
+typingBox.remove();
+chatBox.innerHTML+=`
+<div class="msgbox text-red-300">Server Error</div>`;
+}
+
+chatBox.scrollTop=chatBox.scrollHeight;
 }
 
 /* ACCOUNT MENU */
 function toggleMenu(){
-
-const menu=document.getElementById("menu");
 
 menu.style.display=menu.style.display==="block"?"none":"block";
 
 if(loggedUser){
 
 menu.innerHTML=`
-<div class="menuItem">Profile</div>
-<div class="menuItem">Settings</div>
-<div class="menuItem">Personalization</div>
+<div class="menuItem" onclick="openPanel('profile')">Profile</div>
+<div class="menuItem" onclick="openPanel('settings')">Settings</div>
+<div class="menuItem" onclick="openPanel('personalization')">Personalization</div>
 <div class="sep"></div>
 <div class="menuItem text-red-300" onclick="logoutUser()">Logout</div>
 `;
@@ -377,33 +456,125 @@ menu.innerHTML=`
 }else{
 
 menu.innerHTML=`
-<div class="menuItem" onclick="loginUser()">Login</div>
-<div class="menuItem" onclick="signupUser()">Sign Up</div>
+<div class="menuItem" onclick="openAuth('login')">Login</div>
+<div class="menuItem" onclick="openAuth('signup')">Sign Up</div>
 <div class="sep"></div>
 <div class="menuItem">Help</div>
 `;
-
 }
 }
 
-/* LOGIN DEMO */
-function loginUser(){
-loggedUser={name:"Prasanna",email:"user@mail.com"};
+/* AUTH */
+function openAuth(type){
+authMode=type;
+authModal.style.display="flex";
+
+if(type==="login"){
+authTitle.innerText="Login";
+authBtn.innerText="Login";
+authName.classList.add("hidden");
+}else{
+authTitle.innerText="Sign Up";
+authBtn.innerText="Create Account";
+authName.classList.remove("hidden");
+}
+}
+
+function closeAuth(){
+authModal.style.display="none";
+}
+
+function switchAuth(){
+openAuth(authMode==="login"?"signup":"login");
+}
+
+function submitAuth(){
+
+let email=authEmail.value.trim();
+let pass=authPass.value.trim();
+let name=authName.value.trim();
+
+let users=JSON.parse(localStorage.getItem("cipher_users") || "[]");
+
+if(authMode==="signup"){
+
+if(!email || !pass || !name){
+authMsg.innerText="Fill all fields";
+return;
+}
+
+users.push({name,email,pass});
+localStorage.setItem("cipher_users",JSON.stringify(users));
+
+loggedUser={name,email};
+localStorage.setItem("cipher_user",JSON.stringify(loggedUser));
+
+}else{
+
+let found=users.find(x=>x.email===email && x.pass===pass);
+
+if(!found){
+authMsg.innerText="Invalid Login";
+return;
+}
+
+loggedUser={name:found.name,email:found.email};
+localStorage.setItem("cipher_user",JSON.stringify(loggedUser));
+}
+
 updateUserUI();
-document.getElementById("menu").style.display="none";
+closeAuth();
 }
 
-function signupUser(){
-loginUser();
+/* PANELS */
+function openPanel(type){
+
+panelModal.style.display="flex";
+
+if(type==="profile"){
+panelContent.innerHTML=`
+<div class="text-2xl text-violet-300 mb-4">Profile</div>
+<div>Name: ${loggedUser.name}</div>
+<div class="mt-2">Email: ${loggedUser.email}</div>
+`;
 }
 
+if(type==="settings"){
+panelContent.innerHTML=`
+<div class="text-2xl text-violet-300 mb-4">Settings</div>
+<div class="menuItem">Dark Mode</div>
+<div class="menuItem">Notifications</div>
+<div class="menuItem">Language</div>
+`;
+}
+
+if(type==="personalization"){
+panelContent.innerHTML=`
+<div class="text-2xl text-violet-300 mb-4">Personalization</div>
+<div class="menuItem">Memory</div>
+<div class="menuItem">Response Style</div>
+<div class="menuItem">Preferred Model</div>
+`;
+}
+}
+
+panelModal.onclick=function(e){
+if(e.target===panelModal) panelModal.style.display="none";
+}
+
+/* LOGOUT */
 function logoutUser(){
 loggedUser=null;
+localStorage.removeItem("cipher_user");
 updateUserUI();
-document.getElementById("menu").style.display="none";
+menu.style.display="none";
 }
 
+/* UPDATE UI */
 function updateUserUI(){
+
+let user=localStorage.getItem("cipher_user");
+if(user) loggedUser=JSON.parse(user);
 
 if(loggedUser){
 avatar.innerText=loggedUser.name.slice(0,2).toUpperCase();
@@ -416,103 +587,7 @@ memberType.innerText="Guest";
 }
 }
 
-/* IMAGE PREVIEW */
-function previewImage(e){
-
-let file=e.target.files[0];
-if(!file)return;
-
-let reader=new FileReader();
-
-reader.onload=function(x){
-imagePreview.src=x.target.result;
-imagePreview.style.display="block";
-}
-
-reader.readAsDataURL(file);
-}
-
-/* CHAT */
-async function sendMsg(){
-
-let box=document.getElementById("prompt");
-let text=box.value.trim();
-
-if(!text)return;
-
-chatBox.innerHTML+=`
-<div class="text-right">
-<div class="userBubble">${text}</div>
-</div>`;
-
-saveHistory(text);
-
-box.value="";
-
-chatBox.innerHTML+=`
-<div id="typingBox" class="msgbox">Thinking...</div>`;
-
-chatBox.scrollTop=chatBox.scrollHeight;
-
-try{
-
-let res=await fetch("/chat",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({
-message:text,
-mode:mode
-})
-});
-
-let data=await res.json();
-
-document.getElementById("typingBox")?.remove();
-
-chatBox.innerHTML+=`
-<div class="msgbox">${(data.response || "No response").replace(/\n/g,"<br>")}</div>`;
-
-}catch{
-
-document.getElementById("typingBox")?.remove();
-
-chatBox.innerHTML+=`
-<div class="msgbox text-red-300">Server Error</div>`;
-}
-
-chatBox.scrollTop=chatBox.scrollHeight;
-}
-
-/* NEW CHAT */
-function newChat(){
-chatBox.innerHTML="";
-}
-
-/* TOOLS */
-function openTool(name){
-chatBox.innerHTML+=`
-<div class="msgbox">
-<div class="text-violet-300">Tool Opened: ${name.toUpperCase()}</div>
-</div>`;
-chatBox.scrollTop=chatBox.scrollHeight;
-}
-
-/* HISTORY */
-function saveHistory(text){
-
-let box=document.getElementById("historyBox");
-
-let div=document.createElement("div");
-div.className="bg-[#101844] rounded-xl px-3 py-2 text-sm cursor-pointer";
-div.innerText=text.slice(0,28);
-
-div.onclick=function(){
-prompt.value=text;
-}
-
-box.prepend(div);
-}
-
+loadChats();
 updateUserUI();
 </script>
 
