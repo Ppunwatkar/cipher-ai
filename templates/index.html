@@ -9,40 +9,55 @@
 
 <style>
 *{box-sizing:border-box}
-body{
+html,body{
 margin:0;
 padding:0;
+height:100%;
 overflow:hidden;
 font-family:Consolas,monospace;
 color:#fff;
 background:linear-gradient(135deg,#020617,#07113b,#020617);
 }
+body{user-select:none}
+input,textarea,button{font-family:inherit}
+
 .glass{
 background:rgba(8,12,35,.72);
 backdrop-filter:blur(18px);
 }
-.scrollbar::-webkit-scrollbar{width:5px}
+
+.scrollbar::-webkit-scrollbar{width:5px;height:5px}
 .scrollbar::-webkit-scrollbar-thumb{
 background:#7c3aed;
 border-radius:20px;
 }
+
 .inputbox,.authInput{
 background:#020617;
 border:1px solid rgba(255,255,255,.08);
 color:#fff;
 outline:none;
 }
+
 .inputbox:focus,.authInput:focus{
 border-color:#8b5cf6;
+box-shadow:0 0 0 1px #8b5cf6;
 }
+
 .modeBtn{
 border:1px solid rgba(255,255,255,.08);
 transition:.2s;
 }
+
+.modeBtn:hover{
+border-color:#8b5cf6;
+}
+
 .modeActive{
 background:rgba(124,58,237,.18);
 border-color:#8b5cf6!important;
 }
+
 .userBubble{
 background:#101844;
 padding:14px 16px;
@@ -51,12 +66,14 @@ display:inline-block;
 max-width:75%;
 word-break:break-word;
 }
+
 .msgbox{
 background:rgba(72,55,170,.12);
 border-left:2px solid #8b5cf6;
 padding:16px;
 border-radius:18px;
 }
+
 .toolCard{
 padding:12px 14px;
 border-radius:18px;
@@ -64,90 +81,74 @@ border:1px solid rgba(255,255,255,.06);
 background:rgba(255,255,255,.02);
 display:flex;
 justify-content:space-between;
+align-items:center;
 cursor:pointer;
 transition:.2s;
 }
+
 .toolCard:hover{
 border-color:#8b5cf6;
 background:rgba(124,58,237,.08);
 }
+
 #menu{
 display:none;
 position:absolute;
 left:0;
-bottom:70px;
+bottom:72px;
 width:290px;
 background:#11162f;
 border:1px solid rgba(255,255,255,.08);
 border-radius:22px;
 padding:8px;
-z-index:9999;
+z-index:99999;
 }
+
 .menuItem{
 padding:12px 14px;
 border-radius:14px;
 cursor:pointer;
+transition:.2s;
 }
+
 .menuItem:hover{
 background:rgba(255,255,255,.08);
 }
+
 .sep{
 height:1px;
 background:rgba(255,255,255,.08);
 margin:8px 0;
 }
-#authModal,#panelModal{
-position:fixed;
-inset:0;
-display:none;
-align-items:center;
-justify-content:center;
-background:rgba(0,0,0,.55);
-z-index:99999;
+
+#chatBox pre{
+margin:0;
+white-space:pre;
+overflow:auto;
 }
-.modalCard{
-width:420px;
-max-width:95%;
-background:#070d2c;
-border:1px solid rgba(255,255,255,.08);
-border-radius:24px;
-padding:24px;
-}
-.authInput{
-width:100%;
-padding:12px;
-border-radius:14px;
-margin-bottom:10px;
-}
-.btn{
-padding:11px 16px;
-border-radius:14px;
-background:#7c3aed;
-width:100%;
-}
-pre{margin:0}
+
 @media(max-width:900px){
-body{overflow:auto}
-#layout{flex-direction:column;height:auto}
+#layout{
+flex-direction:column;
+height:auto;
+}
 #sidebar{
 display:none;
 position:fixed;
-left:0;top:0;bottom:0;
+left:0;
+top:0;
+bottom:0;
 width:290px;
-z-index:9999;
+z-index:99999;
 border-radius:0;
 }
 #sidebar.show{display:flex}
-#mobileSidebar{display:block}
 #chatBox{height:58vh}
 }
 </style>
 </head>
 
 <body>
-
-<div id="authModal"></div>
-<div id="panelModal"></div>
 
 <div id="layout" class="h-screen flex gap-3 p-3">
 
@@ -174,39 +175,45 @@ border-radius:0;
 </div>
 
 <div id="toolsPanel" class="space-y-2 overflow-y-auto scrollbar h-[250px]">
-<div class="toolCard"><div>🔐 Hash Tool</div><div>i</div></div>
-<div class="toolCard"><div>📦 Base64 Tool</div><div>i</div></div>
-<div class="toolCard"><div>🔑 Password Check</div><div>i</div></div>
-<div class="toolCard"><div>🪪 JWT Decoder</div><div>i</div></div>
-<div class="toolCard"><div>🛡 Header Scan</div><div>i</div></div>
-<div class="toolCard"><div>📜 Log Analyzer</div><div>i</div></div>
+<div class="toolCard"><span>🔐 Hash Tool</span><span>i</span></div>
+<div class="toolCard"><span>📦 Base64 Tool</span><span>i</span></div>
+<div class="toolCard"><span>🔑 Password Check</span><span>i</span></div>
+<div class="toolCard"><span>🪪 JWT Decoder</span><span>i</span></div>
+<div class="toolCard"><span>🛡 Header Scan</span><span>i</span></div>
+<div class="toolCard"><span>📜 Log Analyzer</span><span>i</span></div>
 </div>
 
 <div class="relative mt-3">
+
 <div onclick="toggleMenu()" class="bg-[#0d153d] rounded-2xl border border-white/10 px-4 py-3 cursor-pointer">
 <div class="flex gap-3 items-center">
-<div id="avatar" class="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center font-bold">GU</div>
+<div class="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center font-bold">GU</div>
 <div class="flex-1">
-<div id="username">Guest User</div>
-<div id="memberType" class="text-xs text-white/45">Guest</div>
+<div>Guest User</div>
+<div class="text-xs text-white/45">Guest</div>
 </div>
 <div>›</div>
 </div>
 </div>
-<div id="menu"></div>
+
+<div id="menu">
+<div class="menuItem">Login</div>
+<div class="menuItem">Sign Up</div>
+<div class="sep"></div>
+<div class="menuItem">Settings</div>
+</div>
+
 </div>
 
 </div>
 
 <!-- MAIN -->
-<div class="flex-1 flex flex-col gap-3">
+<div class="flex-1 flex flex-col gap-3 min-w-0">
 
+<!-- TOP -->
 <div class="glass rounded-3xl border border-white/10 px-6 py-5 flex justify-between items-center">
 
-<div class="flex items-center gap-3">
-<button id="mobileSidebar" onclick="toggleSidebar()" class="hidden text-xl">☰</button>
 <div class="text-violet-300 tracking-widest text-lg">⚡ AI SECURITY CORE</div>
-</div>
 
 <div class="flex gap-2">
 <button id="thinkingBtn" onclick="setMode('thinking')" class="modeBtn px-5 py-3 rounded-full">THINK</button>
@@ -216,16 +223,35 @@ border-radius:0;
 
 </div>
 
+<!-- CHAT -->
 <div id="chatBox" class="flex-1 glass rounded-3xl border border-white/10 p-5 overflow-y-auto scrollbar space-y-4"></div>
 
-<div class="glass rounded-3xl border border-white/10 p-3 flex gap-3">
+<!-- INPUT -->
+<div class="glass rounded-3xl border border-white/10 p-3 flex gap-3 relative z-50">
 
-<textarea id="prompt"
+<textarea
+id="prompt"
 rows="2"
 placeholder="Ask anything..."
-class="inputbox flex-1 rounded-2xl px-5 py-4 resize-none"></textarea>
+autocomplete="off"
+spellcheck="false"
+class="inputbox flex-1 rounded-2xl px-5 py-4 resize-none"
+style="
+min-height:60px;
+max-height:160px;
+overflow-y:auto;
+pointer-events:auto;
+position:relative;
+z-index:9999;
+user-select:text;
+-webkit-user-select:text;
+"
+></textarea>
 
-<button onclick="sendMsg()" class="w-24 rounded-2xl bg-violet-500 text-xl">
+<button
+type="button"
+onclick="sendMsg()"
+class="w-24 rounded-2xl bg-violet-500 text-xl shrink-0 relative z-50">
 ➤
 </button>
 
@@ -239,24 +265,43 @@ let mode="fast";
 let chats=[];
 let currentChat=null;
 
-/* ENTER SEND */
+/* INIT */
 document.addEventListener("DOMContentLoaded",()=>{
 
-prompt.focus();
+const box=document.getElementById("prompt");
 
-prompt.addEventListener("keydown",(e)=>{
+box.disabled=false;
+box.readOnly=false;
+box.style.pointerEvents="auto";
+
+setTimeout(()=>box.focus(),300);
+
+box.addEventListener("keydown",function(e){
+
 if(e.key==="Enter" && !e.shiftKey){
 e.preventDefault();
 sendMsg();
 }
-});
+
+setTimeout(()=>{
+this.style.height="auto";
+this.style.height=this.scrollHeight+"px";
+},0);
 
 });
 
-/* MODE FIXED
+box.addEventListener("input",function(){
+this.style.height="auto";
+this.style.height=this.scrollHeight+"px";
+});
+
+loadChats();
+});
+
+/* MODES
 THINK = GPT
-FAST = GROQ
-CODE = CLAUDE
+FAST  = GROQ
+CODE  = CLAUDE
 */
 function setMode(m){
 mode=m;
@@ -270,6 +315,11 @@ if(mode==="code") return "💻 Claude";
 return "⚡ Groq";
 }
 
+/* MENU */
+function toggleMenu(){
+menu.style.display = menu.style.display==="block" ? "none":"block";
+}
+
 /* TOOLS */
 function toggleTools(){
 if(toolsPanel.style.display==="none"){
@@ -279,19 +329,6 @@ toolBtn.innerText="HIDE";
 toolsPanel.style.display="none";
 toolBtn.innerText="SHOW";
 }
-}
-
-/* MENU */
-function toggleMenu(){
-menu.style.display=menu.style.display==="block"?"none":"block";
-
-menu.innerHTML=`
-<div class="menuItem">Profile</div>
-<div class="menuItem">Settings</div>
-<div class="menuItem">Personalization</div>
-<div class="sep"></div>
-<div class="menuItem text-red-300">Logout</div>
-`;
 }
 
 /* HISTORY */
@@ -310,10 +347,11 @@ prompt.focus();
 
 function renderHistory(){
 historyBox.innerHTML="";
+
 chats.forEach(chat=>{
 let div=document.createElement("div");
 div.className="bg-[#101844] rounded-xl px-3 py-2 text-sm cursor-pointer";
-div.innerText=chat.title;
+div.textContent=chat.title;
 div.onclick=()=>loadChat(chat.id);
 historyBox.appendChild(div);
 });
@@ -337,6 +375,8 @@ ${m.text}
 </div>`;
 }
 });
+
+chatBox.scrollTop=chatBox.scrollHeight;
 }
 
 function saveChats(){
@@ -353,8 +393,7 @@ renderHistory();
 
 /* CODE BLOCK */
 function copyCode(id){
-let text=document.getElementById(id).innerText;
-navigator.clipboard.writeText(text);
+navigator.clipboard.writeText(document.getElementById(id).innerText);
 }
 
 function formatReply(text){
@@ -367,10 +406,11 @@ return text.replace(/\n/g,"<br>");
 
 regex.lastIndex=0;
 
-return text.replace(regex,function(match,code){
+return text.replace(regex,(match,code)=>{
 
 let clean=code
 .replace(/^python/i,"")
+.replace(/^java/i,"")
 .replace(/^javascript/i,"")
 .replace(/^js/i,"")
 .trim();
@@ -383,11 +423,9 @@ return `
 <div class="mt-4 border border-white/10 rounded-2xl overflow-hidden bg-[#05091f]">
 <div class="flex justify-between items-center px-4 py-2 bg-[#0c1438] text-sm text-violet-300">
 <span>Code</span>
-<button onclick="copyCode('${id}')" class="text-xs px-3 py-1 rounded-lg bg-violet-600">
-Copy
-</button>
+<button onclick="copyCode('${id}')" class="text-xs px-3 py-1 rounded-lg bg-violet-600">Copy</button>
 </div>
-<pre id="${id}" class="p-4 overflow-x-auto whitespace-pre">${clean}</pre>
+<pre id="${id}" class="p-4 scrollbar">${clean}</pre>
 </div>
 `;
 
@@ -397,11 +435,14 @@ Copy
 /* SEND */
 async function sendMsg(){
 
-let text=prompt.value.trim();
+const box=document.getElementById("prompt");
+let text=box.value.trim();
+
 if(!text)return;
 
 if(!currentChat)newChat();
 
+/* user bubble */
 chatBox.innerHTML+=`
 <div class="text-right">
 <div class="userBubble">${text}</div>
@@ -413,13 +454,15 @@ text:text
 });
 
 if(currentChat.title==="New Chat"){
-currentChat.title=text.slice(0,28);
+currentChat.title=text.slice(0,30);
 renderHistory();
 }
 
-prompt.value="";
-prompt.focus();
+box.value="";
+box.style.height="60px";
+box.focus();
 
+/* typing */
 chatBox.innerHTML+=`
 <div id="typingBox" class="msgbox">
 <div class="text-xs text-violet-300 mb-2">${modelLabel()}</div>
@@ -473,8 +516,6 @@ Backend /chat route not responding
 
 chatBox.scrollTop=chatBox.scrollHeight;
 }
-
-loadChats();
 </script>
 
 </body>
